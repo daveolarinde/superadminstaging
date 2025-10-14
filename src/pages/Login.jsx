@@ -6,22 +6,26 @@ export default function Login({ setIsAuthenticated }) {
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [error, setError] = useState("");
+   const [loading, setLoading] = useState(false); 
   const navigate = useNavigate();
 
   const handleSubmit = async (e) => {
     e.preventDefault();
     setError("");
+    setLoading(true);
 
     try {
       const res = await loginSuperAdmin(email, password);
-      localStorage.setItem("token", res.data.token);
+      sessionStorage.setItem("token", res.data.token);
       setIsAuthenticated(true);
-      navigate("/dashboard");
+      navigate("/admin");
     } catch (err) {
       console.error(err);
       setError(
         err.response?.data?.message || "Login failed. Please check credentials."
       );
+    }finally {
+      setLoading(false); 
     }
   };
 
@@ -73,11 +77,16 @@ export default function Login({ setIsAuthenticated }) {
             <p className="text-sm text-red-500 text-center">{error}</p>
           )}
 
-          <button
+           <button
             type="submit"
-            className="w-full py-2 bg-[#8b54af] text-white font-semibold rounded-lg shadow hover:bg-emerald-700 transition duration-200"
+            disabled={loading}
+            className={`w-full py-2 rounded-lg font-semibold text-white shadow transition duration-200 ${
+              loading
+                ? "bg-gray-400 cursor-not-allowed"
+                : "bg-[#8b54af] hover:bg-[#7a47a0]"
+            }`}
           >
-            Login
+            {loading ? "Logging in..." : "Login"}
           </button>
         </form>
       </div>
