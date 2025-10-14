@@ -191,10 +191,10 @@ export default function Sidebar({ active, setActive }) {
             <div className="flex items-center justify-between">
               <div className="flex items-center gap-3">
                 <div className="rounded-full w-10 h-10 bg-emerald-400 flex items-center justify-center font-bold text-slate-900">
-                  W
+                  S
                 </div>
                 <div>
-                  <div className="font-bold">Waiz</div>
+                  <div className="font-bold">SuperAdmin</div>
                   <div className="text-xs text-slate-300">Admin</div>
                 </div>
               </div>
