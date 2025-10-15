@@ -1,5 +1,5 @@
-import { useState, useEffect } from "react";
-import { Routes, Route, Navigate } from "react-router-dom";
+import { useState, useEffect, useCallback } from "react";
+import { Routes, Route, Navigate, useNavigate } from "react-router-dom";
 
 import Login from "./pages/Login";
 import DashboardPage from "./pages/DashboardPage";
@@ -20,20 +20,53 @@ function ProtectedRoute({ children }) {
 
 export default function App() {
   const [isAuthenticated, setIsAuthenticated] = useState(false);
+  const navigate = useNavigate();
 
-  // ✅ Check if user is already logged in (token in localStorage)
+  // ✅ Auto Logout Timer Reference
+  const AUTO_LOGOUT_TIME = 30 * 60 * 1000; // 30 minutes
+  let logoutTimer;
+
+  // ✅ Logout Function
+  const handleLogout = useCallback(() => {
+    localStorage.removeItem("token");
+    setIsAuthenticated(false);
+    navigate("/login", { replace: true });
+  }, [navigate]);
+
+  // ✅ Reset Timer on User Activity
+  const resetTimer = useCallback(() => {
+    clearTimeout(logoutTimer);
+    logoutTimer = setTimeout(handleLogout, AUTO_LOGOUT_TIME);
+  }, [handleLogout]);
+
+  // ✅ Detect user activity (mouse, keyboard, visibility)
   useEffect(() => {
     const token = localStorage.getItem("token");
     if (token) {
       setIsAuthenticated(true);
-    } else {
-      setIsAuthenticated(false);
+      resetTimer();
     }
-  }, []);
+
+    const events = ["mousemove", "keydown", "click"];
+    events.forEach((event) => window.addEventListener(event, resetTimer));
+    document.addEventListener("visibilitychange", () => {
+      if (document.hidden) {
+        // If the tab is hidden, we still let timer run
+      } else {
+        // When tab is active again, reset timer
+        resetTimer();
+      }
+    });
+
+    return () => {
+      events.forEach((event) => window.removeEventListener(event, resetTimer));
+      clearTimeout(logoutTimer);
+    };
+  }, [resetTimer]);
 
   return (
     <Routes>
-      {/* ✅ Login Page */}
+      {/* Login Page */}
       <Route
         path="/login"
         element={
@@ -45,7 +78,7 @@ export default function App() {
         }
       />
 
-      {/* ✅ Protected Admin Area */}
+      {/*  Protected Admin Area */}
       <Route
         path="/admin"
         element={
@@ -54,25 +87,17 @@ export default function App() {
           </ProtectedRoute>
         }
       >
-        {/* Default route */}
         <Route index element={<Dashboard />} />
-
-        {/* Transaction Routes */}
         <Route path="transaction-summary" element={<TransactionSummary />} />
         <Route path="transaction" element={<TransactionTable />} />
-
-        {/* User Management */}
         <Route path="all-users" element={<AllUsers />} />
         <Route path="active-users" element={<ActiveUsers />} />
         <Route path="blocked-users" element={<BlockedUsers />} />
-
-        {/* KYC Management */}
         <Route path="kyc-approved" element={<Approved />} />
         <Route path="kyc-pending" element={<Pending />} />
         <Route path="kyc-rejected" element={<Rejected />} />
       </Route>
 
-      {/* ✅ Fallback */}
       <Route path="*" element={<Navigate to="/admin" replace />} />
     </Routes>
   );
