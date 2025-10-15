@@ -7,6 +7,7 @@ export default function Header({ onAllowNotifications, setIsAuthenticated }) {
   const [showMenu, setShowMenu] = useState(false);
   const navigate = useNavigate();
 
+  // ✅ Handle notification permission
   const handleAllow = () => {
     if ("Notification" in window) {
       Notification.requestPermission().then((perm) => {
@@ -16,19 +17,21 @@ export default function Header({ onAllowNotifications, setIsAuthenticated }) {
     }
   };
 
+  // ✅ Fixed logout (uses localStorage)
   const handleLogout = () => {
-    // Always remove token
-    localStorage.removeItem("token");
+    try {
+      localStorage.removeItem("token"); // ✅ consistent with api.js and login.jsx
 
-    // Call the prop if it exists
-    if (typeof setIsAuthenticated === "function") {
-      setIsAuthenticated(false);
-    } else {
-      console.warn("⚠️ setIsAuthenticated prop was not provided to <Header>");
+      if (typeof setIsAuthenticated === "function") {
+        setIsAuthenticated(false);
+      } else {
+        console.warn("⚠️ setIsAuthenticated prop not provided to <Header>");
+      }
+
+      navigate("/login", { replace: true });
+    } catch (err) {
+      console.error("Error during logout:", err);
     }
-
-    // Navigate to login
-    navigate("/admin");
   };
 
   return (
@@ -37,7 +40,8 @@ export default function Header({ onAllowNotifications, setIsAuthenticated }) {
       {showBanner && (
         <div className="bg-red-50 py-5 text-red-600 p-3 rounded-md flex-1 flex flex-wrap items-center justify-between mb-4 md:mb-0">
           <span className="text-sm font-medium">
-            Attention! Please allow your browser to get instant push notification.
+            Attention! Please allow your browser to get instant push
+            notifications.
           </span>
           <div className="flex items-center gap-2">
             <button

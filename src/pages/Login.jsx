@@ -1,12 +1,12 @@
 import React, { useState } from "react";
 import { useNavigate } from "react-router-dom";
-import { loginSuperAdmin } from "../services/api"; 
+import { loginSuperAdmin } from "../services/api";
 
 export default function Login({ setIsAuthenticated }) {
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [error, setError] = useState("");
-   const [loading, setLoading] = useState(false); 
+  const [loading, setLoading] = useState(false);
   const navigate = useNavigate();
 
   const handleSubmit = async (e) => {
@@ -16,16 +16,16 @@ export default function Login({ setIsAuthenticated }) {
 
     try {
       const res = await loginSuperAdmin(email, password);
-      sessionStorage.setItem("token", res.data.token);
+      localStorage.setItem("token", res.data.token); // ✅ use localStorage
       setIsAuthenticated(true);
-      navigate("/admin");
+      navigate("/admin", { replace: true });
     } catch (err) {
-      console.error(err);
+      console.error("Login error:", err);
       setError(
         err.response?.data?.message || "Login failed. Please check credentials."
       );
-    }finally {
-      setLoading(false); 
+    } finally {
+      setLoading(false);
     }
   };
 
@@ -73,11 +73,9 @@ export default function Login({ setIsAuthenticated }) {
             />
           </div>
 
-          {error && (
-            <p className="text-sm text-red-500 text-center">{error}</p>
-          )}
+          {error && <p className="text-sm text-red-500 text-center">{error}</p>}
 
-           <button
+          <button
             type="submit"
             disabled={loading}
             className={`w-full py-2 rounded-lg font-semibold text-white shadow transition duration-200 ${

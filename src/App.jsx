@@ -1,4 +1,6 @@
+import { useState, useEffect } from "react";
 import { Routes, Route, Navigate } from "react-router-dom";
+
 import Login from "./pages/Login";
 import DashboardPage from "./pages/DashboardPage";
 import Dashboard from "./components/Dashboard";
@@ -12,29 +14,50 @@ import Approved from "./components/Kyc/Approved";
 import Rejected from "./components/Kyc/Rejected";
 
 function ProtectedRoute({ children }) {
-  const token = sessionStorage.getItem("token");
+  const token = localStorage.getItem("token");
   return token ? children : <Navigate to="/login" replace />;
 }
 
 export default function App() {
+  const [isAuthenticated, setIsAuthenticated] = useState(false);
+
+  // ✅ Check if user is already logged in (token in localStorage)
+  useEffect(() => {
+    const token = localStorage.getItem("token");
+    if (token) {
+      setIsAuthenticated(true);
+    } else {
+      setIsAuthenticated(false);
+    }
+  }, []);
+
   return (
     <Routes>
-      {/* Login Page */}
-      <Route path="/login" element={<Login />} />
+      {/* ✅ Login Page */}
+      <Route
+        path="/login"
+        element={
+          isAuthenticated ? (
+            <Navigate to="/admin" replace />
+          ) : (
+            <Login setIsAuthenticated={setIsAuthenticated} />
+          )
+        }
+      />
 
-      {/* Protected Admin Area */}
+      {/* ✅ Protected Admin Area */}
       <Route
         path="/admin"
         element={
           <ProtectedRoute>
-            <DashboardPage />
+            <DashboardPage setIsAuthenticated={setIsAuthenticated} />
           </ProtectedRoute>
         }
       >
         {/* Default route */}
         <Route index element={<Dashboard />} />
 
-        {/* Top-level routes */}
+        {/* Transaction Routes */}
         <Route path="transaction-summary" element={<TransactionSummary />} />
         <Route path="transaction" element={<TransactionTable />} />
 
@@ -49,7 +72,7 @@ export default function App() {
         <Route path="kyc-rejected" element={<Rejected />} />
       </Route>
 
-      {/* Fallback — redirects any unknown route */}
+      {/* ✅ Fallback */}
       <Route path="*" element={<Navigate to="/admin" replace />} />
     </Routes>
   );
