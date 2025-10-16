@@ -10,10 +10,9 @@ import TransactionTable from "./components/TransactionTable";
 import ActiveUsers from "./components/users/ActiveUsers";
 import BlockedUsers from "./components/users/BlockedUsers";
 import Pending from "./components/Kyc/KycPending";
-import Approved from "./components/Kyc/Approved";
+import Approved from "./components/Kyc/KycApproved";
 import Rejected from "./components/Kyc/KycRejected";
 
-// ✅ ProtectedRoute ensures user must be logged in
 function ProtectedRoute({ children }) {
   const token = localStorage.getItem("token");
   return token ? children : <Navigate to="/login" replace />;
@@ -23,7 +22,7 @@ export default function App() {
   const [isAuthenticated, setIsAuthenticated] = useState(false);
   const navigate = useNavigate();
 
-  // ✅ On mount, check for token
+
   useEffect(() => {
     const token = localStorage.getItem("token");
 
@@ -33,7 +32,7 @@ export default function App() {
       navigate("/login", { replace: true });
     }
 
-    // ✅ Automatically remove token on browser refresh
+    
     const handleBeforeUnload = () => {
       localStorage.removeItem("token");
     };
