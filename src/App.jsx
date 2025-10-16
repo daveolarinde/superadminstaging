@@ -1,4 +1,4 @@
-import { useState, useEffect, useCallback } from "react";
+import { useState, useEffect, useCallback, useRef } from "react";
 import { Routes, Route, Navigate, useNavigate } from "react-router-dom";
 
 import Login from "./pages/Login";
@@ -11,8 +11,9 @@ import ActiveUsers from "./components/users/ActiveUsers";
 import BlockedUsers from "./components/users/BlockedUsers";
 import Pending from "./components/Kyc/KycPending";
 import Approved from "./components/Kyc/Approved";
-import Rejected from "./components/Kyc/Rejected";
+import Rejected from "./components/Kyc/KycRejected";
 
+// ✅ ProtectedRoute ensures user must be logged in
 function ProtectedRoute({ children }) {
   const token = localStorage.getItem("token");
   return token ? children : <Navigate to="/login" replace />;
@@ -22,47 +23,26 @@ export default function App() {
   const [isAuthenticated, setIsAuthenticated] = useState(false);
   const navigate = useNavigate();
 
-  // ✅ Auto Logout Timer Reference
-  const AUTO_LOGOUT_TIME = 30 * 60 * 1000; // 30 minutes
-  let logoutTimer;
-
-  // ✅ Logout Function
-  const handleLogout = useCallback(() => {
-    localStorage.removeItem("token");
-    setIsAuthenticated(false);
-    navigate("/login", { replace: true });
-  }, [navigate]);
-
-  // ✅ Reset Timer on User Activity
-  const resetTimer = useCallback(() => {
-    clearTimeout(logoutTimer);
-    logoutTimer = setTimeout(handleLogout, AUTO_LOGOUT_TIME);
-  }, [handleLogout]);
-
-  // ✅ Detect user activity (mouse, keyboard, visibility)
+  // ✅ On mount, check for token
   useEffect(() => {
     const token = localStorage.getItem("token");
+
     if (token) {
       setIsAuthenticated(true);
-      resetTimer();
+    } else {
+      navigate("/login", { replace: true });
     }
 
-    const events = ["mousemove", "keydown", "click"];
-    events.forEach((event) => window.addEventListener(event, resetTimer));
-    document.addEventListener("visibilitychange", () => {
-      if (document.hidden) {
-        // If the tab is hidden, we still let timer run
-      } else {
-        // When tab is active again, reset timer
-        resetTimer();
-      }
-    });
+    // ✅ Automatically remove token on browser refresh
+    const handleBeforeUnload = () => {
+      localStorage.removeItem("token");
+    };
+    window.addEventListener("beforeunload", handleBeforeUnload);
 
     return () => {
-      events.forEach((event) => window.removeEventListener(event, resetTimer));
-      clearTimeout(logoutTimer);
+      window.removeEventListener("beforeunload", handleBeforeUnload);
     };
-  }, [resetTimer]);
+  }, [navigate]);
 
   return (
     <Routes>
@@ -78,7 +58,7 @@ export default function App() {
         }
       />
 
-      {/*  Protected Admin Area */}
+      {/* Protected Admin Area */}
       <Route
         path="/admin"
         element={
@@ -98,6 +78,7 @@ export default function App() {
         <Route path="kyc-rejected" element={<Rejected />} />
       </Route>
 
+      {/* Catch all */}
       <Route path="*" element={<Navigate to="/admin" replace />} />
     </Routes>
   );
