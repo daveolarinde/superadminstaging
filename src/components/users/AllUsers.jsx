@@ -168,69 +168,101 @@ export default function AllUsers() {
       )}
 
       {/* Users Table */}
-      <div className="overflow-x-auto bg-white rounded-lg shadow-sm border border-gray-100">
-        <table className="min-w-full text-sm text-gray-700">
-          <thead className="bg-gray-50 border-b">
-            <tr>
-              <th className="px-4 py-2 text-left font-semibold">FULL NAME</th>
-              <th className="px-4 py-2 text-left font-semibold">EMAIL</th>
-              <th className="px-4 py-2 text-left font-semibold">IDENTIFIER</th>
-              <th className="px-4 py-2 text-left font-semibold">STATUS</th>
-              <th className="px-4 py-2 text-left font-semibold">LAST LOGIN</th>
-              <th className="px-4 py-2 text-right font-semibold">ACTION</th>
-            </tr>
-          </thead>
+     <div className="overflow-x-auto bg-white rounded-lg shadow-sm border border-gray-100">
+  <table className="min-w-full text-sm text-gray-700">
+    <thead className="bg-gray-50 border-b">
+      <tr>
+        <th className="px-4 py-2 text-left font-semibold">FULL NAME</th>
+        <th className="px-4 py-2 text-left font-semibold">EMAIL</th>
+        <th className="px-4 py-2 text-left font-semibold">IDENTIFIER</th>
+        <th className="px-4 py-2 text-left font-semibold">ACCOUNT INFO</th>
+        <th className="px-4 py-2 text-left font-semibold">STATUS</th>
+        <th className="px-4 py-2 text-left font-semibold">KYC STATUS</th>
+        <th className="px-4 py-2 text-right font-semibold">ACTION</th>
+      </tr>
+    </thead>
 
-          <tbody>
-            {filteredUsers.map((user) => (
-              <tr key={user.id} className="border-b hover:bg-gray-50 transition-colors">
-                <td className="px-4 py-3 font-medium">
-                  {user.firstname} {user.lastname}
-                  <div className="text-gray-400 text-xs">@{user.email.split("@")[0]}</div>
-                </td>
-                <td className="px-4 py-3">{user.email}</td>
-                <td className="px-4 py-3">
-                  {user.kyc?.typeValue || "—"}
-                  <div className="text-gray-400 text-xs">{user.kyc?.type || "N/A"}</div>
-                </td>
-                <td className="px-4 py-3">
-                  <span
-                    className={`px-2 py-1 text-xs rounded-full ${
-                      user.status === "active"
-                        ? "bg-green-100 text-green-700"
-                        : user.status === "blocked"
-                        ? "bg-red-100 text-red-600"
-                        : user.status === "inactive"
-                        ? "bg-yellow-100 text-yellow-700"
-                        : "bg-gray-100 text-gray-500"
-                    }`}
-                  >
-                    {user.status}
-                  </span>
-                </td>
-                <td className="px-4 py-3 text-gray-500">
-                  {user.lastLogin
-                    ? formatDistanceToNow(new Date(user.lastLogin), { addSuffix: true })
-                    : "Never"}
-                </td>
-                <td className="px-4 py-3 text-right">
-                  <button className="text-emerald-600 hover:text-emerald-800">
-                    <FiEdit2 />
-                  </button>
-                </td>
-              </tr>
-            ))}
+    <tbody>
+      {filteredUsers.map((user) => (
+        <tr
+          key={user.id}
+          className="border-b hover:bg-gray-50 transition-colors"
+        >
+          {/* Full Name */}
+          <td className="px-4 py-3 font-medium text-gray-800">
+            {user.firstname} {user.lastname}
+            <div className="text-gray-400 text-xs">@{user.email?.split("@")[0]}</div>
+          </td>
 
-            {filteredUsers.length === 0 && (
-              <tr>
-                <td colSpan="6" className="px-4 py-6 text-center text-gray-400 text-sm">
-                  No users found.
-                </td>
-              </tr>
+          {/* Email */}
+          <td className="px-4 py-3">{user.email}</td>
+
+          {/* Identifier */}
+          <td className="px-4 py-3">
+            {user.kyc?.typeValue || "—"}
+            <div className="text-gray-400 text-xs">
+              {user.kyc?.type || "N/A"}
+            </div>
+          </td>
+
+          {/* Account Info */}
+          <td className="px-4 py-3">
+            {user.accounts?.length > 0 ? (
+              user.accounts.map((acc) => (
+                <div key={acc.id} className="text-sm">
+                  <span className="font-medium">{acc.currency}</span> — ₦
+                  {Number(acc.balance).toLocaleString()}
+                </div>
+              ))
+            ) : (
+              <span className="text-gray-400 text-sm">No accounts</span>
             )}
-          </tbody>
-        </table>
-      </div>
+          </td>
+
+          {/* User Status */}
+          <td className="px-4 py-3">
+            <span
+              className={`px-2 py-1 text-xs rounded-full ${
+                user.status === "active"
+                  ? "bg-green-100 text-green-700"
+                  : user.status === "blocked"
+                  ? "bg-red-100 text-red-600"
+                  : user.status === "inactive"
+                  ? "bg-yellow-100 text-yellow-700"
+                  : "bg-gray-100 text-gray-500"
+              }`}
+            >
+              {user.status}
+            </span>
+          </td>
+
+          {/* KYC Status */}
+          <td className="px-4 py-3 capitalize text-gray-700">
+            {user.kyc?.status || "pending"}
+          </td>
+
+          {/* Actions */}
+          <td className="px-4 py-3 text-right">
+            <button className="text-emerald-600 flex items-center justify-between hover:text-emerald-800">
+              Edit<FiEdit2 />
+            </button>
+          </td>
+        </tr>
+      ))}
+
+      {filteredUsers.length === 0 && (
+        <tr>
+          <td
+            colSpan="7"
+            className="px-4 py-6 text-center text-gray-400 text-sm"
+          >
+            No users found.
+          </td>
+        </tr>
+      )}
+    </tbody>
+  </table>
+</div>
 
       {/* Pagination Info */}
       <div className="text-sm text-gray-500 text-right">

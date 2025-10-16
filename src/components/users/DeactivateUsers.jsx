@@ -3,7 +3,7 @@ import axios from "axios";
 import { formatDistanceToNow } from "date-fns";
 import { FiFilter, FiEdit2 } from "react-icons/fi";
 
-export default function BlockedUsers() {
+export default function DeactivateUsers() {
   const [users, setUsers] = useState([]);
   const [filteredUsers, setFilteredUsers] = useState([]);
   const [summary, setSummary] = useState(null);
@@ -19,7 +19,7 @@ export default function BlockedUsers() {
   const token = localStorage.getItem("token");
   const baseURL = import.meta.env.VITE_API_URL;
 
-  // 🔹 Fetch summary (optional)
+  // 🔹 Fetch user summary (for card stats)
   useEffect(() => {
     const fetchSummary = async () => {
       try {
@@ -34,14 +34,14 @@ export default function BlockedUsers() {
     fetchSummary();
   }, [baseURL, token]);
 
-  // 🔹 Fetch Blocked Users (status = blocked)
+  // 🔹 Fetch deactivated users
   useEffect(() => {
-    const fetchBlockedUsers = async () => {
+    const fetchDeactivatedUsers = async () => {
       setLoading(true);
       try {
         const res = await axios.get(`${baseURL}/superAdmin/users`, {
           params: {
-            status: "blocked",
+            status: "deactivate",
             sort: sortFilter,
             limit,
             offset,
@@ -56,17 +56,17 @@ export default function BlockedUsers() {
           console.warn("Unexpected response format:", res.data);
         }
       } catch (err) {
-        console.error("Error fetching blocked users:", err);
-        setError("Failed to load blocked users");
+        console.error("Error fetching deactivated users:", err);
+        setError("Failed to load deactivated users");
       } finally {
         setLoading(false);
       }
     };
 
-    fetchBlockedUsers();
+    fetchDeactivatedUsers();
   }, [baseURL, token, sortFilter, offset]);
 
-  // 🔹 Local search filter
+  // 🔹 Local search
   useEffect(() => {
     const filtered = users.filter(
       (u) =>
@@ -78,25 +78,25 @@ export default function BlockedUsers() {
   }, [searchTerm, users]);
 
   if (loading)
-    return <div className="p-6 text-gray-500 text-sm">Loading blocked users...</div>;
+    return <div className="p-6 text-gray-500 text-sm">Loading deactivated users...</div>;
 
   if (error)
     return <div className="p-6 text-red-500 text-sm">{error}</div>;
 
-  const blockedUsers = users.length;
+  const deactivatedCount = users.length;
 
   return (
     <div className="p-6 space-y-6">
       {/* Header */}
       <div className="flex justify-between items-center">
-        <h1 className="text-2xl font-semibold">Blocked Users</h1>
+        <h1 className="text-2xl font-semibold">Deactivated Users</h1>
       </div>
 
-      {/* Summary Grid */}
+      {/* Summary cards */}
       <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
         {[
           { label: "TOTAL USERS", value: summary?.totalUsers ?? 0 },
-          { label: "BLOCKED USERS", value: blockedUsers },
+          { label: "DEACTIVATED USERS", value: deactivatedCount },
           {
             label: "ACTIVE USERS",
             value: summary?.users?.filter((u) => u.status === "active").length ?? 0,
@@ -117,12 +117,12 @@ export default function BlockedUsers() {
         ))}
       </div>
 
-      {/* Search & Filter */}
+      {/* Search and filter controls */}
       <div className="flex flex-col sm:flex-row justify-between items-center gap-4">
         <div className="relative w-full sm:w-1/3">
           <input
             type="text"
-            placeholder="Search blocked users"
+            placeholder="Search deactivated users"
             value={searchTerm}
             onChange={(e) => setSearchTerm(e.target.value)}
             className="w-full pl-10 pr-4 py-2 border border-gray-300 rounded-lg text-sm focus:ring-emerald-300 focus:border-emerald-400 outline-none"
@@ -167,15 +167,14 @@ export default function BlockedUsers() {
         </div>
       )}
 
-      {/* 🔹 Table */}
+      {/* Table */}
       <div className="overflow-x-auto bg-white rounded-lg shadow-sm border border-gray-100">
         <table className="min-w-full text-sm text-gray-700">
           <thead className="bg-gray-50 border-b">
             <tr>
               <th className="px-4 py-2 text-left font-semibold">FULL NAME</th>
               <th className="px-4 py-2 text-left font-semibold">EMAIL</th>
-              <th className="px-4 py-2 text-left font-semibold">IDENTIFIER</th>
-              <th className="px-4 py-2 text-left font-semibold">ACCOUNT INFO</th>
+              <th className="px-4 py-2 text-left font-semibold">BALANCE</th>
               <th className="px-4 py-2 text-left font-semibold">KYC STATUS</th>
               <th className="px-4 py-2 text-left font-semibold">LAST LOGIN</th>
               <th className="px-4 py-2 text-right font-semibold">ACTION</th>
@@ -190,30 +189,13 @@ export default function BlockedUsers() {
                 </td>
                 <td className="px-4 py-3">{user.email}</td>
                 <td className="px-4 py-3">
-                  {user.kyc?.typeValue || "—"}
-                  <div className="text-gray-400 text-xs">
-                    {user.kyc?.type || "N/A"}
-                  </div>
+                  ₦{user.accounts?.[0]?.balance?.toLocaleString() ?? "0"}
                 </td>
                 <td className="px-4 py-3">
-                  {user.accounts?.length > 0 ? (
-                    user.accounts.map((acc) => (
-                      <div key={acc.id} className="text-sm">
-                        <span className="font-medium">{acc.currency}</span> — ₦
-                        {Number(acc.balance).toLocaleString()}
-                      </div>
-                    ))
-                  ) : (
-                    <span className="text-gray-400 text-sm">No accounts</span>
-                  )}
-                </td>
-                <td className="px-4 py-3 capitalize">
                   <span
                     className={`px-2 py-1 text-xs rounded-full ${
                       user.kyc?.status === "verified"
                         ? "bg-green-100 text-green-700"
-                        : user.kyc?.status === "pending"
-                        ? "bg-yellow-100 text-yellow-700"
                         : "bg-gray-100 text-gray-500"
                     }`}
                   >
@@ -235,11 +217,8 @@ export default function BlockedUsers() {
 
             {filteredUsers.length === 0 && (
               <tr>
-                <td
-                  colSpan="7"
-                  className="px-4 py-6 text-center text-gray-400 text-sm"
-                >
-                  No blocked users found.
+                <td colSpan="6" className="px-4 py-6 text-center text-gray-400 text-sm">
+                  No deactivated users found.
                 </td>
               </tr>
             )}

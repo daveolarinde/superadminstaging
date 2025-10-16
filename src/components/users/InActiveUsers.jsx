@@ -3,7 +3,7 @@ import axios from "axios";
 import { formatDistanceToNow } from "date-fns";
 import { FiFilter, FiEdit2 } from "react-icons/fi";
 
-export default function BlockedUsers() {
+export default function InactiveUsers() {
   const [users, setUsers] = useState([]);
   const [filteredUsers, setFilteredUsers] = useState([]);
   const [summary, setSummary] = useState(null);
@@ -19,7 +19,7 @@ export default function BlockedUsers() {
   const token = localStorage.getItem("token");
   const baseURL = import.meta.env.VITE_API_URL;
 
-  // 🔹 Fetch summary (optional)
+  // 🔹 Fetch user summary (optional analytics)
   useEffect(() => {
     const fetchSummary = async () => {
       try {
@@ -34,14 +34,14 @@ export default function BlockedUsers() {
     fetchSummary();
   }, [baseURL, token]);
 
-  // 🔹 Fetch Blocked Users (status = blocked)
+  // 🔹 Fetch inactive users
   useEffect(() => {
-    const fetchBlockedUsers = async () => {
+    const fetchInactiveUsers = async () => {
       setLoading(true);
       try {
         const res = await axios.get(`${baseURL}/superAdmin/users`, {
           params: {
-            status: "blocked",
+            status: "inactive",
             sort: sortFilter,
             limit,
             offset,
@@ -56,17 +56,17 @@ export default function BlockedUsers() {
           console.warn("Unexpected response format:", res.data);
         }
       } catch (err) {
-        console.error("Error fetching blocked users:", err);
-        setError("Failed to load blocked users");
+        console.error("Error fetching inactive users:", err);
+        setError("Failed to load inactive users");
       } finally {
         setLoading(false);
       }
     };
 
-    fetchBlockedUsers();
+    fetchInactiveUsers();
   }, [baseURL, token, sortFilter, offset]);
 
-  // 🔹 Local search filter
+  // 🔹 Local search
   useEffect(() => {
     const filtered = users.filter(
       (u) =>
@@ -78,25 +78,25 @@ export default function BlockedUsers() {
   }, [searchTerm, users]);
 
   if (loading)
-    return <div className="p-6 text-gray-500 text-sm">Loading blocked users...</div>;
+    return <div className="p-6 text-gray-500 text-sm">Loading inactive users...</div>;
 
   if (error)
     return <div className="p-6 text-red-500 text-sm">{error}</div>;
 
-  const blockedUsers = users.length;
+  const inactiveCount = users.length;
 
   return (
     <div className="p-6 space-y-6">
       {/* Header */}
       <div className="flex justify-between items-center">
-        <h1 className="text-2xl font-semibold">Blocked Users</h1>
+        <h1 className="text-2xl font-semibold">Inactive Users</h1>
       </div>
 
-      {/* Summary Grid */}
+      {/* Summary cards */}
       <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
         {[
           { label: "TOTAL USERS", value: summary?.totalUsers ?? 0 },
-          { label: "BLOCKED USERS", value: blockedUsers },
+          { label: "INACTIVE USERS", value: inactiveCount },
           {
             label: "ACTIVE USERS",
             value: summary?.users?.filter((u) => u.status === "active").length ?? 0,
@@ -117,12 +117,12 @@ export default function BlockedUsers() {
         ))}
       </div>
 
-      {/* Search & Filter */}
+      {/* Search and filter controls */}
       <div className="flex flex-col sm:flex-row justify-between items-center gap-4">
         <div className="relative w-full sm:w-1/3">
           <input
             type="text"
-            placeholder="Search blocked users"
+            placeholder="Search inactive users"
             value={searchTerm}
             onChange={(e) => setSearchTerm(e.target.value)}
             className="w-full pl-10 pr-4 py-2 border border-gray-300 rounded-lg text-sm focus:ring-emerald-300 focus:border-emerald-400 outline-none"
@@ -239,7 +239,7 @@ export default function BlockedUsers() {
                   colSpan="7"
                   className="px-4 py-6 text-center text-gray-400 text-sm"
                 >
-                  No blocked users found.
+                  No inactive users found.
                 </td>
               </tr>
             )}

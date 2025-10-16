@@ -13,14 +13,13 @@ export default function ActiveUsers() {
   const [searchTerm, setSearchTerm] = useState("");
   const [sortFilter, setSortFilter] = useState("latestLogin");
 
-  // pagination
   const [limit] = useState(20);
   const [offset, setOffset] = useState(0);
 
   const token = localStorage.getItem("token");
   const baseURL = import.meta.env.VITE_API_URL;
 
-  // Fetch user summary (for the top grid cards)
+  // 🔹 Fetch user summary
   useEffect(() => {
     const fetchSummary = async () => {
       try {
@@ -28,18 +27,15 @@ export default function ActiveUsers() {
           headers: { Authorization: `Bearer ${token}` },
           params: { filter: "lastLogin" },
         });
-        if (res.data.success) {
-          setSummary(res.data.data);
-        }
+        if (res.data.success) setSummary(res.data.data);
       } catch (err) {
         console.error("Error fetching summary:", err);
       }
     };
-
     fetchSummary();
   }, [baseURL, token]);
 
-  // Fetch active users for the table
+  // 🔹 Fetch Active Users (matches /superAdmin/users)
   useEffect(() => {
     const fetchActiveUsers = async () => {
       setLoading(true);
@@ -55,11 +51,11 @@ export default function ActiveUsers() {
         });
 
         if (res.data.success && Array.isArray(res.data.data)) {
-  setUsers(res.data.data);
-  setFilteredUsers(res.data.data);
-} else {
-  console.warn("Unexpected response format:", res.data);
-}
+          setUsers(res.data.data);
+          setFilteredUsers(res.data.data);
+        } else {
+          console.warn("Unexpected response format:", res.data);
+        }
       } catch (err) {
         console.error("Error fetching active users:", err);
         setError("Failed to load active users");
@@ -71,7 +67,7 @@ export default function ActiveUsers() {
     fetchActiveUsers();
   }, [baseURL, token, sortFilter, offset]);
 
-  // local search filter
+  // 🔹 Local search filter
   useEffect(() => {
     const filtered = users.filter(
       (u) =>
@@ -88,19 +84,18 @@ export default function ActiveUsers() {
   if (error)
     return <div className="p-6 text-red-500 text-sm">{error}</div>;
 
-  // Derived stats
+  // 🔹 Derived stats
   const activeUsers = users.length;
-  const verifiedKYC = users.filter((u) => u.kyc?.status === "verified").length;
-  const unverifiedKYC = users.filter((u) => u.kyc?.status !== "verified").length;
-  const todayJoined = summary?.users?.filter((u) => {
-    const today = new Date();
-    const joined = new Date(u.createdAt);
-    return (
-      joined.getDate() === today.getDate() &&
-      joined.getMonth() === today.getMonth() &&
-      joined.getFullYear() === today.getFullYear()
-    );
-  }).length ?? 0;
+  const todayJoined =
+    summary?.users?.filter((u) => {
+      const today = new Date();
+      const joined = new Date(u.createdAt);
+      return (
+        joined.getDate() === today.getDate() &&
+        joined.getMonth() === today.getMonth() &&
+        joined.getFullYear() === today.getFullYear()
+      );
+    }).length ?? 0;
 
   const deactivatedUsers =
     summary?.users?.filter((u) => u.status === "deactivate").length ?? 0;
@@ -188,14 +183,15 @@ export default function ActiveUsers() {
         </div>
       )}
 
-      {/* Table */}
+      {/* 🔹 Table (matches /superAdmin/users exactly) */}
       <div className="overflow-x-auto bg-white rounded-lg shadow-sm border border-gray-100">
         <table className="min-w-full text-sm text-gray-700">
           <thead className="bg-gray-50 border-b">
             <tr>
               <th className="px-4 py-2 text-left font-semibold">FULL NAME</th>
               <th className="px-4 py-2 text-left font-semibold">EMAIL</th>
-              <th className="px-4 py-2 text-left font-semibold">BALANCE</th>
+              <th className="px-4 py-2 text-left font-semibold">IDENTIFIER</th>
+              <th className="px-4 py-2 text-left font-semibold">ACCOUNT INFO</th>
               <th className="px-4 py-2 text-left font-semibold">KYC STATUS</th>
               <th className="px-4 py-2 text-left font-semibold">LAST LOGIN</th>
               <th className="px-4 py-2 text-right font-semibold">ACTION</th>
@@ -204,25 +200,50 @@ export default function ActiveUsers() {
 
           <tbody>
             {filteredUsers.map((user) => (
-              <tr key={user.id} className="border-b hover:bg-gray-50">
-                <td className="px-4 py-3 font-medium">
+              <tr
+                key={user.id}
+                className="border-b hover:bg-gray-50 transition-colors"
+              >
+                <td className="px-4 py-3 font-medium text-gray-800">
                   {user.firstname} {user.lastname}
                 </td>
+
                 <td className="px-4 py-3">{user.email}</td>
+
                 <td className="px-4 py-3">
-                  ₦{user.accounts?.[0]?.balance?.toLocaleString() ?? "0"}
+                  {user.kyc?.typeValue || "—"}
+                  <div className="text-gray-400 text-xs">
+                    {user.kyc?.type || "N/A"}
+                  </div>
                 </td>
+
                 <td className="px-4 py-3">
+                  {user.accounts?.length > 0 ? (
+                    user.accounts.map((acc) => (
+                      <div key={acc.id} className="text-sm">
+                        <span className="font-medium">{acc.currency}</span> — ₦
+                        {Number(acc.balance).toLocaleString()}
+                      </div>
+                    ))
+                  ) : (
+                    <span className="text-gray-400 text-sm">No accounts</span>
+                  )}
+                </td>
+
+                <td className="px-4 py-3 capitalize">
                   <span
                     className={`px-2 py-1 text-xs rounded-full ${
                       user.kyc?.status === "verified"
                         ? "bg-green-100 text-green-700"
+                        : user.kyc?.status === "pending"
+                        ? "bg-yellow-100 text-yellow-700"
                         : "bg-gray-100 text-gray-500"
                     }`}
                   >
                     {user.kyc?.status || "unverified"}
                   </span>
                 </td>
+
                 <td className="px-4 py-3 text-gray-500">
                   {user.lastLogin
                     ? formatDistanceToNow(new Date(user.lastLogin), {
@@ -230,6 +251,7 @@ export default function ActiveUsers() {
                       })
                     : "Never"}
                 </td>
+
                 <td className="px-4 py-3 text-right">
                   <button className="text-emerald-600 hover:text-emerald-800">
                     <FiEdit2 />
@@ -237,11 +259,22 @@ export default function ActiveUsers() {
                 </td>
               </tr>
             ))}
+
+            {filteredUsers.length === 0 && (
+              <tr>
+                <td
+                  colSpan="7"
+                  className="px-4 py-6 text-center text-gray-400 text-sm"
+                >
+                  No active users found.
+                </td>
+              </tr>
+            )}
           </tbody>
         </table>
       </div>
 
-      {/* Pagination info */}
+      {/* Pagination */}
       <div className="text-sm text-gray-500 text-right">
         Showing {offset + 1}–{Math.min(offset + limit, users.length)} of{" "}
         {users.length}

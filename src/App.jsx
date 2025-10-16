@@ -9,9 +9,12 @@ import AllUsers from "./components/users/AllUsers";
 import TransactionTable from "./components/TransactionTable";
 import ActiveUsers from "./components/users/ActiveUsers";
 import BlockedUsers from "./components/users/BlockedUsers";
+import InactiveUsers from "./components/users/InActiveUsers"; 
+import DeactivateUsers from "./components/users/DeactivateUsers";
 import Pending from "./components/Kyc/KycPending";
 import Approved from "./components/Kyc/KycApproved";
 import Rejected from "./components/Kyc/KycRejected";
+
 
 function ProtectedRoute({ children }) {
   const token = localStorage.getItem("token");
@@ -75,6 +78,8 @@ export default function App() {
         <Route path="kyc-approved" element={<Approved />} />
         <Route path="kyc-pending" element={<Pending />} />
         <Route path="kyc-rejected" element={<Rejected />} />
+        <Route path="inactive-users" element={<InactiveUsers />} />
+        <Route path="Deactivate-users" element={<DeactivateUsers />} />
       </Route>
 
       {/* Catch all */}

@@ -25,12 +25,15 @@ export default function Sidebar() {
     { to: "/admin/all-users", label: "All Users" },
     { to: "/admin/active-users", label: "Active Users" },
     { to: "/admin/blocked-users", label: "Blocked Users" },
+    { to: "/admin/inactive-users", label: "Inactive Users" },
+    {to: "/admin/Deactivate-users", label: "Deactivate Users"},
   ];
 
   const kycMenuItems = [
     { to: "/admin/kyc-approved", label: "Approved KYC" },
     { to: "/admin/kyc-pending", label: "Pending KYC" },
     { to: "/admin/kyc-rejected", label: "Rejected KYC" },
+
   ];
 
   const MenuButton = ({ to, label, hasDropdown }) => {
