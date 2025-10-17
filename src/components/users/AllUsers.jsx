@@ -244,7 +244,7 @@ export default function AllUsers() {
           {/* Actions */}
           <td className="px-4 py-3 text-right">
             <button className="text-emerald-600 flex items-center justify-between hover:text-emerald-800">
-              Edit<FiEdit2 />
+             <FiEdit2 />Edit
             </button>
           </td>
         </tr>

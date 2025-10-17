@@ -14,10 +14,9 @@ export default function TransactionTable() {
   const [currentPage, setCurrentPage] = useState(1);
   const pageSize = 5;
 
-  const token = localStorage.getItem("token"); 
+  const token = localStorage.getItem("token");
   const baseUrl = import.meta.env.VITE_API_URL;
 
- 
   const fetchTransactions = async () => {
     setLoading(true);
     try {
@@ -41,7 +40,7 @@ export default function TransactionTable() {
             username: tx.user?.tag ? `@${tx.user.tag}` : tx.user?.email || "",
           },
           amount: `${tx.type === "credit" ? "+" : "-"}${tx.amount} ${tx.currency}`,
-          charge: "0 USD", // backend doesn’t provide charge yet
+          charge: "0 USD",
           remarks: tx.type ? tx.type.charAt(0).toUpperCase() + tx.type.slice(1) : "-",
           dateTime: new Date(tx.createdAt || Date.now()).toLocaleString(),
         }));
@@ -62,7 +61,7 @@ export default function TransactionTable() {
     fetchTransactions();
   }, [filterStartDate, filterEndDate, filterCurrency, filterType]);
 
-  // Filtering logic (frontend search + transactionId)
+  // Filtering logic
   const filteredTransactions = transactions.filter((tx) => {
     const matchesSearch =
       tx.transactionId.toLowerCase().includes(searchTerm.toLowerCase()) ||
@@ -78,22 +77,25 @@ export default function TransactionTable() {
   // Pagination
   const totalPages = Math.ceil(filteredTransactions.length / pageSize);
   const startIndex = (currentPage - 1) * pageSize;
-  const currentTransactions = filteredTransactions.slice(startIndex, startIndex + pageSize);
+  const currentTransactions = filteredTransactions.slice(
+    startIndex,
+    startIndex + pageSize
+  );
 
   return (
-    <div className="bg-white rounded-xl shadow p-5 overflow-x-auto">
-      <div className="flex justify-between items-center mb-4">
+    <div className="bg-white rounded-xl shadow p-6 sm:p-8 overflow-x-auto">
+      <div className="flex flex-col sm:flex-row justify-between items-center mb-6 gap-3">
         <input
           type="text"
           placeholder="Search transaction"
           value={searchTerm}
           onChange={(e) => setSearchTerm(e.target.value)}
-          className="border rounded-lg px-4 py-2 text-sm w-60"
+          className="border border-gray-200 rounded-lg px-4 py-3 text-sm w-full sm:w-64 focus:ring-2 focus:ring-blue-500 outline-none"
         />
 
         <button
           onClick={() => setShowFilter(true)}
-          className="border px-4 py-2 rounded-lg text-sm bg-gray-50 hover:bg-gray-100"
+          className="border border-gray-200 px-5 py-3 rounded-lg text-sm bg-gray-50 hover:bg-gray-100 transition"
         >
           ⚙️ Filter
         </button>
@@ -101,9 +103,9 @@ export default function TransactionTable() {
 
       {/* Filter Modal */}
       {showFilter && (
-        <div className="absolute top-24 right-10 bg-white shadow-lg rounded-xl p-4 w-80 z-50">
+        <div className="absolute top-28 right-10 bg-white shadow-lg rounded-xl p-5 w-80 z-50">
           <div className="flex justify-between items-center mb-4">
-            <h3 className="font-semibold">Filter Transactions</h3>
+            <h3 className="font-semibold text-gray-800">Filter Transactions</h3>
             <button onClick={() => setShowFilter(false)} className="text-gray-500">
               ✕
             </button>
@@ -116,7 +118,7 @@ export default function TransactionTable() {
               type="text"
               value={filterTransactionId}
               onChange={(e) => setFilterTransactionId(e.target.value)}
-              className="border rounded-lg w-full px-3 py-2 text-sm"
+              className="border border-gray-200 rounded-lg w-full px-3 py-2 text-sm focus:ring-2 focus:ring-blue-500 outline-none"
             />
           </div>
 
@@ -128,7 +130,7 @@ export default function TransactionTable() {
                 type="date"
                 value={filterStartDate}
                 onChange={(e) => setFilterStartDate(e.target.value)}
-                className="border rounded-lg w-full px-3 py-2 text-sm"
+                className="border border-gray-200 rounded-lg w-full px-3 py-2 text-sm focus:ring-2 focus:ring-blue-500 outline-none"
               />
             </div>
             <div className="flex-1">
@@ -137,7 +139,7 @@ export default function TransactionTable() {
                 type="date"
                 value={filterEndDate}
                 onChange={(e) => setFilterEndDate(e.target.value)}
-                className="border rounded-lg w-full px-3 py-2 text-sm"
+                className="border border-gray-200 rounded-lg w-full px-3 py-2 text-sm focus:ring-2 focus:ring-blue-500 outline-none"
               />
             </div>
           </div>
@@ -148,7 +150,7 @@ export default function TransactionTable() {
             <select
               value={filterCurrency}
               onChange={(e) => setFilterCurrency(e.target.value)}
-              className="border rounded-lg w-full px-3 py-2 text-sm"
+              className="border border-gray-200 rounded-lg w-full px-3 py-2 text-sm focus:ring-2 focus:ring-blue-500 outline-none"
             >
               <option value="">All</option>
               <option value="NGN">NGN</option>
@@ -162,7 +164,7 @@ export default function TransactionTable() {
             <select
               value={filterType}
               onChange={(e) => setFilterType(e.target.value)}
-              className="border rounded-lg w-full px-3 py-2 text-sm"
+              className="border border-gray-200 rounded-lg w-full px-3 py-2 text-sm focus:ring-2 focus:ring-blue-500 outline-none"
             >
               <option value="">All</option>
               <option value="credit">Credit</option>
@@ -180,13 +182,13 @@ export default function TransactionTable() {
                 setFilterCurrency("");
                 setFilterType("");
               }}
-              className="border px-4 py-2 rounded-lg text-sm"
+              className="border border-gray-200 px-4 py-2 rounded-lg text-sm hover:bg-gray-50"
             >
               Clear
             </button>
             <button
               onClick={() => setShowFilter(false)}
-              className="bg-blue-600 text-white px-4 py-2 rounded-lg text-sm"
+              className="bg-blue-600 text-white px-4 py-2 rounded-lg text-sm hover:bg-blue-700"
             >
               Apply
             </button>
@@ -200,42 +202,42 @@ export default function TransactionTable() {
       ) : currentTransactions.length === 0 ? (
         <div className="py-10 text-center text-gray-500">No transactions found</div>
       ) : (
-        <table className="min-w-full text-sm text-left">
-          <thead className="bg-gray-50 border-b">
+        <table className="min-w-full text-sm text-left border-collapse">
+          <thead className="bg-gray-50">
             <tr>
-              <th className="px-4 py-2 font-medium text-gray-600">NO.</th>
-              <th className="px-4 py-2 font-medium text-gray-600">TRANSACTION ID</th>
-              <th className="px-4 py-2 font-medium text-gray-600">USER</th>
-              <th className="px-4 py-2 font-medium text-gray-600">AMOUNT</th>
-              <th className="px-4 py-2 font-medium text-gray-600">CHARGE</th>
-              <th className="px-4 py-2 font-medium text-gray-600">REMARKS</th>
-              <th className="px-4 py-2 font-medium text-gray-600">DATE-TIME</th>
+              {["NO.", "TRANSACTION ID", "USER", "AMOUNT", "CHARGE", "REMARKS", "DATE-TIME"].map(
+                (header) => (
+                  <th key={header} className="px-4 sm:px-6 py-3 font-medium text-gray-600">
+                    {header}
+                  </th>
+                )
+              )}
             </tr>
           </thead>
           <tbody>
             {currentTransactions.map((tx, index) => (
-              <tr key={tx.transactionId} className="border-b last:border-0">
-                <td className="px-4 py-2">{startIndex + index + 1}</td>
-                <td className="px-4 py-2">{tx.transactionId}</td>
-                <td className="px-4 py-2 flex items-center gap-2">
+              <tr key={tx.transactionId} className="hover:bg-gray-50 transition">
+                <td className="px-4 sm:px-6 py-3">{startIndex + index + 1}</td>
+                <td className="px-4 sm:px-6 py-3">{tx.transactionId}</td>
+                <td className="px-4 sm:px-6 py-3 flex items-center gap-2">
                   <div className="w-8 h-8 rounded-full bg-gray-200 flex items-center justify-center text-gray-400">
                     👤
                   </div>
                   <div>
-                    <div className="font-medium">{tx.user.name}</div>
+                    <div className="font-medium text-gray-800">{tx.user.name}</div>
                     <div className="text-xs text-gray-500">{tx.user.username}</div>
                   </div>
                 </td>
                 <td
-                  className={`px-4 py-2 font-semibold ${
+                  className={`px-4 sm:px-6 py-3 font-semibold ${
                     tx.amount.startsWith("+") ? "text-green-600" : "text-red-600"
                   }`}
                 >
                   {tx.amount}
                 </td>
-                <td className="px-4 py-2 text-red-500">{tx.charge}</td>
-                <td className="px-4 py-2">{tx.remarks}</td>
-                <td className="px-4 py-2">{tx.dateTime}</td>
+                <td className="px-4 sm:px-6 py-3 text-red-500">{tx.charge}</td>
+                <td className="px-4 sm:px-6 py-3">{tx.remarks}</td>
+                <td className="px-4 sm:px-6 py-3">{tx.dateTime}</td>
               </tr>
             ))}
           </tbody>
@@ -243,18 +245,17 @@ export default function TransactionTable() {
       )}
 
       {/* Pagination */}
-      <div className="flex justify-between items-center mt-4 text-sm">
+      <div className="flex justify-between items-center mt-6 text-sm text-gray-600">
         <span>
-          Showing {startIndex + 1}–
-          {Math.min(startIndex + pageSize, filteredTransactions.length)} of{" "}
+          Showing {startIndex + 1}–{Math.min(startIndex + pageSize, filteredTransactions.length)} of{" "}
           {filteredTransactions.length}
         </span>
         <div className="flex gap-2">
           <button
             disabled={currentPage === 1}
             onClick={() => setCurrentPage((p) => p - 1)}
-            className={`px-3 py-1 border rounded ${
-              currentPage === 1 ? "text-gray-400" : "hover:bg-gray-100"
+            className={`px-4 py-2 rounded-lg border border-gray-200 ${
+              currentPage === 1 ? "text-gray-400" : "hover:bg-gray-50"
             }`}
           >
             Prev
@@ -262,8 +263,8 @@ export default function TransactionTable() {
           <button
             disabled={currentPage === totalPages}
             onClick={() => setCurrentPage((p) => p + 1)}
-            className={`px-3 py-1 border rounded ${
-              currentPage === totalPages ? "text-gray-400" : "hover:bg-gray-100"
+            className={`px-4 py-2 rounded-lg border border-gray-200 ${
+              currentPage === totalPages ? "text-gray-400" : "hover:bg-gray-50"
             }`}
           >
             Next

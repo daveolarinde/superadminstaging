@@ -37,6 +37,10 @@ export default function Dashboard() {
   });
   const [loading, setLoading] = useState(true);
 
+  const [rates, setRates] = useState(null);
+  const [rateLoading, setRateLoading] = useState(true);
+
+  // ================= Fetch Transaction Graph Data =================
   useEffect(() => {
     const fetchGraphData = async () => {
       try {
@@ -51,15 +55,15 @@ export default function Dashboard() {
         const { currentMonth, lastMonth, currentYear } = res.data.data;
 
         setGraphData({
-          currentMonth: currentMonth.map(item => ({
+          currentMonth: currentMonth.map((item) => ({
             date: item.date,
             value: item.totalAmount,
           })),
-          lastMonth: lastMonth.map(item => ({
+          lastMonth: lastMonth.map((item) => ({
             date: item.date,
             value: item.totalAmount,
           })),
-          currentYear: currentYear.map(item => ({
+          currentYear: currentYear.map((item) => ({
             date: item.month,
             value: item.totalAmount,
           })),
@@ -75,6 +79,33 @@ export default function Dashboard() {
     fetchGraphData();
   }, []);
 
+  // ================= Fetch Exchange Rates =================
+  useEffect(() => {
+    const fetchRates = async () => {
+      try {
+        const token = localStorage.getItem("token");
+        const res = await axios.get(
+          `${import.meta.env.VITE_API_URL}/superAdmin/rates`,
+          {
+            headers: { Authorization: `Bearer ${token}` },
+          }
+        );
+        console.log("💱 Full Rates API Response:", res.data);
+
+        const rateData = res.data?.data?.rates || null;
+        console.log("📊 Rates are now set:", rateData);
+
+        setRates(rateData);
+      } catch (error) {
+        console.error("❌ Failed to fetch rates:", error);
+      } finally {
+        setRateLoading(false);
+      }
+    };
+
+    fetchRates();
+  }, []);
+
   const labels =
     graphData[period]?.length > 0
       ? graphData[period].map((item, idx) =>
@@ -87,7 +118,7 @@ export default function Dashboard() {
     datasets: [
       {
         label: "Deposit",
-        data: graphData[period]?.map(item => item.value) || [],
+        data: graphData[period]?.map((item) => item.value) || [],
         borderColor: "#3b82f6",
         backgroundColor: "rgba(59,130,246,0.08)",
         tension: 0.35,
@@ -196,14 +227,7 @@ export default function Dashboard() {
             icon={<Users className="w-5 h-5" />}
             color="#3b82f6"
           />
-          <StatCard
-            label="Pending Tickets"
-            value="8"
-            change="↓ from 25"
-            sparkline={[25, 20, 15, 8]}
-            icon={<Ticket className="w-5 h-5" />}
-            color="#ef4444"
-          />
+         
           <StatCard
             label="Pending KYC"
             value="1"
@@ -221,6 +245,40 @@ export default function Dashboard() {
             color="#10b981"
           />
         </div>
+      </div>
+
+      {/* ================= Exchange Rate Cards ================= */}
+      <div className="mt-4">
+        <h3 className="text-base font-semibold text-gray-800 mb-3">
+          💱 Exchange Rates
+        </h3>
+
+        {rateLoading ? (
+          <p className="text-gray-500 text-sm text-center">
+            Loading exchange rates...
+          </p>
+        ) : rates && Object.keys(rates).length > 0 ? (
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4 max-h-[400px] overflow-y-auto pr-2 custom-scrollbar">
+            {Object.entries(rates).map(([pair, value]) => (
+              <StatCard
+                key={pair}
+                label={`${pair.replace(/([A-Z]{3})[-]?([A-Z]{3})/, "$1 → $2")} Rate`}
+                value={`1 ${pair.slice(0, 3)} = ${value.toLocaleString(undefined, {
+                  minimumFractionDigits: 3,
+                  maximumFractionDigits: 3,
+                })} ${pair.slice(-3)}`}
+                change=""
+                sparkline={[value * 0.95, value, value * 1.05]}
+                icon={<CreditCard className="w-5 h-5" />}
+                color="#3b82f6"
+              />
+            ))}
+          </div>
+        ) : (
+          <p className="text-gray-400 text-sm text-center">
+            No exchange rate data available.
+          </p>
+        )}
       </div>
 
       {/* ================= Wallet Currency Section ================= */}
