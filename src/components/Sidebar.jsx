@@ -1,9 +1,22 @@
 import React, { useState } from "react";
 import { NavLink, useLocation } from "react-router-dom";
+import {
+  FaTachometerAlt,
+  FaExchangeAlt,
+  FaUsers,
+  FaUserShield,
+  FaUserCheck,
+  FaUserTimes,
+  FaUserClock,
+  FaIdCardAlt,
+  FaIdBadge,
+  FaTimes,
+} from "react-icons/fa";
+import { FiMenu } from "react-icons/fi";
 
 function IconCircle({ children }) {
   return (
-    <div className="w-9 h-9 rounded-md bg-white/10 flex items-center justify-center">
+    <div className="w-8 h-8 rounded-md bg-white/10 flex items-center justify-center">
       {children}
     </div>
   );
@@ -16,116 +29,79 @@ export default function Sidebar() {
   const [openKycMenu, setOpenKycMenu] = useState(false);
 
   const items = [
-    { to: "/admin", label: "Dashboard" },
-    { to: "/admin/transaction-summary", label: "Transaction Summary" },
-    { to: "/admin/transaction", label: "Transaction" },
+    { to: "/admin", label: "Dashboard", icon: <FaTachometerAlt /> },
+    {
+      to: "/admin/transaction-summary",
+      label: "Transaction Summary",
+      icon: <FaExchangeAlt />,
+    },
+    { to: "/admin/transaction", label: "Transaction", icon: <FaExchangeAlt /> },
   ];
 
   const userMenuItems = [
-    { to: "/admin/all-users", label: "All Users" },
-    { to: "/admin/active-users", label: "Active Users" },
-    { to: "/admin/blocked-users", label: "Blocked Users" },
-    { to: "/admin/inactive-users", label: "Inactive Users" },
-    {to: "/admin/Deactivate-users", label: "Deactivate Users"},
+    { to: "/admin/all-users", label: "All Users", icon: <FaUsers /> },
+    { to: "/admin/active-users", label: "Active Users", icon: <FaUserCheck /> },
+    { to: "/admin/blocked-users", label: "Blocked Users", icon: <FaUserTimes /> },
+    { to: "/admin/inactive-users", label: "Inactive Users", icon: <FaUserClock /> },
+    { to: "/admin/Deactivate-users", label: "Deactivate Users", icon: <FaUserShield /> },
   ];
 
   const kycMenuItems = [
-    { to: "/admin/kyc-approved", label: "Approved KYC" },
-    { to: "/admin/kyc-pending", label: "Pending KYC" },
-    { to: "/admin/kyc-rejected", label: "Rejected KYC" },
-
+    { to: "/admin/kyc-approved", label: "Approved KYC", icon: <FaIdBadge /> },
+    { to: "/admin/kyc-pending", label: "Pending KYC", icon: <FaIdCardAlt /> },
+    { to: "/admin/kyc-rejected", label: "Rejected KYC", icon: <FaUserTimes /> },
   ];
 
-  const MenuButton = ({ to, label, hasDropdown }) => {
+  const MenuButton = ({ to, label, icon }) => {
     const isActive = location.pathname === to;
     return (
       <NavLink
         to={to}
-        className={`w-full block text-left px-3 py-3 rounded-md mb-1 flex items-center justify-between gap-3 transition-all hover:bg-white/5 ${
-          isActive ? "bg-white/8 ring-1 ring-white/10" : ""
-        }`}
-        onClick={() => setOpen(false)} // closes mobile drawer
+        className={`flex items-center gap-3 px-4 py-3 rounded-md mb-1 transition-all duration-200
+          ${
+            isActive
+              ? "bg-white/20 text-white font-medium"
+              : "text-slate-300 hover:bg-white/10 hover:text-white"
+          }`}
+        onClick={() => setOpen(false)}
       >
-        <div className="flex items-center gap-3">
-          <IconCircle>
-            <svg
-              className="w-4 h-4 text-white/90"
-              fill="none"
-              viewBox="0 0 24 24"
-              stroke="currentColor"
-            >
-              <path
-                strokeLinecap="round"
-                strokeLinejoin="round"
-                strokeWidth={2}
-                d="M3 7h18M3 12h18M3 17h18"
-              />
-            </svg>
-          </IconCircle>
-          <span>{label}</span>
-        </div>
-
-        {hasDropdown && (
-          <svg
-            className={`w-4 h-4 transition-transform ${
-              openUserMenu ? "rotate-90" : ""
-            }`}
-            fill="none"
-            stroke="currentColor"
-            strokeWidth={2}
-            viewBox="0 0 24 24"
-          >
-            <path strokeLinecap="round" strokeLinejoin="round" d="M9 5l7 7-7 7" />
-          </svg>
-        )}
+        <div className="text-lg">{icon}</div>
+        <span className="text-sm">{label}</span>
       </NavLink>
     );
   };
 
-  // Sidebar layout reused for both desktop and mobile
   const SidebarContent = () => (
-    <aside className="w-72 bg-slate-900 text-slate-100 min-h-screen p-6 flex flex-col gap-6">
-      <div className="flex items-center gap-3">
+    <aside className="w-72 bg-gradient-to-b from-slate-900 via-slate-800 to-slate-900 text-white h-screen p-6 flex flex-col shadow-lg">
+      {/* Logo / Header */}
+      <div className="flex items-center gap-3 mb-8">
         <div className="rounded-full w-10 h-10 bg-emerald-400 flex items-center justify-center font-bold text-slate-900">
           S
         </div>
         <div>
-          <div className="font-bold">SuperAdmin</div>
-          <div className="text-xs text-slate-300">Admin</div>
+          <div className="font-bold text-lg">SuperAdmin</div>
+          <div className="text-xs text-slate-300">Admin Panel</div>
         </div>
       </div>
 
-      <nav className="flex-1">
+      {/* Navigation */}
+      <nav className="flex-1 overflow-y-auto scrollbar-thin scrollbar-thumb-slate-700 scrollbar-track-slate-900">
         {items.map((it) => (
-          <MenuButton key={it.to} to={it.to} label={it.label} />
+          <MenuButton key={it.to} {...it} />
         ))}
 
-        {/* User Management */}
+        {/* USER MANAGEMENT */}
         <div>
           <button
             onClick={() => setOpenUserMenu(!openUserMenu)}
-            className="w-full text-left px-3 py-3 rounded-md mb-1 flex items-center justify-between gap-3 transition-all hover:bg-white/5"
+            className="flex items-center justify-between w-full px-4 py-3 rounded-md hover:bg-white/10 text-slate-300 hover:text-white"
           >
             <div className="flex items-center gap-3">
-              <IconCircle>
-                <svg
-                  className="w-4 h-4 text-white/90"
-                  fill="none"
-                  viewBox="0 0 24 24"
-                  stroke="currentColor"
-                >
-                  <path
-                    strokeLinecap="round"
-                    strokeLinejoin="round"
-                    strokeWidth={2}
-                    d="M3 7h18M3 12h18M3 17h18"
-                  />
-                </svg>
-              </IconCircle>
-              <span>User Management</span>
+              <FaUsers />
+              <span className="font-medium text-sm">User Management</span>
             </div>
             <svg
-              className={`w-4 h-4 transition-transform ${
+              className={`w-4 h-4 transform transition-transform ${
                 openUserMenu ? "rotate-90" : ""
               }`}
               fill="none"
@@ -137,41 +113,31 @@ export default function Sidebar() {
             </svg>
           </button>
 
-          {openUserMenu && (
-            <div className="pl-10">
+          <div
+            className={`overflow-hidden transition-all duration-300 ${
+              openUserMenu ? "max-h-96" : "max-h-0"
+            }`}
+          >
+            <div className="pl-8">
               {userMenuItems.map((sub) => (
-                <MenuButton key={sub.to} to={sub.to} label={sub.label} />
+                <MenuButton key={sub.to} {...sub} />
               ))}
             </div>
-          )}
+          </div>
         </div>
 
-        {/* KYC Management */}
+        {/* KYC MANAGEMENT */}
         <div>
           <button
             onClick={() => setOpenKycMenu(!openKycMenu)}
-            className="w-full text-left px-3 py-3 rounded-md mb-1 flex items-center justify-between gap-3 transition-all hover:bg-white/5"
+            className="flex items-center justify-between w-full px-4 py-3 rounded-md hover:bg-white/10 text-slate-300 hover:text-white"
           >
             <div className="flex items-center gap-3">
-              <IconCircle>
-                <svg
-                  className="w-4 h-4 text-white/90"
-                  fill="none"
-                  viewBox="0 0 24 24"
-                  stroke="currentColor"
-                >
-                  <path
-                    strokeLinecap="round"
-                    strokeLinejoin="round"
-                    strokeWidth={2}
-                    d="M3 7h18M3 12h18M3 17h18"
-                  />
-                </svg>
-              </IconCircle>
-              <span>KYC Management</span>
+              <FaIdCardAlt />
+              <span className="font-medium text-sm">KYC Management</span>
             </div>
             <svg
-              className={`w-4 h-4 transition-transform ${
+              className={`w-4 h-4 transform transition-transform ${
                 openKycMenu ? "rotate-90" : ""
               }`}
               fill="none"
@@ -183,36 +149,35 @@ export default function Sidebar() {
             </svg>
           </button>
 
-          {openKycMenu && (
-            <div className="pl-10">
+          <div
+            className={`overflow-hidden transition-all duration-300 ${
+              openKycMenu ? "max-h-96" : "max-h-0"
+            }`}
+          >
+            <div className="pl-8">
               {kycMenuItems.map((sub) => (
-                <MenuButton key={sub.to} to={sub.to} label={sub.label} />
+                <MenuButton key={sub.to} {...sub} />
               ))}
             </div>
-          )}
+          </div>
         </div>
       </nav>
 
-      <div className="text-xs text-slate-400">Version 1.5</div>
+      {/* Footer */}
+      <div className="text-xs text-slate-500 mt-4 text-center">
+        Version <span className="font-semibold text-slate-300">1.5</span>
+      </div>
     </aside>
   );
 
   return (
     <>
-      {/* Hamburger for mobile */}
+      {/* Mobile Menu Button */}
       <button
         onClick={() => setOpen(true)}
-        className="md:hidden fixed top-4 left-4 z-50 p-2 bg-slate-900 text-white rounded-md shadow"
+        className="md:hidden fixed top-5 left-5 z-50 p-2 bg-slate-900 text-white rounded-md shadow-lg hover:bg-slate-800 transition"
       >
-        <svg
-          className="w-6 h-6"
-          fill="none"
-          stroke="currentColor"
-          strokeWidth={2}
-          viewBox="0 0 24 24"
-        >
-          <path strokeLinecap="round" strokeLinejoin="round" d="M4 6h16M4 12h16M4 18h16" />
-        </svg>
+        <FiMenu className="w-6 h-6" />
       </button>
 
       {/* Desktop Sidebar */}
@@ -228,8 +193,14 @@ export default function Sidebar() {
             className="fixed inset-0 bg-black/50 z-40"
             onClick={() => setOpen(false)}
           />
-          {/* Slide-in sidebar */}
-          <div className="fixed top-0 left-0 z-50 w-72 h-full animate-slideIn">
+          {/* Drawer */}
+          <div className="fixed top-0 left-0 z-50 w-72 h-full bg-slate-900">
+            <button
+              onClick={() => setOpen(false)}
+              className="absolute top-4 right-4 text-white hover:text-slate-300 transition"
+            >
+              <FaTimes className="w-5 h-5" />
+            </button>
             <SidebarContent />
           </div>
         </>
