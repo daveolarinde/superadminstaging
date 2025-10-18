@@ -3,6 +3,7 @@ import { Line } from "react-chartjs-2";
 import axios from "axios";
 import WalletCurrency from "./WalletCurrency";
 import BalancesWithRates from "./BalancesWithRates";
+import Fees from "./FeesManagement"
 import {
   Chart as ChartJS,
   CategoryScale,
@@ -40,7 +41,7 @@ export default function Dashboard({onAllowNotifications}) {
   const [rates, setRates] = useState(null);
   const [rateLoading, setRateLoading] = useState(true);
    const [showBanner, setShowBanner] = useState(true);
- // ✅ Handle notification permission
+ // Handle notification permission
   const handleAllow = () => {
     if ("Notification" in window) {
       Notification.requestPermission().then((perm) => {
@@ -100,10 +101,10 @@ export default function Dashboard({onAllowNotifications}) {
             headers: { Authorization: `Bearer ${token}` },
           }
         );
-        console.log("💱 Full Rates API Response:", res.data);
+      
 
         const rateData = res.data?.data?.rates || null;
-        console.log("📊 Rates are now set:", rateData);
+        
 
         setRates(rateData);
       } catch (error) {
@@ -322,6 +323,9 @@ export default function Dashboard({onAllowNotifications}) {
       </div>
       <div className="bg-white rounded-xl shadow p-5">
         <BalancesWithRates />
+      </div>
+      <div className="bg-white rounded-xl shadow p-5">
+        <Fees />
       </div>
     </div>
   );

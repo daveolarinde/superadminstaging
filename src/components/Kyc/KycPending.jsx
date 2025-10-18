@@ -27,8 +27,7 @@ const KycPending = () => {
           params: { status: "pending", limit: 100 },
           headers: { Authorization: `Bearer ${token}` },
         });
-        console.log("KYC API Response:", res.data);
-
+       
         const data = res.data?.data || [];
         setKycData(data);
         setFilteredData(data);

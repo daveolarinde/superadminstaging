@@ -29,7 +29,7 @@ const KycRejected = () => {
           headers: { Authorization: `Bearer ${token}` },
         });
 
-        console.log("KYC Rejected API Response:", res.data);
+       
 
         const data = res.data?.data || [];
         setKycData(data);

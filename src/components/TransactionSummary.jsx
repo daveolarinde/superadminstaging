@@ -50,8 +50,7 @@ export default function TransactionSummary() {
           ),
         ]);
 
-        console.log("📊 Graph Data:", graphRes.data);
-        console.log("📦 Summary Data:", summaryRes.data);
+       
 
        
         setGraphData(graphRes.data?.data || {}); // data.currentMonth, etc.
@@ -69,7 +68,7 @@ export default function TransactionSummary() {
   if (loading)
     return <p className="text-gray-500 text-center">Loading dashboard...</p>;
 
-  // ✅ Graph logic
+  //  Graph logic
   const selectedGraph = graphData[activeTab] || [];
 
   const labels =
@@ -140,10 +139,6 @@ export default function TransactionSummary() {
   const summaryData = summary?.summary || {};
   const thisMonth = summary?.thisMonth || {};
   const daily = summary?.daily || [];
-
-  console.log("🧾 summaryData:", summaryData);
-  console.log("🧾 thisMonth:", thisMonth);
-  console.log("🧾 daily:", daily);
 
   return (
     <div className="p-6 space-y-6">

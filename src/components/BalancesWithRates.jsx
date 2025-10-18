@@ -16,7 +16,7 @@ export default function BalancesWithRates() {
           }
         );
 
-        console.log("📦 BalancesWithRates API Response:", res.data);
+       
 
         // ✅ Match the structure from API example
         if (

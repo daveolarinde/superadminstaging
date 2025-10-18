@@ -17,7 +17,7 @@ export default function WalletCurrency() {
           }
         );
 
-        console.log("📦 Wallet response:", res.data);
+       
 
         const balancesObj = res.data.data || {};
         const walletsArr = Object.keys(balancesObj).map((key) => ({
