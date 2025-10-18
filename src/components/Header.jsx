@@ -2,20 +2,12 @@ import { useState } from "react";
 import { FaBell, FaUserCircle } from "react-icons/fa";
 import { useNavigate } from "react-router-dom";
 
-export default function Header({ onAllowNotifications, setIsAuthenticated }) {
+export default function Header({  setIsAuthenticated }) {
   const [showBanner, setShowBanner] = useState(true);
   const [showMenu, setShowMenu] = useState(false);
   const navigate = useNavigate();
 
-  // ✅ Handle notification permission
-  const handleAllow = () => {
-    if ("Notification" in window) {
-      Notification.requestPermission().then((perm) => {
-        console.log("Notification permission:", perm);
-        onAllowNotifications?.(perm);
-      });
-    }
-  };
+  
 
   // ✅ Handle logout
   const handleLogout = () => {
@@ -37,31 +29,7 @@ export default function Header({ onAllowNotifications, setIsAuthenticated }) {
   return (
     <header className="w-full bg-white shadow-sm border-b border-gray-100 sticky top-0 z-40">
       <div className="flex flex-col md:flex-row items-start md:items-center justify-between p-4 md:px-6 relative">
-        {/* 🔔 Notification Banner */}
-        {showBanner && (
-          <div className="w-full bg-blue-50 border border-blue-100 text-blue-700 rounded-lg px-4 py-3 mb-4 md:mb-0 animate-slideDown">
-            <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-3">
-              <span className="text-sm leading-relaxed">
-                ⚠️ <strong>Attention:</strong> Allow your browser to receive instant push
-                notifications.
-              </span>
-              <div className="flex items-center gap-3 w-full sm:w-auto">
-                <button
-                  onClick={handleAllow}
-                  className="bg-blue-600 text-white px-4 py-1.5 rounded-md text-sm font-medium hover:bg-blue-700 transition w-full sm:w-auto"
-                >
-                  Allow Notifications
-                </button>
-                <button
-                  onClick={() => setShowBanner(false)}
-                  className="text-gray-500 hover:text-gray-700 text-xl font-bold leading-none sm:ml-2"
-                >
-                  ✕
-                </button>
-              </div>
-            </div>
-          </div>
-        )}
+       
 
         {/* 🧑‍💼 Right Section (Notifications + User Menu) */}
         <div className="flex items-center gap-4 ml-auto">

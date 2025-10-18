@@ -2,7 +2,7 @@ import { useState, useEffect } from "react";
 import { Line } from "react-chartjs-2";
 import axios from "axios";
 import WalletCurrency from "./WalletCurrency";
-
+import BalancesWithRates from "./BalancesWithRates";
 import {
   Chart as ChartJS,
   CategoryScale,
@@ -28,7 +28,7 @@ ChartJS.register(
   Filler
 );
 
-export default function Dashboard() {
+export default function Dashboard({onAllowNotifications}) {
   const [period, setPeriod] = useState("currentMonth");
   const [graphData, setGraphData] = useState({
     currentMonth: [],
@@ -39,6 +39,16 @@ export default function Dashboard() {
 
   const [rates, setRates] = useState(null);
   const [rateLoading, setRateLoading] = useState(true);
+   const [showBanner, setShowBanner] = useState(true);
+ // ✅ Handle notification permission
+  const handleAllow = () => {
+    if ("Notification" in window) {
+      Notification.requestPermission().then((perm) => {
+        console.log("Notification permission:", perm);
+        onAllowNotifications?.(perm);
+      });
+    }
+  };
 
   // ================= Fetch Transaction Graph Data =================
   useEffect(() => {
@@ -166,6 +176,31 @@ export default function Dashboard() {
 
   return (
     <div className="p-4 md:p-6 space-y-6">
+          {showBanner && (
+          <div className="w-full bg-blue-50 border border-blue-100 text-blue-700 rounded-lg px-4 py-3 mb-4 md:mb-0 animate-slideDown">
+            <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-3">
+              <span className="text-sm leading-relaxed">
+                ⚠️ <strong>Attention:</strong> Allow your browser to receive instant push
+                notifications.
+              </span>
+              <div className="flex items-center gap-3 w-full sm:w-auto">
+                <button
+                  onClick={handleAllow}
+                  className="bg-blue-600 text-white px-4 py-1.5 rounded-md text-sm font-medium hover:bg-blue-700 transition w-full sm:w-auto"
+                >
+                  Allow Notifications
+                </button>
+                <button
+                  onClick={() => setShowBanner(false)}
+                  className="text-gray-500 hover:text-gray-700 text-xl font-bold leading-none sm:ml-2"
+                >
+                  ✕
+                </button>
+              </div>
+            </div>
+          </div>
+        )}
+
       {/* ================= Chart Section ================= */}
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
         {/* Left: Main Chart */}
@@ -284,6 +319,9 @@ export default function Dashboard() {
       {/* ================= Wallet Currency Section ================= */}
       <div className="bg-white rounded-xl shadow p-5">
         <WalletCurrency />
+      </div>
+      <div className="bg-white rounded-xl shadow p-5">
+        <BalancesWithRates />
       </div>
     </div>
   );
