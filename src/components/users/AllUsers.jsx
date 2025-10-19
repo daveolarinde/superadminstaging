@@ -14,6 +14,10 @@ export default function AllUsers() {
   const [sortFilter, setSortFilter] = useState("latestLogin");
   const [error, setError] = useState(null);
 
+  // Exchange rates
+  const [rates, setRates] = useState({});
+  const [rateLoading, setRateLoading] = useState(true);
+
   // Pagination
   const [limit] = useState(20);
   const [offset, setOffset] = useState(0);
@@ -21,6 +25,7 @@ export default function AllUsers() {
   const token = localStorage.getItem("token");
   const baseURL = import.meta.env.VITE_API_URL;
 
+  // Fetch summary + users
   useEffect(() => {
     const fetchData = async () => {
       setLoading(true);
@@ -41,7 +46,6 @@ export default function AllUsers() {
         ]);
 
         if (summaryRes.data.success) setSummary(summaryRes.data.data);
-
         if (usersRes.data.success) {
           const list = usersRes.data.data || [];
           setUsers(list);
@@ -58,6 +62,25 @@ export default function AllUsers() {
     fetchData();
   }, [statusFilter, sortFilter, offset]);
 
+  // Fetch exchange rates
+  useEffect(() => {
+    const fetchRates = async () => {
+      try {
+        const res = await axios.get(`${baseURL}/superAdmin/rates`, {
+          headers: { Authorization: `Bearer ${token}` },
+        });
+        if (res.data.status === "success") {
+          setRates(res.data.data.rates || {});
+        }
+      } catch (err) {
+        console.error("Error fetching rates:", err);
+      } finally {
+        setRateLoading(false);
+      }
+    };
+    fetchRates();
+  }, []);
+
   // Local search
   useEffect(() => {
     const filtered = users.filter(
@@ -72,11 +95,25 @@ export default function AllUsers() {
   if (loading) return <div className="p-6 text-gray-500 text-sm">Loading users...</div>;
   if (error) return <div className="p-6 text-red-500 text-sm">{error}</div>;
 
-  // Derive summary metrics
   const activeUsers = users.filter((u) => u.status === "active").length;
   const blockedUsers = users.filter((u) => u.status === "blocked").length;
   const deactivatedUsers = users.filter((u) => u.status === "deactivate").length;
   const todayJoined = users.filter((u) => isToday(new Date(u.createdAt || Date.now()))).length;
+
+  // Helper to convert balance
+  const convertBalance = (amount, currency) => {
+    if (!rates || Object.keys(rates).length === 0) return null;
+
+    if (currency === "NGN" && rates.NGNUSD) {
+      const usd = amount * rates.NGNUSD;
+      return `$${usd.toLocaleString(undefined, { maximumFractionDigits: 2 })}`;
+    }
+    if (currency === "USD" && rates.USDNGN) {
+      const ngn = amount * rates.USDNGN;
+      return `₦${ngn.toLocaleString(undefined, { maximumFractionDigits: 2 })}`;
+    }
+    return null;
+  };
 
   return (
     <div className="p-6 space-y-6">
@@ -88,7 +125,7 @@ export default function AllUsers() {
         </button>
       </div>
 
-      {/* Summary Cards */}
+      {/* Summary Cards (unchanged) */}
       <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
         {[
           { label: "TOTAL USERS", value: summary?.totalUsers ?? 0 },
@@ -108,7 +145,7 @@ export default function AllUsers() {
         ))}
       </div>
 
-      {/* Search & Filter */}
+      {/* Search & Filter (unchanged) */}
       <div className="flex flex-col sm:flex-row justify-between items-center gap-4">
         <div className="relative w-full sm:w-1/3">
           <input
@@ -137,132 +174,94 @@ export default function AllUsers() {
         </button>
       </div>
 
-      {/* Filter dropdown */}
-      {filterOpen && (
-        <div className="border border-gray-200 bg-white rounded-lg p-4 shadow-md max-w-sm">
-          <div className="text-gray-700 font-medium mb-2">Filter Options</div>
+      {/* Table */}
+      <div className="overflow-x-auto bg-white rounded-lg shadow-sm border border-gray-100">
+        <table className="min-w-full text-sm text-gray-700">
+          <thead className="bg-gray-50 border-b">
+            <tr>
+              <th className="px-4 py-2 text-left font-semibold">FULL NAME</th>
+              <th className="px-4 py-2 text-left font-semibold">EMAIL</th>
+              <th className="px-4 py-2 text-left font-semibold">IDENTIFIER</th>
+              <th className="px-4 py-2 text-left font-semibold">ACCOUNT INFO</th>
+              <th className="px-4 py-2 text-left font-semibold">STATUS</th>
+              <th className="px-4 py-2 text-left font-semibold">KYC STATUS</th>
+              <th className="px-4 py-2 text-right font-semibold">ACTION</th>
+            </tr>
+          </thead>
 
-          <label className="text-sm text-gray-500 block mb-1">Status</label>
-          <select
-            className="w-full border rounded-md px-3 py-2 mb-3 text-sm"
-            value={statusFilter}
-            onChange={(e) => setStatusFilter(e.target.value)}
-          >
-            <option value="">All</option>
-            <option value="active">Active</option>
-            <option value="inactive">Inactive</option>
-            <option value="blocked">Blocked</option>
-            <option value="deactivate">Deactivated</option>
-          </select>
-
-          <label className="text-sm text-gray-500 block mb-1">Sort By</label>
-          <select
-            className="w-full border rounded-md px-3 py-2 mb-3 text-sm"
-            value={sortFilter}
-            onChange={(e) => setSortFilter(e.target.value)}
-          >
-            <option value="latestLogin">Latest Login</option>
-            <option value="createdAt">Created At</option>
-          </select>
-        </div>
-      )}
-
-      {/* Users Table */}
-     <div className="overflow-x-auto bg-white rounded-lg shadow-sm border border-gray-100">
-  <table className="min-w-full text-sm text-gray-700">
-    <thead className="bg-gray-50 border-b">
-      <tr>
-        <th className="px-4 py-2 text-left font-semibold">FULL NAME</th>
-        <th className="px-4 py-2 text-left font-semibold">EMAIL</th>
-        <th className="px-4 py-2 text-left font-semibold">IDENTIFIER</th>
-        <th className="px-4 py-2 text-left font-semibold">ACCOUNT INFO</th>
-        <th className="px-4 py-2 text-left font-semibold">STATUS</th>
-        <th className="px-4 py-2 text-left font-semibold">KYC STATUS</th>
-        <th className="px-4 py-2 text-right font-semibold">ACTION</th>
-      </tr>
-    </thead>
-
-    <tbody>
-      {filteredUsers.map((user) => (
-        <tr
-          key={user.id}
-          className="border-b hover:bg-gray-50 transition-colors"
-        >
-          {/* Full Name */}
-          <td className="px-4 py-3 font-medium text-gray-800">
-            {user.firstname} {user.lastname}
-            <div className="text-gray-400 text-xs">@{user.email?.split("@")[0]}</div>
-          </td>
-
-          {/* Email */}
-          <td className="px-4 py-3">{user.email}</td>
-
-          {/* Identifier */}
-          <td className="px-4 py-3">
-            {user.kyc?.typeValue || "—"}
-            <div className="text-gray-400 text-xs">
-              {user.kyc?.type || "N/A"}
-            </div>
-          </td>
-
-          {/* Account Info */}
-          <td className="px-4 py-3">
-            {user.accounts?.length > 0 ? (
-              user.accounts.map((acc) => (
-                <div key={acc.id} className="text-sm">
-                  <span className="font-medium">{acc.currency}</span> — ₦
-                  {Number(acc.balance).toLocaleString()}
-                </div>
-              ))
-            ) : (
-              <span className="text-gray-400 text-sm">No accounts</span>
+          <tbody>
+            {filteredUsers.map((user) => (
+              <tr key={user.id} className="border-b hover:bg-gray-50 transition-colors">
+                <td className="px-4 py-3 font-medium text-gray-800">
+                  {user.firstname} {user.lastname}
+                  <div className="text-gray-400 text-xs">@{user.email?.split("@")[0]}</div>
+                </td>
+                <td className="px-4 py-3">{user.email}</td>
+                <td className="px-4 py-3">
+                  {user.kyc?.typeValue || "—"}
+                  <div className="text-gray-400 text-xs">{user.kyc?.type || "N/A"}</div>
+                </td>
+                <td className="px-4 py-3">
+                  {user.accounts?.length > 0 ? (
+                    user.accounts.map((acc) => (
+                      <div key={acc.id} className="text-sm">
+                        <span className="font-medium">{acc.currency}</span> —{" "}
+                        {acc.currency === "NGN" ? (
+                          <>
+                            ₦{Number(acc.balance).toLocaleString()}{" "}
+                            <span className="text-gray-400 text-xs ml-1">
+                              ({convertBalance(acc.balance, "NGN")})
+                            </span>
+                          </>
+                        ) : (
+                          <>
+                            ${Number(acc.balance).toLocaleString()}{" "}
+                            <span className="text-gray-400 text-xs ml-1">
+                              ({convertBalance(acc.balance, "USD")})
+                            </span>
+                          </>
+                        )}
+                      </div>
+                    ))
+                  ) : (
+                    <span className="text-gray-400 text-sm">No accounts</span>
+                  )}
+                </td>
+                <td className="px-4 py-3">
+                  <span
+                    className={`px-2 py-1 text-xs rounded-full ${
+                      user.status === "active"
+                        ? "bg-green-100 text-green-700"
+                        : user.status === "blocked"
+                        ? "bg-red-100 text-red-600"
+                        : user.status === "inactive"
+                        ? "bg-yellow-100 text-yellow-700"
+                        : "bg-gray-100 text-gray-500"
+                    }`}
+                  >
+                    {user.status}
+                  </span>
+                </td>
+                <td className="px-4 py-3 capitalize text-gray-700">
+                  {user.kyc?.status || "pending"}
+                </td>
+                <td className="px-4 py-3 text-right">
+                  <button className="text-emerald-600 flex items-center justify-between hover:text-emerald-800">
+                    <FiEdit2 /> Edit
+                  </button>
+                </td>
+              </tr>
+            ))}
+            {filteredUsers.length === 0 && (
+              <tr>
+                <td colSpan="7" className="px-4 py-6 text-center text-gray-400 text-sm">
+                  No users found.
+                </td>
+              </tr>
             )}
-          </td>
-
-          {/* User Status */}
-          <td className="px-4 py-3">
-            <span
-              className={`px-2 py-1 text-xs rounded-full ${
-                user.status === "active"
-                  ? "bg-green-100 text-green-700"
-                  : user.status === "blocked"
-                  ? "bg-red-100 text-red-600"
-                  : user.status === "inactive"
-                  ? "bg-yellow-100 text-yellow-700"
-                  : "bg-gray-100 text-gray-500"
-              }`}
-            >
-              {user.status}
-            </span>
-          </td>
-
-          {/* KYC Status */}
-          <td className="px-4 py-3 capitalize text-gray-700">
-            {user.kyc?.status || "pending"}
-          </td>
-
-          {/* Actions */}
-          <td className="px-4 py-3 text-right">
-            <button className="text-emerald-600 flex items-center justify-between hover:text-emerald-800">
-             <FiEdit2 />Edit
-            </button>
-          </td>
-        </tr>
-      ))}
-
-      {filteredUsers.length === 0 && (
-        <tr>
-          <td
-            colSpan="7"
-            className="px-4 py-6 text-center text-gray-400 text-sm"
-          >
-            No users found.
-          </td>
-        </tr>
-      )}
-    </tbody>
-  </table>
-</div>
+          </tbody>
+        </table>
+      </div>
 
       {/* Pagination Info */}
       <div className="text-sm text-gray-500 text-right">
