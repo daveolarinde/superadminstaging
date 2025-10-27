@@ -11,6 +11,7 @@ import {
   FaIdCardAlt,
   FaIdBadge,
   FaTimes,
+  FaCreditCard,
 } from "react-icons/fa";
 import { FiMenu } from "react-icons/fi";
 
@@ -36,6 +37,7 @@ export default function Sidebar() {
       icon: <FaExchangeAlt />,
     },
     { to: "/admin/transaction", label: "Transaction", icon: <FaExchangeAlt /> },
+    { to: "/admin/virtual-cards", label: "Virtual Cards", icon: <FaCreditCard /> },
   ];
 
   const userMenuItems = [
@@ -52,6 +54,7 @@ export default function Sidebar() {
     { to: "/admin/kyc-rejected", label: "Rejected KYC", icon: <FaUserTimes /> },
   ];
 
+ 
   const MenuButton = ({ to, label, icon }) => {
     const isActive = location.pathname === to;
     return (

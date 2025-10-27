@@ -53,8 +53,8 @@ export default function TransactionSummary() {
        
 
        
-        setGraphData(graphRes.data?.data || {}); // data.currentMonth, etc.
-        setSummary(summaryRes.data?.summary || {}); // summary.summary, thisMonth, daily
+        setGraphData(graphRes.data?.data || {});
+        setSummary(summaryRes.data?.summary || {}); 
       } catch (err) {
         console.error("❌ Error fetching data:", err.response || err);
       } finally {

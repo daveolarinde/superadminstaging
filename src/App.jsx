@@ -14,7 +14,8 @@ import DeactivateUsers from "./components/users/DeactivateUsers";
 import Pending from "./components/Kyc/KycPending";
 import Approved from "./components/Kyc/KycApproved";
 import Rejected from "./components/Kyc/KycRejected";
-
+import UserProfileView from "./components/UserProfileView";
+import VirtualCards from "./components/VirtualCards";
 
 function ProtectedRoute({ children }) {
   const token = localStorage.getItem("token");
@@ -80,6 +81,8 @@ export default function App() {
         <Route path="kyc-rejected" element={<Rejected />} />
         <Route path="inactive-users" element={<InactiveUsers />} />
         <Route path="Deactivate-users" element={<DeactivateUsers />} />
+        <Route path="all-users/:userId" element={<UserProfileView />} />
+        <Route path="virtual-cards" element={<VirtualCards />} />
       </Route>
 
       {/* Catch all */}

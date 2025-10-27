@@ -1,7 +1,8 @@
 import { useEffect, useState } from "react";
 import axios from "axios";
 import { formatDistanceToNow } from "date-fns";
-import { FiFilter, FiEdit2 } from "react-icons/fi";
+import { FiFilter, FiEdit2, FiMoreVertical } from "react-icons/fi";
+import { useNavigate } from "react-router-dom";
 
 export default function ActiveUsers() {
   const [users, setUsers] = useState([]);
@@ -12,10 +13,11 @@ export default function ActiveUsers() {
   const [filterOpen, setFilterOpen] = useState(false);
   const [searchTerm, setSearchTerm] = useState("");
   const [sortFilter, setSortFilter] = useState("latestLogin");
-
+  const [statusUpdating, setStatusUpdating] = useState(null);
   const [limit] = useState(20);
-  const [offset, setOffset] = useState(0);
+  const [offset] = useState(0);
 
+  const navigate = useNavigate();
   const token = localStorage.getItem("token");
   const baseURL = import.meta.env.VITE_API_URL;
 
@@ -28,14 +30,14 @@ export default function ActiveUsers() {
           params: { filter: "lastLogin" },
         });
         if (res.data.success) setSummary(res.data.data);
-      } catch (err) {
-        console.error("Error fetching summary:", err);
+      } catch {
+        setSummary(null);
       }
     };
     fetchSummary();
   }, [baseURL, token]);
 
-  // 🔹 Fetch Active Users (matches /superAdmin/users)
+  // 🔹 Fetch Active Users
   useEffect(() => {
     const fetchActiveUsers = async () => {
       setLoading(true);
@@ -54,10 +56,10 @@ export default function ActiveUsers() {
           setUsers(res.data.data);
           setFilteredUsers(res.data.data);
         } else {
-          console.warn("Unexpected response format:", res.data);
+          setUsers([]);
+          setFilteredUsers([]);
         }
-      } catch (err) {
-        console.error("Error fetching active users:", err);
+      } catch {
         setError("Failed to load active users");
       } finally {
         setLoading(false);
@@ -65,7 +67,7 @@ export default function ActiveUsers() {
     };
 
     fetchActiveUsers();
-  }, [baseURL, token, sortFilter, offset]);
+  }, [baseURL, token, sortFilter, offset, limit]);
 
   // 🔹 Local search filter
   useEffect(() => {
@@ -77,6 +79,31 @@ export default function ActiveUsers() {
     );
     setFilteredUsers(filtered);
   }, [searchTerm, users]);
+
+  // 🔹 Update user status
+  const handleStatusChange = async (userId, newStatus) => {
+    try {
+      setStatusUpdating(userId);
+      const res = await axios.put(
+        `${baseURL}/superAdmin/update-user-status/${userId}`,
+        { status: newStatus },
+        { headers: { Authorization: `Bearer ${token}` } }
+      );
+
+      if (res.data.success) {
+        setUsers((prev) =>
+          prev.map((u) => (u.id === userId ? { ...u, status: newStatus } : u))
+        );
+        setFilteredUsers((prev) =>
+          prev.map((u) => (u.id === userId ? { ...u, status: newStatus } : u))
+        );
+      }
+    } catch {
+      setError("Failed to update user status");
+    } finally {
+      setStatusUpdating(null);
+    }
+  };
 
   if (loading)
     return <div className="p-6 text-gray-500 text-sm">Loading active users...</div>;
@@ -183,90 +210,122 @@ export default function ActiveUsers() {
         </div>
       )}
 
-      {/* 🔹 Table (matches /superAdmin/users exactly) */}
+      {/* Users Table */}
       <div className="overflow-x-auto bg-white rounded-lg shadow-sm border border-gray-100">
         <table className="min-w-full text-sm text-gray-700">
-          <thead className="bg-gray-50 border-b">
+          <thead className="bg-gray-50 border-b text-xs uppercase text-gray-500">
             <tr>
-              <th className="px-4 py-2 text-left font-semibold">FULL NAME</th>
-              <th className="px-4 py-2 text-left font-semibold">EMAIL</th>
-              <th className="px-4 py-2 text-left font-semibold">IDENTIFIER</th>
-              <th className="px-4 py-2 text-left font-semibold">ACCOUNT INFO</th>
-              <th className="px-4 py-2 text-left font-semibold">KYC STATUS</th>
-              <th className="px-4 py-2 text-left font-semibold">LAST LOGIN</th>
-              <th className="px-4 py-2 text-right font-semibold">ACTION</th>
+              <th className="px-4 py-2 text-left font-medium">Full Name</th>
+              <th className="px-4 py-2 text-left font-medium">Email / Phone</th>
+              <th className="px-4 py-2 text-left font-medium">Country</th>
+              <th className="px-4 py-2 text-left font-medium">Status</th>
+              <th className="px-4 py-2 text-left font-medium">Last Login</th>
+              <th className="px-4 py-2 text-left font-medium">Action</th>
             </tr>
           </thead>
-
           <tbody>
             {filteredUsers.map((user) => (
               <tr
                 key={user.id}
                 className="border-b hover:bg-gray-50 transition-colors"
               >
-                <td className="px-4 py-3 font-medium text-gray-800">
-                  {user.firstname} {user.lastname}
-                </td>
-
-                <td className="px-4 py-3">{user.email}</td>
-
-                <td className="px-4 py-3">
-                  {user.kyc?.typeValue || "—"}
-                  <div className="text-gray-400 text-xs">
-                    {user.kyc?.type || "N/A"}
+                {/* Full Name */}
+                <td className="px-4 py-3 flex items-center gap-3">
+                  <div className="w-8 h-8 rounded-full bg-emerald-100 flex items-center justify-center text-emerald-700 font-semibold uppercase">
+                    {user.firstname?.[0] || "?"}
+                  </div>
+                  <div>
+                    <p className="font-medium text-gray-800 cursor-pointer" onClick={() =>
+                                       navigate(`/admin/all-users/${user.id}`)
+                                      }>
+                      {user.firstname} {user.lastname}
+                    </p>
+                    <p className="text-xs text-gray-400">@{user.username}</p>
                   </div>
                 </td>
 
+                {/* Email / Phone */}
                 <td className="px-4 py-3">
-                  {user.accounts?.length > 0 ? (
-                    user.accounts.map((acc) => (
-                      <div key={acc.id} className="text-sm">
-                        <span className="font-medium">{acc.currency}</span> — ₦
-                        {Number(acc.balance).toLocaleString()}
-                      </div>
-                    ))
-                  ) : (
-                    <span className="text-gray-400 text-sm">No accounts</span>
-                  )}
+                  <p className="text-gray-800">{user.email}</p>
+                  <p className="text-xs text-gray-500">{user.phone || "N/A"}</p>
                 </td>
 
-                <td className="px-4 py-3 capitalize">
+                {/* Country */}
+                <td className="px-4 py-3 text-gray-700">
+                  {user.country || "-"}
+                </td>
+
+                {/* Status */}
+                <td className="px-4 py-3">
                   <span
-                    className={`px-2 py-1 text-xs rounded-full ${
-                      user.kyc?.status === "verified"
-                        ? "bg-green-100 text-green-700"
-                        : user.kyc?.status === "pending"
-                        ? "bg-yellow-100 text-yellow-700"
-                        : "bg-gray-100 text-gray-500"
+                    className={`inline-flex items-center gap-1 px-2 py-1 rounded-full text-xs font-medium ${
+                      user.status === "active"
+                        ? "bg-green-50 text-green-600"
+                        : user.status === "inactive"
+                        ? "bg-yellow-50 text-yellow-600"
+                        : user.status === "blocked"
+                        ? "bg-red-50 text-red-600"
+                        : "bg-gray-50 text-gray-500"
                     }`}
                   >
-                    {user.kyc?.status || "unverified"}
+                    <span className="w-2 h-2 rounded-full bg-current"></span>
+                    {user.status}
                   </span>
                 </td>
 
-                <td className="px-4 py-3 text-gray-500">
+                {/* Last Login */}
+                <td className="px-4 py-3 text-gray-600">
                   {user.lastLogin
                     ? formatDistanceToNow(new Date(user.lastLogin), {
                         addSuffix: true,
                       })
-                    : "Never"}
+                    : "N/A"}
                 </td>
 
+                {/* Actions */}
                 <td className="px-4 py-3 text-right">
-                  <button className="text-emerald-600 hover:text-emerald-800">
-                    <FiEdit2 />
-                  </button>
+                  <div className="flex justify-end items-center gap-2">
+                    <button
+                      className="flex items-center gap-1 px-3 py-1.5 text-xs bg-blue-50 text-blue-600 rounded-md hover:bg-blue-100"
+                      onClick={() => navigate(`/admin/all-users/${user.id}`)}
+                    >
+                      <FiEdit2 size={14} /> Edit
+                    </button>
+
+                    <div className="relative group">
+                      <button className="p-2 rounded-md hover:bg-gray-100">
+                        <FiMoreVertical size={14} />
+                      </button>
+                      <div className="hidden group-hover:block absolute right-0 mt-2 bg-white border border-gray-100 rounded-md shadow-md w-32 z-20">
+                        {["active", "inactive", "blocked"].map((status) => (
+                          <button
+                            key={status}
+                            disabled={statusUpdating === user.id}
+                            onClick={() => handleStatusChange(user.id, status)}
+                            className={`block w-full text-left px-3 py-2 text-sm hover:bg-gray-50 ${
+                              status === "blocked"
+                                ? "text-red-600"
+                                : "text-gray-700"
+                            }`}
+                          >
+                            {statusUpdating === user.id
+                              ? "Updating..."
+                              : `Set ${status}`}
+                          </button>
+                        ))}
+                      </div>
+                    </div>
+                  </div>
                 </td>
               </tr>
             ))}
-
             {filteredUsers.length === 0 && (
               <tr>
                 <td
-                  colSpan="7"
-                  className="px-4 py-6 text-center text-gray-400 text-sm"
+                  colSpan="6"
+                  className="text-center text-gray-400 py-6 text-sm"
                 >
-                  No active users found.
+                  No users found.
                 </td>
               </tr>
             )}

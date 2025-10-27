@@ -117,6 +117,7 @@ export default function Dashboard({onAllowNotifications}) {
     fetchRates();
   }, []);
 
+
   const labels =
     graphData[period]?.length > 0
       ? graphData[period].map((item, idx) =>
@@ -284,38 +285,42 @@ export default function Dashboard({onAllowNotifications}) {
       </div>
 
       {/* ================= Exchange Rate Cards ================= */}
-      <div className="mt-4">
-        <h3 className="text-base font-semibold text-gray-800 mb-3">
-          💱 Exchange Rates
-        </h3>
+    <div className="mt-4">
+  <h3 className="text-base font-semibold text-gray-800 mb-3">
+    💱 Exchange Rates
+  </h3>
 
-        {rateLoading ? (
-          <p className="text-gray-500 text-sm text-center">
-            Loading exchange rates...
-          </p>
-        ) : rates && Object.keys(rates).length > 0 ? (
-          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4 max-h-[400px] overflow-y-auto pr-2 custom-scrollbar">
-            {Object.entries(rates).map(([pair, value]) => (
-              <StatCard
-                key={pair}
-                label={`${pair.replace(/([A-Z]{3})[-]?([A-Z]{3})/, "$1 → $2")} Rate`}
-                value={`1 ${pair.slice(0, 3)} = ${value.toLocaleString(undefined, {
-                  minimumFractionDigits: 3,
-                  maximumFractionDigits: 3,
-                })} ${pair.slice(-3)}`}
-                change=""
-                sparkline={[value * 0.95, value, value * 1.05]}
-                icon={<CreditCard className="w-5 h-5" />}
-                color="#3b82f6"
-              />
-            ))}
-          </div>
-        ) : (
-          <p className="text-gray-400 text-sm text-center">
-            No exchange rate data available.
-          </p>
-        )}
-      </div>
+  {rateLoading ? (
+    <p className="text-gray-500 text-sm text-center">
+      Loading exchange rates...
+    </p>
+  ) : rates && Object.keys(rates).length > 0 ? (
+    <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4 max-h-[400px] overflow-y-auto pr-2 custom-scrollbar">
+      {Object.entries(rates)
+        // ✅ Correct: includes hyphen in currency pair names
+        .filter(([pair]) => ["USD-NGN", "NGN-USD"].includes(pair.toUpperCase()))
+        .map(([pair, value]) => (
+          <StatCard
+            key={pair}
+            label={`${pair.replace("-", " → ")} Rate`}
+            value={`1 ${pair.slice(0, 3)} = ${value.toLocaleString(undefined, {
+              minimumFractionDigits: 3,
+              maximumFractionDigits: 3,
+            })} ${pair.slice(-3)}`}
+            change=""
+            sparkline={[value * 0.95, value, value * 1.05]}
+            icon={<CreditCard className="w-5 h-5" />}
+            color="#3b82f6"
+          />
+        ))}
+    </div>
+  ) : (
+    <p className="text-gray-400 text-sm text-center">
+      No exchange rate data available.
+    </p>
+  )}
+</div>
+
 
       {/* ================= Wallet Currency Section ================= */}
       <div className="bg-white rounded-xl shadow p-5">

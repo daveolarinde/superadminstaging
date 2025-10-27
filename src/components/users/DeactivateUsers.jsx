@@ -1,7 +1,8 @@
 import { useEffect, useState } from "react";
 import axios from "axios";
 import { formatDistanceToNow } from "date-fns";
-import { FiFilter, FiEdit2 } from "react-icons/fi";
+import { FiFilter, FiEdit2, FiMoreVertical } from "react-icons/fi";
+import { useNavigate } from "react-router-dom";
 
 export default function DeactivateUsers() {
   const [users, setUsers] = useState([]);
@@ -12,14 +13,15 @@ export default function DeactivateUsers() {
   const [filterOpen, setFilterOpen] = useState(false);
   const [searchTerm, setSearchTerm] = useState("");
   const [sortFilter, setSortFilter] = useState("latestLogin");
+  const [statusUpdating, setStatusUpdating] = useState(null);
 
+  const navigate = useNavigate();
   const [limit] = useState(20);
-  const [offset, setOffset] = useState(0);
 
   const token = localStorage.getItem("token");
   const baseURL = import.meta.env.VITE_API_URL;
 
-  // 🔹 Fetch user summary (for card stats)
+  // 🔹 Fetch user summary
   useEffect(() => {
     const fetchSummary = async () => {
       try {
@@ -28,7 +30,7 @@ export default function DeactivateUsers() {
         });
         if (res.data.success) setSummary(res.data.data);
       } catch (err) {
-        console.error("Error fetching summary:", err);
+        console.error("❌ Error fetching summary:", err);
       }
     };
     fetchSummary();
@@ -39,24 +41,27 @@ export default function DeactivateUsers() {
     const fetchDeactivatedUsers = async () => {
       setLoading(true);
       try {
+        
         const res = await axios.get(`${baseURL}/superAdmin/users`, {
           params: {
             status: "deactivate",
             sort: sortFilter,
             limit,
-            offset,
+           
           },
           headers: { Authorization: `Bearer ${token}` },
         });
+
+        console.log("✅ API response:", res.data);
 
         if (res.data.success && Array.isArray(res.data.data)) {
           setUsers(res.data.data);
           setFilteredUsers(res.data.data);
         } else {
-          console.warn("Unexpected response format:", res.data);
+          console.warn("⚠️ Unexpected response format:", res.data);
         }
       } catch (err) {
-        console.error("Error fetching deactivated users:", err);
+        console.error("❌ Error fetching deactivated users:", err);
         setError("Failed to load deactivated users");
       } finally {
         setLoading(false);
@@ -64,9 +69,9 @@ export default function DeactivateUsers() {
     };
 
     fetchDeactivatedUsers();
-  }, [baseURL, token, sortFilter, offset]);
+  }, [baseURL, token, sortFilter, limit]);
 
-  // 🔹 Local search
+  // 🔹 Local search filter
   useEffect(() => {
     const filtered = users.filter(
       (u) =>
@@ -76,6 +81,40 @@ export default function DeactivateUsers() {
     );
     setFilteredUsers(filtered);
   }, [searchTerm, users]);
+
+  // 🔹 Handle status change (missing function fixed)
+  const handleStatusChange = async (userId, newStatus) => {
+    try {
+      setStatusUpdating(userId);
+      console.log(`🔄 Updating user ${userId} status → ${newStatus}`);
+
+      const res = await axios.put(
+        `${baseURL}/superAdmin/users/${userId}/status`,
+        { status: newStatus },
+        { headers: { Authorization: `Bearer ${token}` } }
+      );
+
+      if (res.data.success) {
+        console.log("✅ Status updated successfully");
+        setUsers((prev) =>
+          prev.map((u) =>
+            u.id === userId ? { ...u, status: newStatus } : u
+          )
+        );
+        setFilteredUsers((prev) =>
+          prev.map((u) =>
+            u.id === userId ? { ...u, status: newStatus } : u
+          )
+        );
+      } else {
+        console.warn("⚠️ Failed to update status:", res.data);
+      }
+    } catch (err) {
+      console.error("❌ Error updating status:", err);
+    } finally {
+      setStatusUpdating(null);
+    }
+  };
 
   if (loading)
     return <div className="p-6 text-gray-500 text-sm">Loading deactivated users...</div>;
@@ -87,7 +126,6 @@ export default function DeactivateUsers() {
 
   return (
     <div className="p-6 space-y-6">
-      {/* Header */}
       <div className="flex justify-between items-center">
         <h1 className="text-2xl font-semibold">Deactivated Users</h1>
       </div>
@@ -167,69 +205,121 @@ export default function DeactivateUsers() {
         </div>
       )}
 
-      {/* Table */}
+      {/* Users Table */}
       <div className="overflow-x-auto bg-white rounded-lg shadow-sm border border-gray-100">
         <table className="min-w-full text-sm text-gray-700">
-          <thead className="bg-gray-50 border-b">
+          <thead className="bg-gray-50 border-b text-xs uppercase text-gray-500">
             <tr>
-              <th className="px-4 py-2 text-left font-semibold">FULL NAME</th>
-              <th className="px-4 py-2 text-left font-semibold">EMAIL</th>
-              <th className="px-4 py-2 text-left font-semibold">BALANCE</th>
-              <th className="px-4 py-2 text-left font-semibold">KYC STATUS</th>
-              <th className="px-4 py-2 text-left font-semibold">LAST LOGIN</th>
-              <th className="px-4 py-2 text-right font-semibold">ACTION</th>
+              <th className="px-4 py-2 text-left font-medium">Full Name</th>
+              <th className="px-4 py-2 text-left font-medium">Email / Phone</th>
+              <th className="px-4 py-2 text-left font-medium">Country</th>
+              <th className="px-4 py-2 text-left font-medium">Status</th>
+              <th className="px-4 py-2 text-left font-medium">Last Login</th>
+              <th className="px-4 py-2 text-left font-medium">Action</th>
             </tr>
           </thead>
-
           <tbody>
             {filteredUsers.map((user) => (
-              <tr key={user.id} className="border-b hover:bg-gray-50">
-                <td className="px-4 py-3 font-medium text-gray-800">
-                  {user.firstname} {user.lastname}
+              <tr
+                key={user.id}
+                className="border-b hover:bg-gray-50 transition-colors"
+              >
+                <td className="px-4 py-3 flex items-center gap-3">
+                  <div className="w-8 h-8 rounded-full bg-emerald-100 flex items-center justify-center text-emerald-700 font-semibold uppercase">
+                    {user.firstname?.[0] || "?"}
+                  </div>
+                  <div>
+                    <p className="font-medium text-gray-800 cursor-pointer" onClick={() =>
+                                       navigate(`/admin/all-users/${user.id}`)
+                                      }>
+                      {user.firstname} {user.lastname}
+                    </p>
+                    <p className="text-xs text-gray-400">@{user.username}</p>
+                  </div>
                 </td>
-                <td className="px-4 py-3">{user.email}</td>
+
                 <td className="px-4 py-3">
-                  ₦{user.accounts?.[0]?.balance?.toLocaleString() ?? "0"}
+                  <p className="text-gray-800">{user.email}</p>
+                  <p className="text-xs text-gray-500">{user.phone || "N/A"}</p>
                 </td>
+
+                <td className="px-4 py-3 text-gray-700">{user.country || "-"}</td>
+
                 <td className="px-4 py-3">
                   <span
-                    className={`px-2 py-1 text-xs rounded-full ${
-                      user.kyc?.status === "verified"
-                        ? "bg-green-100 text-green-700"
-                        : "bg-gray-100 text-gray-500"
+                    className={`inline-flex items-center gap-1 px-2 py-1 rounded-full text-xs font-medium ${
+                      user.status === "active"
+                        ? "bg-green-50 text-green-600"
+                        : user.status === "inactive"
+                        ? "bg-yellow-50 text-yellow-600"
+                        : user.status === "blocked"
+                        ? "bg-red-50 text-red-600"
+                        : "bg-gray-50 text-gray-500"
                     }`}
                   >
-                    {user.kyc?.status || "unverified"}
+                    <span className="w-2 h-2 rounded-full bg-current"></span>
+                    {user.status}
                   </span>
                 </td>
-                <td className="px-4 py-3 text-gray-500">
+
+                <td className="px-4 py-3 text-gray-600">
                   {user.lastLogin
-                    ? formatDistanceToNow(new Date(user.lastLogin), { addSuffix: true })
-                    : "Never"}
+                    ? formatDistanceToNow(new Date(user.lastLogin), {
+                        addSuffix: true,
+                      })
+                    : "N/A"}
                 </td>
+
                 <td className="px-4 py-3 text-right">
-                  <button className="text-emerald-600 hover:text-emerald-800">
-                    <FiEdit2 />
-                  </button>
+                  <div className="flex justify-end items-center gap-2">
+                    <button
+                      className="flex items-center gap-1 px-3 py-1.5 text-xs bg-blue-50 text-blue-600 rounded-md hover:bg-blue-100"
+                      onClick={() => navigate(`/admin/all-users/${user.id}`)}
+                    >
+                      <FiEdit2 size={14} /> Edit
+                    </button>
+
+                    <div className="relative group">
+                      <button className="p-2 rounded-md hover:bg-gray-100">
+                        <FiMoreVertical size={14} />
+                      </button>
+                      <div className="hidden group-hover:block absolute right-0 mt-2 bg-white border border-gray-100 rounded-md shadow-md w-32 z-20">
+                        {["active", "inactive", "blocked"].map((status) => (
+                          <button
+                            key={status}
+                            disabled={statusUpdating === user.id}
+                            onClick={() =>
+                              handleStatusChange(user.id, status)
+                            }
+                            className={`block w-full text-left px-3 py-2 text-sm hover:bg-gray-50 ${
+                              status === "blocked"
+                                ? "text-red-600"
+                                : "text-gray-700"
+                            }`}
+                          >
+                            {statusUpdating === user.id
+                              ? "Updating..."
+                              : `Set ${status}`}
+                          </button>
+                        ))}
+                      </div>
+                    </div>
+                  </div>
                 </td>
               </tr>
             ))}
-
             {filteredUsers.length === 0 && (
               <tr>
-                <td colSpan="6" className="px-4 py-6 text-center text-gray-400 text-sm">
-                  No deactivated users found.
+                <td
+                  colSpan="6"
+                  className="text-center text-gray-400 py-6 text-sm"
+                >
+                  No users found.
                 </td>
               </tr>
             )}
           </tbody>
         </table>
-      </div>
-
-      {/* Pagination info */}
-      <div className="text-sm text-gray-500 text-right">
-        Showing {offset + 1}–{Math.min(offset + limit, users.length)} of{" "}
-        {users.length}
       </div>
     </div>
   );
