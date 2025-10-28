@@ -7,6 +7,7 @@ import Dashboard from "./components/Dashboard";
 import TransactionSummary from "./components/TransactionSummary";
 import AllUsers from "./components/users/AllUsers";
 import TransactionTable from "./components/TransactionTable";
+import ViewTransaction from "./components/ViewTransactions";
 import ActiveUsers from "./components/users/ActiveUsers";
 import BlockedUsers from "./components/users/BlockedUsers";
 import InactiveUsers from "./components/users/InActiveUsers"; 
@@ -73,6 +74,7 @@ export default function App() {
         <Route index element={<Dashboard />} />
         <Route path="transaction-summary" element={<TransactionSummary />} />
         <Route path="transaction" element={<TransactionTable />} />
+        <Route path="/admin/transactions/:id" element={<ViewTransaction />} />
         <Route path="all-users" element={<AllUsers />} />
         <Route path="active-users" element={<ActiveUsers />} />
         <Route path="blocked-users" element={<BlockedUsers />} />
