@@ -17,7 +17,7 @@ import Approved from "./components/Kyc/KycApproved";
 import Rejected from "./components/Kyc/KycRejected";
 import UserProfileView from "./components/UserProfileView";
 import VirtualCards from "./components/VirtualCards";
-
+import ViewCardDetails from "./components/ViewCardDetails";
 function ProtectedRoute({ children }) {
   const token = localStorage.getItem("token");
   return token ? children : <Navigate to="/login" replace />;
@@ -85,6 +85,7 @@ export default function App() {
         <Route path="Deactivate-users" element={<DeactivateUsers />} />
         <Route path="all-users/:userId" element={<UserProfileView />} />
         <Route path="virtual-cards" element={<VirtualCards />} />
+        <Route path="virtual-cards/:id" element={<ViewCardDetails />} />
       </Route>
 
       {/* Catch all */}

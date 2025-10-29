@@ -1,6 +1,7 @@
 import { useState, useEffect } from "react";
 import axios from "axios";
-import { FiRefreshCcw, FiAlertTriangle, FiCreditCard } from "react-icons/fi";
+import { useNavigate } from "react-router-dom";
+import { FiRefreshCcw } from "react-icons/fi";
 
 const API_BASE_URL = import.meta.env.VITE_API_URL;
 
@@ -10,6 +11,7 @@ export default function VirtualCards() {
   const [error, setError] = useState("");
   const [statusFilter, setStatusFilter] = useState("");
   const [refreshing, setRefreshing] = useState(false);
+  const navigate = useNavigate();
 
   useEffect(() => {
     fetchCards();
@@ -18,8 +20,6 @@ export default function VirtualCards() {
   const fetchCards = async () => {
     try {
       setLoading(true);
-      setError("");
-
       const token = localStorage.getItem("token");
       const params = statusFilter ? { status: statusFilter } : {};
 
@@ -39,43 +39,40 @@ export default function VirtualCards() {
     }
   };
 
-  const handleAction = async (type, cardId) => {
+  const handleAction = async (action, card) => {
+    if (!card?.id) return alert("Invalid card selected");
+    const token = localStorage.getItem("token");
+    const endpointMap = {
+      freeze: "/superAdmin/card/freeze",
+      unfreeze: "/superAdmin/card/unfreeze",
+      terminate: "/superAdmin/card/terminate",
+    };
+    const payload = { cardId: card.id };
+
     try {
       setRefreshing(true);
-      const token = localStorage.getItem("token");
-
-      const endpointMap = {
-        freeze: "/superAdmin/card/freeze",
-        unfreeze: "/superAdmin/card/unfreeze",
-        terminate: "/superAdmin/card/terminate",
-      };
-
-      await axios.post(
-        `${API_BASE_URL}${endpointMap[type]}`,
-        { cardId },
-        {
-          headers: {
-            Authorization: `Bearer ${token}`,
-            "Content-Type": "application/json",
-          },
-        }
-      );
-
-      await fetchCards();
-    } catch {
-      alert(`Failed to ${type} card`);
+      const res = await axios.post(`${API_BASE_URL}${endpointMap[action]}`, payload, {
+        headers: {
+          Authorization: `Bearer ${token}`,
+          "Content-Type": "application/json",
+        },
+      });
+      console.log(`Card ${card.id} ${action}d successfully!`, res.data);
+      fetchCards();
+    } catch (error) {
+      console.error(`Failed to ${action} card:`, error);
+      alert(`Failed to ${action} card`);
     } finally {
       setRefreshing(false);
     }
   };
 
   return (
-    <div className="p-6 space-y-6">
-      <div className="flex items-center justify-between">
-        <h2 className="text-xl font-semibold text-gray-800 flex items-center gap-2">
-          <FiCreditCard /> Virtual Cards
-        </h2>
-        <div className="flex items-center gap-3">
+    <div className="p-6">
+      <div className="flex items-center justify-between mb-4">
+        <h2 className="text-xl font-semibold text-gray-800">Virtual Cards</h2>
+
+        <div className="flex gap-3">
           <select
             value={statusFilter}
             onChange={(e) => setStatusFilter(e.target.value)}
@@ -86,6 +83,7 @@ export default function VirtualCards() {
             <option value="frozen">Frozen</option>
             <option value="terminated">Terminated</option>
           </select>
+
           <button
             onClick={fetchCards}
             disabled={refreshing}
@@ -102,99 +100,87 @@ export default function VirtualCards() {
       </div>
 
       {loading ? (
-        <div className="flex justify-center items-center min-h-[50vh] text-gray-500">
-          Loading cards...
-        </div>
+        <p className="text-gray-500 text-center">Loading cards...</p>
       ) : error ? (
-        <div className="flex flex-col justify-center items-center min-h-[50vh] text-gray-500">
-          <FiAlertTriangle className="text-red-500 text-3xl mb-2" />
-          {error}
-        </div>
+        <p className="text-red-500 text-center">{error}</p>
       ) : cards.length === 0 ? (
-        <div className="text-center text-gray-500 min-h-[50vh] flex items-center justify-center">
-          No cards found.
-        </div>
+        <p className="text-gray-500 text-center">No cards found.</p>
       ) : (
-        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">
-          {cards.map((card) => (
-            <div
-              key={card.id}
-              className="bg-white border border-gray-100 rounded-2xl p-5 shadow-sm hover:shadow-md transition-all duration-200"
-            >
-              <div className="flex items-center justify-between mb-3">
-                <h4 className="font-semibold text-gray-800 flex items-center gap-2">
-                  <FiCreditCard /> {card.brand?.toUpperCase() || "Card"}
-                </h4>
-                <span
-                  className={`px-3 py-1 text-xs font-medium rounded-full ${
-                    card.status === "active"
-                      ? "bg-green-100 text-green-700"
-                      : card.status === "frozen"
-                      ? "bg-yellow-100 text-yellow-700"
-                      : "bg-red-100 text-red-600"
-                  }`}
+        <div className="overflow-x-auto">
+          <table className="min-w-full text-sm text-left border-collapse">
+            <thead>
+              <tr className="bg-gray-50 text-gray-600 uppercase text-xs border-b">
+                <th className="px-4 py-3">Card Holder</th>
+                <th className="px-4 py-3">Card Number</th>
+                <th className="px-4 py-3">Currency</th>
+                <th className="px-4 py-3">Balance</th>
+                <th className="px-4 py-3">Status</th>
+                <th className="px-4 py-3 text-center">Actions</th>
+              </tr>
+            </thead>
+            <tbody>
+              {cards.map((card) => (
+                <tr
+                  key={card.id}
+                  className="border-b hover:bg-gray-50 transition-colors"
                 >
-                  {card.status || "unknown"}
-                </span>
-              </div>
-
-              <div className="text-sm text-gray-600 space-y-1">
-                <p>
-                  Holder:{" "}
-                  <span className="font-medium">
-                    {card.name || card.user?.firstname + " " + card.user?.lastname}
-                  </span>
-                </p>
-                <p>
-                  Number:{" "}
-                  <span className="font-mono">{card.masked || "**** **** **** ****"}</span>
-                </p>
-                <p>
-                  Currency: <span>{card.currency}</span>
-                </p>
-                <p>
-                  Balance:{" "}
-                  <span className="font-semibold">
+                  <td className="px-4 py-3 font-medium text-gray-800">
+                    {card.name}
+                  </td>
+                  <td className="px-4 py-3 font-mono">{card.masked}</td>
+                  <td className="px-4 py-3">{card.currency}</td>
+                  <td className="px-4 py-3">
                     {card.currency === "USD" ? "$" : "₦"}
                     {parseFloat(card.balance || 0).toLocaleString()}
-                  </span>
-                </p>
-                <p>
-                  User Tag: <span>@{card.user?.tag || "unknown"}</span>
-                </p>
-                <p>
-                  Expiry: <span>{card.expiry || "N/A"}</span>
-                </p>
-              </div>
+                  </td>
+                  <td className="px-4 py-3">
+                    <span
+                      className={`px-3 py-1 rounded-full text-xs font-semibold ${
+                        card.status === "active"
+                          ? "bg-green-100 text-green-700"
+                          : card.status === "frozen"
+                          ? "bg-yellow-100 text-yellow-700"
+                          : "bg-red-100 text-red-700"
+                      }`}
+                    >
+                      {card.status}
+                    </span>
+                  </td>
 
-              <div className="flex items-center gap-3 mt-4">
-                {card.status === "active" && (
-                  <button
-                    onClick={() => handleAction("freeze", card.card_id)}
-                    className="bg-yellow-50 text-yellow-700 px-3 py-1.5 rounded-md text-xs hover:bg-yellow-100"
-                  >
-                    Freeze
-                  </button>
-                )}
-                {card.status === "frozen" && (
-                  <button
-                    onClick={() => handleAction("unfreeze", card.card_id)}
-                    className="bg-green-50 text-green-700 px-3 py-1.5 rounded-md text-xs hover:bg-green-100"
-                  >
-                    Unfreeze
-                  </button>
-                )}
-                {card.status !== "terminated" && (
-                  <button
-                    onClick={() => handleAction("terminate", card.card_id)}
-                    className="bg-red-50 text-red-700 px-3 py-1.5 rounded-md text-xs hover:bg-red-100"
-                  >
-                    Terminate
-                  </button>
-                )}
-              </div>
-            </div>
-          ))}
+                  <td className="px-4 py-3 flex items-center gap-2 justify-center">
+                    <div className="relative inline-block">
+                      <select
+                        className="border border-gray-300 rounded-md text-xs px-2 py-1 bg-white"
+                        defaultValue=""
+                        onChange={(e) => {
+                          const action = e.target.value;
+                          if (action) handleAction(action, card);
+                        }}
+                      >
+                        <option value="">Action</option>
+                        {card.status === "active" && (
+                          <option value="freeze">Freeze</option>
+                        )}
+                        {card.status === "freeze" && (
+                          <option value="unfreeze">Unfreeze</option>
+                        )}
+                        {card.status !== "terminated" && (
+                          <option value="terminate">Terminate</option>
+                        )}
+                      </select>
+                    </div>
+
+                    <button
+                      onClick={() => navigate(`/admin/virtual-cards/${card.id}`)}
+                      className="bg-blue-50 text-blue-600 hover:bg-blue-100 px-3 py-1.5 rounded-md text-xs font-medium"
+                    >
+                      View
+                    </button>
+                  </td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
         </div>
       )}
     </div>
