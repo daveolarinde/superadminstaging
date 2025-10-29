@@ -263,7 +263,7 @@ export default function AllUsers() {
 
                 <td className="px-4 py-3">
                   <p className="text-gray-800">{user.email}</p>
-                  <p className="text-xs text-gray-500">{user.phone || "N/A"}</p>
+                  <p className="text-xs text-gray-500">{user.phoneNumber || "N/A"}</p>
                 </td>
 
                 <td className="px-4 py-3 text-gray-700">{user.country || "-"}</td>

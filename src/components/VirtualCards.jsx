@@ -115,6 +115,7 @@ export default function VirtualCards() {
                 <th className="px-4 py-3">Currency</th>
                 <th className="px-4 py-3">Balance</th>
                 <th className="px-4 py-3">Status</th>
+                <th className="px-4 py-3">Brand</th>
                 <th className="px-4 py-3 text-center">Actions</th>
               </tr>
             </thead>
@@ -145,8 +146,9 @@ export default function VirtualCards() {
                     >
                       {card.status}
                     </span>
+                   
                   </td>
-
+ <td className="px-4 py-3">{card.brand}</td>
                   <td className="px-4 py-3 flex items-center gap-2 justify-center">
                     <div className="relative inline-block">
                       <select

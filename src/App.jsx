@@ -83,7 +83,7 @@ export default function App() {
         <Route path="kyc-rejected" element={<Rejected />} />
         <Route path="inactive-users" element={<InactiveUsers />} />
         <Route path="Deactivate-users" element={<DeactivateUsers />} />
-        <Route path="all-users/:userId" element={<UserProfileView />} />
+        <Route path="/admin/all-users/:userId" element={<UserProfileView />} />
         <Route path="virtual-cards" element={<VirtualCards />} />
         <Route path="virtual-cards/:id" element={<ViewCardDetails />} />
       </Route>
