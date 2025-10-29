@@ -234,7 +234,9 @@ export default function DeactivateUsers() {
                                       }>
                       {user.firstname} {user.lastname}
                     </p>
-                    <p className="text-xs text-gray-400">@{user.username}</p>
+  <p className="text-sm text-gray-500">
+              @{user?.tag || `${user?.firstname?.toLowerCase() || "user"}`}
+            </p>
                   </div>
                 </td>
 

@@ -121,10 +121,7 @@ export default function UserProfileView({ onClose }) {
           <h2 className="text-lg font-semibold text-gray-800">User Profile</h2>
         </div>
 
-        <button className="flex items-center gap-2 bg-blue-50 text-blue-600 hover:bg-blue-100 px-4 py-2 rounded-md text-sm font-medium">
-          <FiEdit2 size={16} />
-          Edit Profile
-        </button>
+      
       </div>
 
       {/* User Info */}
