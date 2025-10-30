@@ -3,6 +3,7 @@ import { Line } from "react-chartjs-2";
 import axios from "axios";
 import WalletCurrency from "./WalletCurrency";
 import BalancesWithRates from "./BalancesWithRates";
+
 import Fees from "./FeesManagement"
 import {
   Chart as ChartJS,
@@ -17,6 +18,7 @@ import {
 } from "chart.js";
 
 import { Users, Ticket, BadgeCheck, CreditCard } from "lucide-react";
+import Profits from "./profits.jsx";
 
 ChartJS.register(
   CategoryScale,
@@ -331,6 +333,9 @@ export default function Dashboard({onAllowNotifications}) {
       </div>
       <div className="bg-white rounded-xl shadow p-5">
         <Fees />
+      </div>
+       <div className="bg-white rounded-xl shadow p-5">
+        <Profits />
       </div>
     </div>
   );
