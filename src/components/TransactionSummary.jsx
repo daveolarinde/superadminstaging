@@ -50,11 +50,9 @@ export default function TransactionSummary() {
           ),
         ]);
 
-       
-
-       
+        // ✅ Extract data correctly from API response
         setGraphData(graphRes.data?.data || {});
-        setSummary(summaryRes.data?.summary || {}); 
+        setSummary(summaryRes.data?.summary || {});
       } catch (err) {
         console.error("❌ Error fetching data:", err.response || err);
       } finally {
@@ -68,7 +66,7 @@ export default function TransactionSummary() {
   if (loading)
     return <p className="text-gray-500 text-center">Loading dashboard...</p>;
 
-  //  Graph logic
+  // ✅ GRAPH LOGIC
   const selectedGraph = graphData[activeTab] || [];
 
   const labels =
@@ -135,7 +133,7 @@ export default function TransactionSummary() {
     },
   };
 
-
+  // ✅ SUMMARY LOGIC
   const summaryData = summary?.summary || {};
   const thisMonth = summary?.thisMonth || {};
   const daily = summary?.daily || [];
@@ -217,6 +215,66 @@ export default function TransactionSummary() {
           value={`₦${Number(thisMonth.totalValue || 0).toLocaleString()}`}
         />
       </div>
+{/* OVERALL & MONTHLY BREAKDOWN */}
+<div className="bg-white rounded-2xl shadow-sm border border-gray-100 p-6 space-y-8">
+  {/* Overall Breakdown */}
+  <div>
+    <h3 className="text-base font-semibold text-gray-800 mb-4">
+      Overall Breakdown
+    </h3>
+    <table className="min-w-full text-sm text-left border-collapse">
+      <thead className="bg-gray-50">
+        <tr>
+          <th className="px-4 py-3 font-medium text-gray-600">Currency</th>
+          <th className="px-4 py-3 font-medium text-gray-600">Type</th>
+          <th className="px-4 py-3 font-medium text-gray-600">Amount</th>
+          <th className="px-4 py-3 font-medium text-gray-600">Count</th>
+        </tr>
+      </thead>
+      <tbody>
+        {summaryData.breakdown?.map((b, i) => (
+          <tr key={i} className="border-t hover:bg-gray-50 transition">
+            <td className="px-4 py-3">{b.currency}</td>
+            <td className="px-4 py-3 capitalize">{b.type}</td>
+            <td className="px-4 py-3 font-semibold">
+              ₦{Number(b.totalAmount).toLocaleString()}
+            </td>
+            <td className="px-4 py-3">{b.count}</td>
+          </tr>
+        ))}
+      </tbody>
+    </table>
+  </div>
+
+  {/* This Month Breakdown */}
+  <div>
+    <h3 className="text-base font-semibold text-gray-800 mb-4">
+      This Month Breakdown
+    </h3>
+    <table className="min-w-full text-sm text-left border-collapse">
+      <thead className="bg-gray-50">
+        <tr>
+          <th className="px-4 py-3 font-medium text-gray-600">Currency</th>
+          <th className="px-4 py-3 font-medium text-gray-600">Type</th>
+          <th className="px-4 py-3 font-medium text-gray-600">Amount</th>
+          <th className="px-4 py-3 font-medium text-gray-600">Count</th>
+        </tr>
+      </thead>
+      <tbody>
+        {thisMonth.breakdown?.map((b, i) => (
+          <tr key={i} className="border-t hover:bg-gray-50 transition">
+            <td className="px-4 py-3">{b.currency}</td>
+            <td className="px-4 py-3 capitalize">{b.type}</td>
+            <td className="px-4 py-3 font-semibold">
+              ₦{Number(b.totalAmount).toLocaleString()}
+            </td>
+            <td className="px-4 py-3">{b.count}</td>
+          </tr>
+        ))}
+      </tbody>
+    </table>
+  </div>
+</div>
 
       {/* DAILY BREAKDOWN */}
       <div className="bg-white rounded-2xl shadow-sm border border-gray-100 p-6">
