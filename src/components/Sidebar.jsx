@@ -49,6 +49,7 @@ export default function Sidebar() {
   ];
 
   const kycMenuItems = [
+    { to: "/admin/kyc-all", label: "All KYC", icon: <FaIdCardAlt /> },
     { to: "/admin/kyc-approved", label: "Approved KYC", icon: <FaIdBadge /> },
     { to: "/admin/kyc-pending", label: "Pending KYC", icon: <FaIdCardAlt /> },
     { to: "/admin/kyc-rejected", label: "Rejected KYC", icon: <FaUserTimes /> },

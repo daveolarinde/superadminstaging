@@ -18,6 +18,7 @@ import Rejected from "./components/Kyc/KycRejected";
 import UserProfileView from "./components/UserProfileView";
 import VirtualCards from "./components/VirtualCards";
 import ViewCardDetails from "./components/ViewCardDetails";
+import KycAll from "./components/Kyc/KycAll";
 function ProtectedRoute({ children }) {
   const token = localStorage.getItem("token");
   return token ? children : <Navigate to="/login" replace />;
@@ -78,6 +79,7 @@ export default function App() {
         <Route path="all-users" element={<AllUsers />} />
         <Route path="active-users" element={<ActiveUsers />} />
         <Route path="blocked-users" element={<BlockedUsers />} />
+        <Route path="kyc-all" element={<KycAll />} />
         <Route path="kyc-approved" element={<Approved />} />
         <Route path="kyc-pending" element={<Pending />} />
         <Route path="kyc-rejected" element={<Rejected />} />

@@ -14,7 +14,7 @@ const KycApproved = () => {
     failed: 0,
   });
   const [filterOpen, setFilterOpen] = useState(false);
-  const [statusFilter, setStatusFilter] = useState("pending"); 
+  const [statusFilter, setStatusFilter] = useState(""); 
   const [typeFilter, setTypeFilter] = useState("");
   const [currentPage, setCurrentPage] = useState(1);
   const [totalPages, setTotalPages] = useState(1);
@@ -23,7 +23,7 @@ const KycApproved = () => {
   const baseURL = import.meta.env.VITE_API_URL;
   const token = localStorage.getItem("token");
 
-  //  Fetch overall summary (once)
+  // ✅ Fetch overall summary (once)
   const fetchSummary = async () => {
     try {
       const res = await axios.get(`${baseURL}/superAdmin/kyc`, {
