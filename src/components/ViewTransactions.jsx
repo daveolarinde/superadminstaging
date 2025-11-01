@@ -156,12 +156,12 @@ export default function ViewTransactions() {
 
         {/* Print / Download */}
         <div className="text-center mt-8 border-t pt-4">
-          <button
+          {/* <button
             onClick={() => window.print()}
             className="px-5 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 text-sm"
           >
             Print Receipt
-          </button>
+          </button> */}
         </div>
       </div>
     </div>

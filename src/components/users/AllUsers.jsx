@@ -4,6 +4,8 @@ import { formatDistanceToNow, isToday } from "date-fns";
 import { FiFilter, FiEdit2, FiMoreVertical } from "react-icons/fi";
 import { useNavigate } from "react-router-dom";
 
+
+
 export default function AllUsers() {
   const [users, setUsers] = useState([]);
   const [filteredUsers, setFilteredUsers] = useState([]);
@@ -20,7 +22,8 @@ export default function AllUsers() {
   const [limit] = useState(20);
   const [offset] = useState(0);
 
-  const navigate = useNavigate();
+ const navigate = useNavigate();
+// const setSelectedUser = useUserStore((state) => state.setSelectedUser);
   const token = localStorage.getItem("token");
   const baseURL = import.meta.env.VITE_API_URL;
 

@@ -1,6 +1,6 @@
 import React, { useEffect, useState } from "react";
 import axios from "axios";
-import ProfitFilter from "./ProfitFilter"; // ✅ Import the filter component
+import ProfitFilter from "./ProfitFilter"; 
 
 const API_BASE_URL = import.meta.env.VITE_API_URL;
 
@@ -83,6 +83,7 @@ const Profits = () => {
 
   return (
     <div className="p-6 space-y-8">
+      <h1>Profit</h1>
       {/* ✅ Filter Component */}
       <ProfitFilter filters={filters} onApply={handleFilter} />
 
@@ -113,8 +114,9 @@ const Profits = () => {
             <tr>
               <th className="px-4 py-3 font-medium text-gray-700">User</th>
               <th className="px-4 py-3 font-medium text-gray-700">Email</th>
-              <th className="px-4 py-3 font-medium text-gray-700">Transaction ID</th>
+              {/* <th className="px-4 py-3 font-medium text-gray-700">Transaction ID</th> */}
               <th className="px-4 py-3 font-medium text-gray-700">Amount</th>
+              <th className="px-4 py-3 font-medium text-gray-700">Profit</th>
               <th className="px-4 py-3 font-medium text-gray-700">Currency</th>
               <th className="px-4 py-3 font-medium text-gray-700">Date</th>
               <th className="px-4 py-3 font-medium text-gray-700">Status</th>
@@ -128,11 +130,14 @@ const Profits = () => {
                     {profit.user?.firstName} {profit.user?.lastName}
                   </td>
                   <td className="px-4 py-3">{profit.user?.email}</td>
-                  <td className="px-4 py-3 text-gray-500">
+                  {/* <td className="px-4 py-3 text-gray-500">
                     {profit.transactionId}
-                  </td>
+                  </td> */}
                   <td className="px-4 py-3 font-medium text-gray-800">
                     ₦{parseFloat(profit.transaction?.amount || 0).toLocaleString()}
+                  </td>
+                   <td className="px-4 py-3 font-medium text-gray-800">
+                    ₦{parseFloat(profit.amount || 0).toLocaleString()}
                   </td>
                   <td className="px-4 py-3">
                     {profit.transaction?.currency || "NGN"}

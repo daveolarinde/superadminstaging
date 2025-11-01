@@ -17,8 +17,6 @@ export default function WalletCurrency() {
           }
         );
 
-       
-
         const balancesObj = res.data.data || {};
         const walletsArr = Object.keys(balancesObj).map((key) => ({
           currency: key,
@@ -26,7 +24,6 @@ export default function WalletCurrency() {
         }));
 
         const ratesObj = res.data.rates?.data || {};
-
         setWallets(walletsArr);
         setRates(ratesObj);
       } catch (err) {
@@ -67,16 +64,34 @@ export default function WalletCurrency() {
             <th className="px-6 py-4 font-medium text-gray-600">ACTION</th>
           </tr>
         </thead>
+
         <tbody>
           {wallets.map((item, idx) => {
-            const rateValue = rates[item.currency] || 1;
+            let displayRateText = "N/A";
+
+            if (item.currency === "NGN" && rates["NGN-USD"]) {
+              displayRateText = `1 NGN = USD\n${Number(
+                rates["NGN-USD"]
+              ).toLocaleString(undefined, {
+                minimumFractionDigits: 6,
+                maximumFractionDigits: 6,
+              })}`;
+            } else if (item.currency === "USD" && rates["USD-NGN"]) {
+              displayRateText = `1 USD = NGN\n${Number(
+                rates["USD-NGN"]
+              ).toLocaleString(undefined, {
+                minimumFractionDigits: 6,
+                maximumFractionDigits: 6,
+              })}`;
+            }
 
             return (
               <tr
                 key={item.currency}
-                className="hover:bg-gray-50 transition-colors"
+                className="hover:bg-gray-50 transition-colors whitespace-pre-line"
               >
                 <td className="px-6 py-4">{idx + 1}</td>
+
                 <td className="px-6 py-4 flex items-center gap-2">
                   <span className="w-6 h-6 rounded-full overflow-hidden bg-gray-200">
                     <img
@@ -89,18 +104,22 @@ export default function WalletCurrency() {
                   </span>
                   {item.currency}
                 </td>
+
                 <td className="px-6 py-4 font-semibold">
                   {parseFloat(item.totalBalance).toLocaleString()}{" "}
                   {item.currency}
                 </td>
-                <td className="px-6 py-4 text-gray-700">
-                  1 USD = {rateValue.toLocaleString()} {item.currency}
+
+                <td className="px-6 py-4 text-gray-700 whitespace-pre-line">
+                  {displayRateText}
                 </td>
+
                 <td className="px-6 py-4">
                   <span className="px-3 py-1 text-xs rounded-full bg-green-100 text-green-700">
                     Active
                   </span>
                 </td>
+
                 <td className="px-6 py-4">
                   <button className="px-3 py-1 text-xs sm:text-sm rounded-lg text-gray-700 bg-gray-100 hover:bg-gray-200 transition">
                     👁 View Transaction

@@ -13,7 +13,7 @@ export default function TransactionTable() {
   const [filterType, setFilterType] = useState("");
   const [loading, setLoading] = useState(false);
   const [currentPage, setCurrentPage] = useState(1);
-  const pageSize = 5;
+  const pageSize = 10;
   const navigate = useNavigate();
 
   const token = localStorage.getItem("token");
@@ -223,13 +223,22 @@ export default function TransactionTable() {
                 onChange={(e) => setFilterEndDate(e.target.value)}
                 className="border border-gray-200 rounded-lg px-3 py-2 text-sm"
               />
-              <input
+              {/* <input
                 type="text"
                 placeholder="Currency"
                 value={filterCurrency}
                 onChange={(e) => setFilterCurrency(e.target.value)}
                 className="border border-gray-200 rounded-lg px-3 py-2 text-sm col-span-2"
-              />
+              /> */}
+              <select
+                value={filterCurrency}
+                onChange={(e) => setFilterCurrency(e.target.value)}
+                className="border border-gray-200 rounded-lg px-3 py-2 text-sm col-span-2"
+              >
+                <option value="">All Types</option>
+                <option value="NGN">NGN</option>
+                <option value="USD">USD</option>
+              </select>
               <select
                 value={filterType}
                 onChange={(e) => setFilterType(e.target.value)}

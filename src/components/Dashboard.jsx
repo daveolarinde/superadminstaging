@@ -2,9 +2,9 @@ import { useState, useEffect } from "react";
 import { Line } from "react-chartjs-2";
 import axios from "axios";
 import WalletCurrency from "./WalletCurrency";
-import BalancesWithRates from "./BalancesWithRates";
+// import BalancesWithRates from "./BalancesWithRates";
 import Fees from "./FeesManagement";
-import Profits from "./profits.jsx";
+// import Profits from "./profits.jsx";
 import {
   Chart as ChartJS,
   CategoryScale,
@@ -294,43 +294,47 @@ export default function Dashboard({ onAllowNotifications }) {
       </div>
 
       {/* Exchange Rates */}
-      <div className="mt-4">
-        <h3 className="text-base font-semibold text-gray-800 mb-3">💱 Exchange Rates</h3>
-        {rateLoading ? (
-          <p className="text-gray-500 text-sm text-center">Loading exchange rates...</p>
-        ) : rates && Object.keys(rates).length > 0 ? (
-          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4 max-h-[400px] overflow-y-auto pr-2">
-            {Object.entries(rates)
-              .filter(([pair]) =>
-                ["USD-NGN", "NGN-USD"].includes(pair.toUpperCase())
-              )
-              .map(([pair, value]) => (
-                <StatCard
-                  key={pair}
-                  label={`${pair.replace("-", " → ")} Rate`}
-                  value={`1 ${pair.slice(0, 3)} = ${value.toLocaleString(undefined, {
-                    minimumFractionDigits: 3,
-                    maximumFractionDigits: 3,
-                  })} ${pair.slice(-3)}`}
-                  change=""
-                  sparkline={[value * 0.95, value, value * 1.05]}
-                  icon={<CreditCard className="w-5 h-5" />}
-                  color="#3b82f6"
-                />
-              ))}
-          </div>
-        ) : (
-          <p className="text-gray-400 text-sm text-center">
-            No exchange rate data available.
-          </p>
-        )}
-      </div>
+<div className="mt-4">
+  <h3 className="text-base font-semibold text-gray-800 mb-3">💱 Exchange Rates</h3>
+  {rateLoading ? (
+    <p className="text-gray-500 text-sm text-center">Loading exchange rates...</p>
+  ) : rates && Object.keys(rates).length > 0 ? (
+    <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4 max-h-[400px] overflow-y-auto pr-2">
+      {Object.entries(rates)
+        .filter(([pair]) =>
+          ["NGN-USD", "USD-NGN"].includes(pair.toUpperCase())
+        )
+        .map(([pair, value]) => {
+          const formattedValue = Number(value).toLocaleString(undefined, {
+            minimumFractionDigits: 6,
+            maximumFractionDigits: 8,
+          });
+
+          return (
+            <StatCard
+              key={pair}
+              label={`1 ${pair.replace("-", " = ")}`}
+              value={formattedValue}
+              change=""
+              sparkline={[value * 0.95, value, value * 1.05]}
+              icon={<CreditCard className="w-5 h-5" />}
+              color="#3b82f6"
+            />
+          );
+        })}
+    </div>
+  ) : (
+    <p className="text-gray-400 text-sm text-center">
+      No exchange rate data available.
+    </p>
+  )}
+</div>
 
       {/* Other Sections */}
       <div className="bg-white rounded-xl shadow p-5"><WalletCurrency /></div>
-      <div className="bg-white rounded-xl shadow p-5"><BalancesWithRates /></div>
+      {/* <div className="bg-white rounded-xl shadow p-5"><BalancesWithRates /></div> */}
       <div className="bg-white rounded-xl shadow p-5"><Fees /></div>
-      <div className="bg-white rounded-xl shadow p-5"><Profits /></div>
+      {/* <div className="bg-white rounded-xl shadow p-5"><Profits /></div> */}
     </div>
   );
 }

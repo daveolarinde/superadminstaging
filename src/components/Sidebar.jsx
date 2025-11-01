@@ -35,9 +35,11 @@ export default function Sidebar() {
       to: "/admin/transaction-summary",
       label: "Transaction Summary",
       icon: <FaExchangeAlt />,
+
     },
     { to: "/admin/transaction", label: "Transaction", icon: <FaExchangeAlt /> },
     { to: "/admin/virtual-cards", label: "Virtual Cards", icon: <FaCreditCard /> },
+    { to: "/admin/profit", label: "Profits", icon: <FaTachometerAlt /> },
   ];
 
   const userMenuItems = [

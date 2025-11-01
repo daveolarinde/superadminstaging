@@ -198,14 +198,14 @@ export default function TransactionSummary() {
 
       {/* SUMMARY CARDS */}
       <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
-        <SummaryCard
+        {/* <SummaryCard
           title="Total Transactions"
           value={(summaryData.totalTransactions || 0).toLocaleString()}
-        />
-        <SummaryCard
+        /> */}
+        {/* <SummaryCard
           title="Total Value"
           value={`₦${Number(summaryData.totalValue || 0).toLocaleString()}`}
-        />
+        /> */}
         <SummaryCard
           title="This Month Transactions"
           value={(thisMonth.totalTransactions || 0).toLocaleString()}
