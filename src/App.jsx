@@ -75,7 +75,7 @@ export default function App() {
       >
         <Route index element={<Dashboard />} />
         <Route path="transaction-summary" element={<TransactionSummary />} />
-        <Route path="transaction" element={<TransactionTable />} />
+      <Route path="transaction" element={<TransactionTable />} />
         <Route path="/admin/transactions/:id" element={<ViewTransaction />} />
         <Route path="profit" element={<Profit />} />
         <Route path="all-users" element={<AllUsers />} />

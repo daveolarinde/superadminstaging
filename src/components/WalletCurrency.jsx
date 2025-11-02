@@ -1,10 +1,12 @@
 import { useEffect, useState } from "react";
 import axios from "axios";
+import { useNavigate } from "react-router-dom";
 
 export default function WalletCurrency() {
   const [wallets, setWallets] = useState([]);
   const [rates, setRates] = useState({});
   const [loading, setLoading] = useState(true);
+  const navigate = useNavigate();
 
   useEffect(() => {
     const fetchWallets = async () => {
@@ -121,8 +123,15 @@ export default function WalletCurrency() {
                 </td>
 
                 <td className="px-6 py-4">
-                  <button className="px-3 py-1 text-xs sm:text-sm rounded-lg text-gray-700 bg-gray-100 hover:bg-gray-200 transition">
-                    👁 View Transaction
+                  <button
+                    onClick={() =>
+                      navigate("/admin/transaction", {
+                        state: { currency: item.currency }, // ✅ matches TransactionTable.jsx
+                      })
+                    }
+                    className="px-3 py-1 text-xs sm:text-sm rounded-lg text-gray-700 bg-gray-100 hover:bg-gray-200 transition"
+                  >
+                    👁 View Transactions
                   </button>
                 </td>
               </tr>
