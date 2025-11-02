@@ -126,7 +126,7 @@ export default function WalletCurrency() {
                   <button
                     onClick={() =>
                       navigate("/admin/transaction", {
-                        state: { currency: item.currency }, // ✅ matches TransactionTable.jsx
+                        state: { currency: item.currency },
                       })
                     }
                     className="px-3 py-1 text-xs sm:text-sm rounded-lg text-gray-700 bg-gray-100 hover:bg-gray-200 transition"
