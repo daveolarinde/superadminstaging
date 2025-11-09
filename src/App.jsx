@@ -20,6 +20,8 @@ import UserProfileView from "./components/UserProfileView";
 import VirtualCards from "./components/VirtualCards";
 import ViewCardDetails from "./components/ViewCardDetails";
 import KycAll from "./components/Kyc/KycAll";
+import VirtualAccounts from "./components/VirtualAccounts";
+import ViewVirtualAccount from "./components/ViewVirtualAccount";
 function ProtectedRoute({ children }) {
   const token = localStorage.getItem("token");
   return token ? children : <Navigate to="/login" replace />;
@@ -90,6 +92,9 @@ export default function App() {
         <Route path="/admin/all-users/:userId" element={<UserProfileView />} />
         <Route path="virtual-cards" element={<VirtualCards />} />
         <Route path="virtual-cards/:id" element={<ViewCardDetails />} />
+        <Route path="virtual-accounts" element={<VirtualAccounts/>}/>
+        <Route path="virtual-accounts/:userId" element={<ViewVirtualAccount />} />
+
       </Route>
 
       {/* Catch all */}

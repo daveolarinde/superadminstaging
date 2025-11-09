@@ -39,6 +39,7 @@ export default function Sidebar() {
     },
     { to: "/admin/transaction", label: "Transaction", icon: <FaExchangeAlt /> },
     { to: "/admin/virtual-cards", label: "Virtual Cards", icon: <FaCreditCard /> },
+    {to: "/admin/virtual-accounts", label: "Virtual Accounts", icon: <FaCreditCard />  },
     { to: "/admin/profit", label: "Profits", icon: <FaTachometerAlt /> },
   ];
 

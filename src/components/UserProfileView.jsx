@@ -21,9 +21,15 @@ export default function UserProfileView({ onClose }) {
     "Transactions",
     "Profit History",
     "KYC Verification",
+    "Virtual Accounts",
   ];
   const [activeTab, setActiveTab] = useState("Profile");
-
+const [virtualAccounts, setVirtualAccounts] = useState([]);
+const [virtualAccountsLoading, setVirtualAccountsLoading] = useState(false);
+const [virtualAccountsError, setVirtualAccountsError] = useState("");
+const [virtualAccountsPage, setVirtualAccountsPage] = useState(0);
+const [virtualAccountsLimit] = useState(10);
+const [virtualAccountsCount, setVirtualAccountsCount] = useState(null);
   // transactions
   const [txns, setTxns] = useState([]);
   const [txnsLoading, setTxnsLoading] = useState(false);
@@ -80,6 +86,40 @@ export default function UserProfileView({ onClose }) {
     };
     fetchUser();
   }, [userId]);
+
+  // -- fetch virtual account
+  const fetchVirtualAccounts = async (page = 0) => {
+  if (!userId) return;
+  setVirtualAccountsLoading(true);
+  setVirtualAccountsError("");
+  try {
+    const offset = page * virtualAccountsLimit;
+    const res = await axios.get(`${API_BASE_URL}/superadmin/virtual-accounts`, {
+      headers: authHeaders,
+      params: { userId, limit: virtualAccountsLimit, offset },
+    });
+    const data = res.data?.data || [];
+    setVirtualAccounts(Array.isArray(data) ? data : []);
+    if (typeof res.data?.count === "number") setVirtualAccountsCount(res.data.count);
+  } catch (err) {
+    console.error("Fetch virtual accounts error:", err);
+    setVirtualAccountsError("Failed to fetch virtual accounts");
+  } finally {
+    setVirtualAccountsLoading(false);
+  }
+};
+
+// --- Trigger fetch when tab is active ---
+useEffect(() => {
+  if (activeTab === "Virtual Accounts") {
+    fetchVirtualAccounts(virtualAccountsPage);
+  }
+}, [activeTab, virtualAccountsPage, userId]);
+
+// --- Pagination total ---
+const virtualAccountsPagesTotal = virtualAccountsCount
+  ? Math.ceil(virtualAccountsCount / virtualAccountsLimit)
+  : null;
 
   // --- Fetch Transactions ---
   const fetchTransactions = async (page = 0) => {
@@ -684,6 +724,120 @@ export default function UserProfileView({ onClose }) {
               </div>
             </div>
           )}
+
+          {/* ---------------- VIRTUAL ACCOUNTS ---------------- */}
+{activeTab === "Virtual Accounts" && (
+  <div>
+    <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between mb-4 gap-2">
+      <h3 className="text-lg font-semibold text-gray-800">Virtual Accounts</h3>
+      <div className="text-sm text-gray-500">All virtual accounts linked to this user</div>
+    </div>
+
+    <div className="bg-white border border-gray-100 rounded-2xl shadow-sm overflow-x-auto">
+      <table className="min-w-[720px] w-full text-sm text-left text-gray-700">
+        <thead className="bg-gray-50">
+          <tr>
+            <th className="px-4 py-3 whitespace-nowrap">Account Name</th>
+            <th className="px-4 py-3 whitespace-nowrap">Account Number</th>
+            <th className="px-4 py-3 whitespace-nowrap">Bank</th>
+            <th className="px-4 py-3 whitespace-nowrap">Currency</th>
+            <th className="px-4 py-3 whitespace-nowrap">Status</th>
+            <th className="px-4 py-3 whitespace-nowrap">Created At</th>
+          </tr>
+        </thead>
+        <tbody>
+          {virtualAccountsLoading ? (
+            <tr>
+              <td colSpan="6" className="text-center py-6 text-gray-500">
+                Loading...
+              </td>
+            </tr>
+          ) : virtualAccountsError ? (
+            <tr>
+              <td colSpan="6" className="text-center py-6 text-red-500">
+                {virtualAccountsError}
+              </td>
+            </tr>
+          ) : virtualAccounts.length > 0 ? (
+            virtualAccounts.map((va) => (
+              <tr key={va.id} className="border-t hover:bg-gray-50">
+                <td className="px-4 py-3 whitespace-nowrap font-medium">
+                  {va.accountName || "N/A"}
+                </td>
+                <td className="px-4 py-3 whitespace-nowrap">
+                  {va.accountNumber || "—"}
+                </td>
+                <td className="px-4 py-3 whitespace-nowrap">
+                  {va.bank || "—"}
+                </td>
+                <td className="px-4 py-3 whitespace-nowrap">
+                  {va.currency || "—"}
+                </td>
+                <td className="px-4 py-3 whitespace-nowrap">
+                  <span
+                    className={`px-3 py-1 rounded-full text-xs font-semibold ${
+                      va.status === "active"
+                        ? "bg-green-100 text-green-600"
+                        : va.status === "pending"
+                        ? "bg-yellow-100 text-yellow-600"
+                        : "bg-red-100 text-red-600"
+                    }`}
+                  >
+                    {va.status}
+                  </span>
+                </td>
+                <td className="px-4 py-3 whitespace-nowrap">
+                  {new Date(va.createdAt || Date.now()).toLocaleString()}
+                </td>
+              </tr>
+            ))
+          ) : (
+            <tr>
+              <td colSpan="6" className="text-center py-6 text-gray-500">
+                No virtual accounts found
+              </td>
+            </tr>
+          )}
+        </tbody>
+      </table>
+    </div>
+
+    {/* pagination */}
+    <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between mt-4 gap-2">
+      <div className="text-sm text-gray-500">
+        {virtualAccountsCount !== null ? (
+          <span>
+            Page {virtualAccountsPage + 1} of {virtualAccountsPagesTotal ?? "?"} —{" "}
+            {virtualAccountsCount} total
+          </span>
+        ) : (
+          <span>Page {virtualAccountsPage + 1}</span>
+        )}
+      </div>
+
+      <div className="flex gap-2">
+        <button
+          onClick={() => setVirtualAccountsPage((p) => Math.max(0, p - 1))}
+          disabled={virtualAccountsPage === 0}
+          className="px-3 py-1 bg-white border rounded-md disabled:opacity-50 text-sm"
+        >
+          Prev
+        </button>
+        <button
+          onClick={() => setVirtualAccountsPage((p) => p + 1)}
+          disabled={
+            virtualAccountsPagesTotal !== null &&
+            virtualAccountsPage + 1 >= virtualAccountsPagesTotal
+          }
+          className="px-3 py-1 bg-white border rounded-md disabled:opacity-50 text-sm"
+        >
+          Next
+        </button>
+      </div>
+    </div>
+  </div>
+)}
+
         </div>
       </div>
     </div>
