@@ -7,6 +7,7 @@ const API_BASE_URL = import.meta.env.VITE_API_URL;
 
 const VirtualAccounts = () => {
   const [virtualAccounts, setVirtualAccounts] = useState([]);
+  const [filteredAccounts, setFilteredAccounts] = useState([]);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");
   const [page, setPage] = useState(0);
@@ -20,14 +21,14 @@ const VirtualAccounts = () => {
     Authorization: `Bearer ${localStorage.getItem("token")}`,
   };
 
-  const fetchVirtualAccounts = async (page = 0, searchValue = "") => {
+  const fetchVirtualAccounts = async (page = 0) => {
     setLoading(true);
     setError("");
     try {
       const offset = page * limit;
       const res = await axios.get(`${API_BASE_URL}/superadmin/virtual-accounts`, {
         headers: authHeaders,
-        params: { limit, offset, search: searchValue },
+        params: { limit, offset },
       });
 
       const data = res.data?.data || [];
@@ -41,16 +42,30 @@ const VirtualAccounts = () => {
     }
   };
 
+  // Fetch accounts when page changes
   useEffect(() => {
-    fetchVirtualAccounts(page, search);
-    // eslint-disable-next-line react-hooks/exhaustive-deps
+    fetchVirtualAccounts(page);
   }, [page]);
 
-  const handleSearch = (e) => {
-    e.preventDefault();
-    setPage(0);
-    fetchVirtualAccounts(0, search);
-  };
+  // ✅ Local search filtering
+  useEffect(() => {
+    let filtered = [...virtualAccounts];
+
+    if (search.trim() !== "") {
+      const term = search.toLowerCase();
+      filtered = filtered.filter(
+        (va) =>
+          va.accountName?.toLowerCase().includes(term) ||
+          va.accountNumber?.toLowerCase().includes(term) ||
+          va.bank?.toLowerCase().includes(term) ||
+          va.user?.firstname?.toLowerCase().includes(term) ||
+          va.user?.lastname?.toLowerCase().includes(term) ||
+          va.user?.email?.toLowerCase().includes(term)
+      );
+    }
+
+    setFilteredAccounts(filtered);
+  }, [search, virtualAccounts]);
 
   const pagesTotal = count ? Math.ceil(count / limit) : null;
 
@@ -59,10 +74,7 @@ const VirtualAccounts = () => {
       <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between mb-6 gap-3">
         <h2 className="text-2xl font-semibold text-gray-800">Virtual Accounts</h2>
 
-        <form
-          onSubmit={handleSearch}
-          className="flex items-center gap-2 border border-gray-300 rounded-md px-3 py-1.5 w-full sm:w-80"
-        >
+        <div className="flex items-center gap-2 border border-gray-300 rounded-md px-3 py-1.5 w-full sm:w-80">
           <FiSearch className="text-gray-400 text-lg" />
           <input
             type="text"
@@ -71,7 +83,7 @@ const VirtualAccounts = () => {
             onChange={(e) => setSearch(e.target.value)}
             className="w-full bg-transparent focus:outline-none text-sm"
           />
-        </form>
+        </div>
       </div>
 
       <div className="bg-white border border-gray-100 rounded-2xl shadow-sm overflow-x-auto">
@@ -101,15 +113,12 @@ const VirtualAccounts = () => {
                   {error}
                 </td>
               </tr>
-            ) : virtualAccounts.length > 0 ? (
-              virtualAccounts.map((va) => (
-                // NOTE: variable used here is `va` — not `t` — keep it consistent
+            ) : filteredAccounts.length > 0 ? (
+              filteredAccounts.map((va) => (
                 <tr
                   key={va.id}
                   onClick={() => {
-                    // guard: if userId missing, do nothing (prevents undefined route)
                     if (!va.userId) return;
-                    // navigate to the detail page by userId
                     navigate(`/admin/virtual-accounts/${va.userId}`, {
                       state: { accountId: va.id, account: va },
                     });

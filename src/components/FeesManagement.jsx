@@ -75,18 +75,18 @@ export default function FeesManagement() {
 
       {/* TABLE */}
       <div className="bg-white rounded-2xl shadow-sm border border-gray-100 p-6 overflow-x-auto">
-        <table className="min-w-full text-sm text-left border-collapse">
-          <thead className="bg-gray-50 border-b">
+        <table className="min-w-full text-sm text-left border-collapse border-none">
+          <thead className="bg-gray-50">
             <tr>
-              <th className="px-4 py-3 font-medium text-gray-600">Type</th>
-              <th className="px-4 py-3 font-medium text-gray-600">Name</th>
-              <th className="px-4 py-3 font-medium text-gray-600">Where</th>
-              <th className="px-4 py-3 font-medium text-gray-600">Fee Type</th>
-              <th className="px-4 py-3 font-medium text-gray-600">Amount</th>
-              <th className="px-4 py-3 font-medium text-gray-600">Percent (%)</th>
-              <th className="px-4 py-3 font-medium text-gray-600">Maximum</th>
-              <th className="px-4 py-3 font-medium text-gray-600">Minimum</th>
-              <th className="px-4 py-3 font-medium text-gray-600 text-center">
+              <th className="px-6 py-4 font-medium text-gray-600">Type</th>
+              <th className="px-6 py-4 font-medium text-gray-600">Name</th>
+              <th className="px-6 py-4 font-medium text-gray-600">Where</th>
+              <th className="px-6 py-4 font-medium text-gray-600">Fee Type</th>
+              <th className="px-6 py-4 font-medium text-gray-600">Amount</th>
+              <th className="px-6 py-4 font-medium text-gray-600">Percent (%)</th>
+              <th className="px-6 py-4 font-medium text-gray-600">Maximum</th>
+              <th className="px-6 py-4 font-medium text-gray-600">Minimum</th>
+              <th className="px-6 py-4 font-medium text-gray-600 text-center">
                 Action
               </th>
             </tr>
@@ -102,16 +102,16 @@ export default function FeesManagement() {
               fees.map((fee) => (
                 <tr
                   key={fee.id}
-                  className="border-t hover:bg-gray-50 transition-all duration-150"
+                  className="hover:bg-gray-50 transition"
                 >
                   {editingFee?.id === fee.id ? (
                     <>
-                      <td className="px-4 py-3">{fee.type}</td>
-                      <td className="px-4 py-3">{fee.name}</td>
-                      <td className="px-4 py-3">{fee.where}</td>
-                      <td className="px-4 py-3">{fee.feeType}</td>
+                      <td className="px-6 py-4">{fee.type}</td>
+                      <td className="px-6 py-4">{fee.name}</td>
+                      <td className="px-6 py-4">{fee.where}</td>
+                      <td className="px-6 py-4">{fee.feeType}</td>
 
-                      <td className="px-4 py-3">
+                      <td className="px-6 py-4">
                         <input
                           type="number"
                           value={editingFee.amount}

@@ -1,6 +1,5 @@
 import React, { useEffect, useState } from "react";
 import axios from "axios";
-import ProfitFilter from "./ProfitFilter";
 
 const API_BASE_URL = import.meta.env.VITE_API_URL;
 
@@ -13,18 +12,20 @@ const Profits = () => {
   const [error, setError] = useState("");
   const [pagination, setPagination] = useState({ page: 1, limit: 10, total: 0 });
 
+  const token = localStorage.getItem("token");
+
+  // Fetch profits & summary
   const fetchProfits = async (page = 1) => {
+    if (!token) {
+      setError("Missing authentication token");
+      setLoading(false);
+      return;
+    }
+
+    setLoading(true);
+    setError("");
+
     try {
-      setLoading(true);
-      setError("");
-
-      const token = localStorage.getItem("token");
-      if (!token) {
-        setError("Missing authentication token");
-        setLoading(false);
-        return;
-      }
-
       const query = new URLSearchParams({
         page,
         limit: pagination.limit,
@@ -43,11 +44,13 @@ const Profits = () => {
       const data = profitsRes.data?.data || [];
       setProfits(data);
       setFilteredProfits(data);
+
       const total =
         profitsRes.data?.count ??
         profitsRes.data?.total ??
         profitsRes.data?.meta?.total ??
         0;
+
       setPagination((prev) => ({
         ...prev,
         page,
@@ -61,7 +64,7 @@ const Profits = () => {
     }
   };
 
-  // ✅ Live search filtering
+  // Live search filter (client-side)
   useEffect(() => {
     if (!searchTerm.trim()) {
       setFilteredProfits(profits);
@@ -78,13 +81,13 @@ const Profits = () => {
     setFilteredProfits(filtered);
   }, [searchTerm, profits]);
 
-  const handlePageChange = (newPage) => {
-    fetchProfits(newPage);
-  };
-
   useEffect(() => {
     fetchProfits(1);
   }, []);
+
+  const handlePageChange = (newPage) => {
+    fetchProfits(newPage);
+  };
 
   if (loading)
     return (
@@ -104,7 +107,7 @@ const Profits = () => {
     <div className="p-6 space-y-6">
       <h1 className="text-2xl font-semibold text-gray-800">Profit</h1>
 
-      {/* ✅ Search Input */}
+      {/* Search Input */}
       <div className="relative w-full sm:w-1/3">
         <input
           type="text"
@@ -129,7 +132,7 @@ const Profits = () => {
         </svg>
       </div>
 
-      {/* ✅ Summary Cards */}
+      {/* Summary Cards */}
       <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
         {Object.entries({
           "This Month": summary?.thisMonth?.TOTAL ?? 0,
@@ -149,7 +152,7 @@ const Profits = () => {
         ))}
       </div>
 
-      {/* ✅ Profits Table */}
+      {/* Profits Table */}
       <div className="bg-white border border-gray-100 rounded-2xl shadow-sm overflow-x-auto">
         <table className="min-w-full text-sm text-left border-collapse border-none text-gray-600">
           <thead className="bg-gray-50 border-b">
@@ -212,7 +215,7 @@ const Profits = () => {
         </table>
       </div>
 
-      {/* ✅ Pagination */}
+      {/* Pagination */}
       <div className="flex justify-end items-center mt-4 gap-3">
         <button
           disabled={pagination.page === 1}
@@ -230,9 +233,7 @@ const Profits = () => {
           {Math.max(1, Math.ceil(pagination.total / pagination.limit))}
         </span>
         <button
-          disabled={
-            pagination.page >= Math.ceil(pagination.total / pagination.limit)
-          }
+          disabled={pagination.page >= Math.ceil(pagination.total / pagination.limit)}
           onClick={() => handlePageChange(pagination.page + 1)}
           className={`px-4 py-2 rounded-md ${
             pagination.page >= Math.ceil(pagination.total / pagination.limit)

@@ -193,7 +193,7 @@ const KycApproved = () => {
               <th className="px-6 py-3 text-left">Name</th>
               <th className="px-6 py-3 text-left">Verification Type</th>
               <th className="px-6 py-3 text-left">Status</th>
-              <th className="px-6 py-3 text-left">Action</th>
+           
             </tr>
           </thead>
           <tbody>
@@ -235,7 +235,7 @@ const KycApproved = () => {
                       {record.status}
                     </span>
                   </td>
-                  <td className="px-6 py-4">
+                  {/* <td className="px-6 py-4">
                     <button
                       onClick={() =>
                         window.open(
@@ -247,7 +247,7 @@ const KycApproved = () => {
                     >
                       <Eye size={16} /> View
                     </button>
-                  </td>
+                  </td> */}
                 </tr>
               ))
             ) : (

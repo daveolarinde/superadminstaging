@@ -22,26 +22,20 @@ import ViewCardDetails from "./components/ViewCardDetails";
 import KycAll from "./components/Kyc/KycAll";
 import VirtualAccounts from "./components/VirtualAccounts";
 import ViewVirtualAccount from "./components/ViewVirtualAccount";
-function ProtectedRoute({ children }) {
-  const token = localStorage.getItem("token");
-  return token ? children : <Navigate to="/login" replace />;
+
+function ProtectedRoute({ children, isAuthenticated }) {
+  return isAuthenticated ? children : <Navigate to="/login" replace />;
 }
 
 export default function App() {
   const [isAuthenticated, setIsAuthenticated] = useState(false);
   const navigate = useNavigate();
 
-
   useEffect(() => {
     const token = localStorage.getItem("token");
+    if (token) setIsAuthenticated(true);
 
-    if (token) {
-      setIsAuthenticated(true);
-    } else {
-      navigate("/login", { replace: true });
-    }
-
-    
+    // Clear token on browser close
     const handleBeforeUnload = () => {
       localStorage.removeItem("token");
     };
@@ -50,7 +44,7 @@ export default function App() {
     return () => {
       window.removeEventListener("beforeunload", handleBeforeUnload);
     };
-  }, [navigate]);
+  }, []);
 
   return (
     <Routes>
@@ -68,17 +62,17 @@ export default function App() {
 
       {/* Protected Admin Area */}
       <Route
-        path="/admin"
+        path="/admin/*"
         element={
-          <ProtectedRoute>
+          <ProtectedRoute isAuthenticated={isAuthenticated}>
             <DashboardPage setIsAuthenticated={setIsAuthenticated} />
           </ProtectedRoute>
         }
       >
         <Route index element={<Dashboard />} />
         <Route path="transaction-summary" element={<TransactionSummary />} />
-      <Route path="transaction" element={<TransactionTable />} />
-        <Route path="/admin/transactions/:id" element={<ViewTransaction />} />
+        <Route path="transaction" element={<TransactionTable />} />
+        <Route path="transactions/:id" element={<ViewTransaction />} />
         <Route path="profit" element={<Profit />} />
         <Route path="all-users" element={<AllUsers />} />
         <Route path="active-users" element={<ActiveUsers />} />
@@ -88,13 +82,12 @@ export default function App() {
         <Route path="kyc-pending" element={<Pending />} />
         <Route path="kyc-rejected" element={<Rejected />} />
         <Route path="inactive-users" element={<InactiveUsers />} />
-        <Route path="Deactivate-users" element={<DeactivateUsers />} />
-        <Route path="/admin/all-users/:userId" element={<UserProfileView />} />
+        <Route path="deactivate-users" element={<DeactivateUsers />} />
+        <Route path="all-users/:userId" element={<UserProfileView />} />
         <Route path="virtual-cards" element={<VirtualCards />} />
         <Route path="virtual-cards/:id" element={<ViewCardDetails />} />
-        <Route path="virtual-accounts" element={<VirtualAccounts/>}/>
+        <Route path="virtual-accounts" element={<VirtualAccounts />} />
         <Route path="virtual-accounts/:userId" element={<ViewVirtualAccount />} />
-
       </Route>
 
       {/* Catch all */}

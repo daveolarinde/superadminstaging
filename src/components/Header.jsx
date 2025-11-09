@@ -1,18 +1,25 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { FaBell, FaUserCircle } from "react-icons/fa";
 import { useNavigate } from "react-router-dom";
 
-export default function Header({  setIsAuthenticated }) {
-  const [showBanner, setShowBanner] = useState(true);
+export default function Header({ setIsAuthenticated }) {
   const [showMenu, setShowMenu] = useState(false);
+  const [profile, setProfile] = useState(null);
   const navigate = useNavigate();
 
-  
+  // ✅ Load profile from localStorage on mount
+  useEffect(() => {
+    const storedProfile = localStorage.getItem("superAdmin");
+    if (storedProfile) {
+      setProfile(JSON.parse(storedProfile));
+    }
+  }, []);
 
   // ✅ Handle logout
   const handleLogout = () => {
     try {
       localStorage.removeItem("token");
+      localStorage.removeItem("superAdmin"); // clear stored profile
 
       if (typeof setIsAuthenticated === "function") {
         setIsAuthenticated(false);
@@ -29,8 +36,6 @@ export default function Header({  setIsAuthenticated }) {
   return (
     <header className="w-full bg-white shadow-sm border-b border-gray-100 sticky top-0 z-40">
       <div className="flex flex-col md:flex-row items-start md:items-center justify-between p-4 md:px-6 relative">
-       
-
         {/* 🧑‍💼 Right Section (Notifications + User Menu) */}
         <div className="flex items-center gap-4 ml-auto">
           {/* Bell Icon */}
@@ -38,8 +43,7 @@ export default function Header({  setIsAuthenticated }) {
             type="button"
             className="relative p-2 hover:bg-gray-50 rounded-full transition"
           >
-            <FaBell className="text-[1.3rem] text-gray-600 hover:text-blue-600 transition" />
-            <span className="absolute top-1 right-1 w-2 h-2 bg-red-500 rounded-full" />
+            <FaBell className="text-gray-600 text-lg" />
           </button>
 
           {/* Profile Dropdown */}
@@ -53,9 +57,13 @@ export default function Header({  setIsAuthenticated }) {
 
             {showMenu && (
               <div className="absolute right-0 mt-2 bg-white shadow-lg border border-gray-100 rounded-lg w-44 py-1 z-50 animate-fadeIn">
-                <button className="w-full text-left px-4 py-2 text-sm text-gray-700 hover:bg-gray-50 transition">
-                  Profile
-                </button>
+                <div className="px-4 py-2 text-sm text-gray-700 border-b border-gray-100">
+                  {profile
+                    ? `${profile.firstname} ${profile.lastname || ""}`
+                    : "SuperAdmin"}
+                  <br />
+                  <span className="text-xs text-gray-400">{profile?.email}</span>
+                </div>
                 <button
                   onClick={handleLogout}
                   className="w-full text-left px-4 py-2 text-sm text-gray-700 hover:bg-gray-50 transition"
@@ -70,13 +78,6 @@ export default function Header({  setIsAuthenticated }) {
 
       {/* ✨ Animations */}
       <style>{`
-        @keyframes slideDown {
-          from { opacity: 0; transform: translateY(-10px); }
-          to { opacity: 1; transform: translateY(0); }
-        }
-        .animate-slideDown {
-          animation: slideDown 0.3s ease-out;
-        }
         @keyframes fadeIn {
           from { opacity: 0; transform: scale(0.98); }
           to { opacity: 1; transform: scale(1); }
