@@ -39,12 +39,7 @@ export default function Header({ setIsAuthenticated }) {
         {/* 🧑‍💼 Right Section (Notifications + User Menu) */}
         <div className="flex items-center gap-4 ml-auto">
           {/* Bell Icon */}
-          <button
-            type="button"
-            className="relative p-2 hover:bg-gray-50 rounded-full transition"
-          >
-            <FaBell className="text-gray-600 text-lg" />
-          </button>
+          
 
           {/* Profile Dropdown */}
           <div className="relative">

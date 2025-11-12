@@ -28,10 +28,10 @@ ChartJS.register(
   Filler
 );
 
-export default function Dashboard({ onAllowNotifications }) {
+export default function Dashboard() {
   const baseURL = import.meta.env.VITE_API_URL;
   const token = localStorage.getItem("token");
-  const [showBanner, setShowBanner] = useState(true);
+  
   const [kycStats, setKycStats] = useState({
     total: 0,
     pending: 0,
@@ -50,14 +50,7 @@ export default function Dashboard({ onAllowNotifications }) {
   const [loading, setLoading] = useState(true);
 
   // ================= Notification Permission =================
-  const handleAllow = () => {
-    if ("Notification" in window) {
-      Notification.requestPermission().then((perm) => {
-        console.log("Notification permission:", perm);
-        onAllowNotifications?.(perm);
-      });
-    }
-  };
+  
 
   // ================= Fetch Graph & Summary =================
   useEffect(() => {
@@ -191,30 +184,7 @@ export default function Dashboard({ onAllowNotifications }) {
 
   return (
     <div className="p-4 md:p-6 space-y-6">
-      {/* Banner */}
-      {showBanner && (
-        <div className="w-full bg-blue-50 border border-blue-100 text-blue-700 rounded-lg px-4 py-3 mb-4 md:mb-0">
-          <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-3">
-            <span className="text-sm">
-              ⚠️ <strong>Attention:</strong> Allow your browser to receive push notifications.
-            </span>
-            <div className="flex items-center gap-3 w-full sm:w-auto">
-              <button
-                onClick={handleAllow}
-                className="bg-blue-600 text-white px-4 py-1.5 rounded-md text-sm hover:bg-blue-700 transition"
-              >
-                Allow Notifications
-              </button>
-              <button
-                onClick={() => setShowBanner(false)}
-                className="text-gray-500 hover:text-gray-700 text-xl font-bold leading-none"
-              >
-                ✕
-              </button>
-            </div>
-          </div>
-        </div>
-      )}
+
 
       {/* Chart + Stats */}
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
