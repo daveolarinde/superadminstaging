@@ -2,7 +2,7 @@ import { useState, useEffect } from "react";
 import { Line } from "react-chartjs-2";
 import axios from "axios";
 import WalletCurrency from "./WalletCurrency";
-import Fees from "./FeesManagement";
+import RecentTransactions from "./RecentTransactionTable"
 import {
   Chart as ChartJS,
   CategoryScale,
@@ -122,7 +122,7 @@ export default function Dashboard({ onAllowNotifications }) {
     fetchRates();
   }, [baseURL, token]);
 
-  // ✅ GRAPH LOGIC
+  //  GRAPH LOGIC
   const selectedGraph = graphData[activeTab] || [];
 
   const labels =
@@ -353,7 +353,7 @@ export default function Dashboard({ onAllowNotifications }) {
         <WalletCurrency />
       </div>
       <div className="bg-white rounded-xl shadow p-5">
-        <Fees />
+        <RecentTransactions  />
       </div>
     </div>
   );

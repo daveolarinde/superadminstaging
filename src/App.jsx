@@ -22,7 +22,7 @@ import ViewCardDetails from "./components/ViewCardDetails";
 import KycAll from "./components/Kyc/KycAll";
 import VirtualAccounts from "./components/VirtualAccounts";
 import ViewVirtualAccount from "./components/ViewVirtualAccount";
-
+import FeesManagement from "./components/FeesManagement";
 function ProtectedRoute({ children, isAuthenticated }) {
   return isAuthenticated ? children : <Navigate to="/login" replace />;
 }
@@ -70,6 +70,7 @@ export default function App() {
         }
       >
         <Route index element={<Dashboard />} />
+        <Route path="Fees-management" element={<FeesManagement/>}/>
         <Route path="transaction-summary" element={<TransactionSummary />} />
         <Route path="transaction" element={<TransactionTable />} />
         <Route path="transactions/:id" element={<ViewTransaction />} />

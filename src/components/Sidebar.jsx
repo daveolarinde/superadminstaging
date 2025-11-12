@@ -38,6 +38,7 @@ export default function Sidebar() {
 
     },
     { to: "/admin/transaction", label: "Transaction", icon: <FaExchangeAlt /> },
+    { to: "/admin/Fees-management", label: "Fees Management", icon: <FaTachometerAlt /> },
     { to: "/admin/virtual-cards", label: "Virtual Cards", icon: <FaCreditCard /> },
     {to: "/admin/virtual-accounts", label: "Virtual Accounts", icon: <FaCreditCard />  },
     { to: "/admin/profit", label: "Profits", icon: <FaTachometerAlt /> },
@@ -171,9 +172,7 @@ export default function Sidebar() {
       </nav>
 
       {/* Footer */}
-      <div className="text-xs text-slate-500 mt-4 text-center">
-        Version <span className="font-semibold text-slate-300">1.5</span>
-      </div>
+      
     </aside>
   );
 
