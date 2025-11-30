@@ -35,8 +35,10 @@ export default function Sidebar() {
       to: "/admin/transaction-summary",
       label: "Transaction Summary",
       icon: <FaExchangeAlt />,
+      
 
     },
+    { to: "/admin/exchange-rates", label: "Exchange Rates", icon: <FaTachometerAlt />},
     { to: "/admin/transaction", label: "Transaction", icon: <FaExchangeAlt /> },
     { to: "/admin/Fees-management", label: "Fees Management", icon: <FaTachometerAlt /> },
     { to: "/admin/virtual-cards", label: "Virtual Cards", icon: <FaCreditCard /> },

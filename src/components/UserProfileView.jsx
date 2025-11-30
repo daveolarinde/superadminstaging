@@ -33,7 +33,7 @@ const [virtualAccountsCount, setVirtualAccountsCount] = useState(null);
   // transactions
   const [txns, setTxns] = useState([]);
   const [txnsLoading, setTxnsLoading] = useState(false);
-  const [txnsError, setTxnsError] = useState("");
+  const [, setTxnsError] = useState("");
   const [txnsPage, setTxnsPage] = useState(0);
   const [txnsLimit] = useState(10);
   const [txnsCount, setTxnsCount] = useState(null);
@@ -41,7 +41,7 @@ const [virtualAccountsCount, setVirtualAccountsCount] = useState(null);
   // profits
   const [profits, setProfits] = useState([]);
   const [profitsLoading, setProfitsLoading] = useState(false);
-  const [profitsError, setProfitsError] = useState("");
+  const [, setProfitsError] = useState("");
   const [profitsPage, setProfitsPage] = useState(0);
   const [profitsLimit] = useState(10);
   const [profitsCount, setProfitsCount] = useState(null);
@@ -52,6 +52,7 @@ const [virtualAccountsCount, setVirtualAccountsCount] = useState(null);
 
   // auth
   const token = localStorage.getItem("token");
+  // eslint-disable-next-line react-hooks/exhaustive-deps
   const authHeaders = token ? { Authorization: `Bearer ${token}` } : {};
 
   // --- Fetch user ---
@@ -85,7 +86,7 @@ const [virtualAccountsCount, setVirtualAccountsCount] = useState(null);
       }
     };
     fetchUser();
-  }, [userId]);
+  }, [authHeaders, userId]);
 
   // -- fetch virtual account
   const fetchVirtualAccounts = async (page = 0) => {

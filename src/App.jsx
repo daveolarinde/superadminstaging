@@ -1,5 +1,5 @@
 import { useState, useEffect } from "react";
-import { Routes, Route, Navigate, useNavigate } from "react-router-dom";
+import { Routes, Route, Navigate } from "react-router-dom";
 
 import Login from "./pages/Login";
 import DashboardPage from "./pages/DashboardPage";
@@ -23,13 +23,13 @@ import KycAll from "./components/Kyc/KycAll";
 import VirtualAccounts from "./components/VirtualAccounts";
 import ViewVirtualAccount from "./components/ViewVirtualAccount";
 import FeesManagement from "./components/FeesManagement";
+import ExchangeRates from "./components/ExchangeRates";
 function ProtectedRoute({ children, isAuthenticated }) {
   return isAuthenticated ? children : <Navigate to="/login" replace />;
 }
 
 export default function App() {
   const [isAuthenticated, setIsAuthenticated] = useState(false);
-  const navigate = useNavigate();
 
   useEffect(() => {
     const token = localStorage.getItem("token");
@@ -89,6 +89,7 @@ export default function App() {
         <Route path="virtual-cards/:id" element={<ViewCardDetails />} />
         <Route path="virtual-accounts" element={<VirtualAccounts />} />
         <Route path="virtual-accounts/:userId" element={<ViewVirtualAccount />} />
+        <Route path="exchange-rates" element={<ExchangeRates />} />
       </Route>
 
       {/* Catch all */}

@@ -75,7 +75,7 @@ export default function TransactionTable() {
     [filterStartDate, filterEndDate, filterCurrency, filterType, token, baseUrl]
   );
 
-  // ✅ Fetch when mounted
+  //  Fetch when mounted
   useEffect(() => {
     if (selectedCurrency) {
       // Auto-filter only once if navigated with a currency
@@ -86,7 +86,7 @@ export default function TransactionTable() {
     }
   }, [fetchTransactions, selectedCurrency]);
 
-  // ✅ Filter logic for search + ID
+  //  Filter logic for search + ID
   const filteredTransactions = transactions.filter((tx) => {
     const matchesSearch =
       tx.transactionId.toLowerCase().includes(searchTerm.toLowerCase()) ||

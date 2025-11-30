@@ -39,7 +39,7 @@ export default function Dashboard() {
     rejected: 0,
   });
   const [summary, setSummary] = useState(null);
-  const [users, setUsers] = useState([]);
+  // const [users, setUsers] = useState([]);
   const [rates, setRates] = useState(null);
   const [rateLoading, setRateLoading] = useState(true);
 
