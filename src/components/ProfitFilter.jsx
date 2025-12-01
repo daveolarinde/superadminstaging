@@ -11,7 +11,7 @@ const ProfitFilter = ({ filters: initialFilters = {}, onApply }) => {
   });
 
   useEffect(() => {
-    // keep local state in sync if parent passes different initialFilters later
+    
     setFilters({
       search: initialFilters.search || "",
       startDate: initialFilters.startDate || "",
@@ -22,7 +22,7 @@ const ProfitFilter = ({ filters: initialFilters = {}, onApply }) => {
   const baseURL = import.meta.env.VITE_API_URL;
   const token = localStorage.getItem("token");
 
-  // optional: fetch users for a helper dropdown (not required)
+
   const [users, setUsers] = useState([]);
   useEffect(() => {
     const fetchUsers = async () => {
@@ -32,7 +32,7 @@ const ProfitFilter = ({ filters: initialFilters = {}, onApply }) => {
         });
         if (res.data?.success) setUsers(res.data.data || []);
       } catch (err) {
-        // ignore — optional helper only
+      
         console.debug("Could not fetch users for filter helper:", err);
       }
     };
@@ -45,7 +45,7 @@ const ProfitFilter = ({ filters: initialFilters = {}, onApply }) => {
   };
 
   const handleApply = () => {
-    // normalize and trim
+  
     const normalized = {
       search: (filters.search || "").trim(),
       startDate: (filters.startDate || "").trim(),
@@ -97,7 +97,7 @@ const ProfitFilter = ({ filters: initialFilters = {}, onApply }) => {
               placeholder="e.g. john or john@example.com"
               className="w-full border border-gray-300 rounded-md p-2 mt-1 focus:ring-2 focus:ring-blue-500 focus:outline-none"
             />
-            {/* optional helper dropdown */}
+         
             {users.length > 0 && (
               <div className="mt-2 text-xs text-gray-500">
                 Tip: try selecting a user from your users list below (optional).

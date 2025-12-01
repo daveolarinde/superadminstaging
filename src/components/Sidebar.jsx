@@ -83,7 +83,7 @@ export default function Sidebar() {
 
   const SidebarContent = () => (
     <aside className="w-72 bg-gradient-to-b from-slate-900 via-slate-800 to-slate-900 text-white h-screen p-6 flex flex-col shadow-lg">
-      {/* Logo / Header */}
+      
       <div className="flex items-center gap-3 mb-8">
         <div className="rounded-full w-10 h-10 bg-emerald-400 flex items-center justify-center font-bold text-slate-900">
           S

@@ -35,7 +35,7 @@ export default function App() {
     const token = localStorage.getItem("token");
     if (token) setIsAuthenticated(true);
 
-    // Clear token on browser close
+    
     const handleBeforeUnload = () => {
       localStorage.removeItem("token");
     };
@@ -60,7 +60,7 @@ export default function App() {
         }
       />
 
-      {/* Protected Admin Area */}
+      {/* Protected Admin  */}
       <Route
         path="/admin/*"
         element={

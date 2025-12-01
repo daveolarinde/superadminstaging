@@ -14,7 +14,7 @@ const Profits = () => {
 
   const token = localStorage.getItem("token");
 
-  // Fetch profits & summary
+
   const fetchProfits = async (page = 1) => {
     if (!token) {
       setError("Missing authentication token");
@@ -64,7 +64,7 @@ const Profits = () => {
     }
   };
 
-  // Live search filter (client-side)
+
   useEffect(() => {
     if (!searchTerm.trim()) {
       setFilteredProfits(profits);

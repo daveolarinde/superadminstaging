@@ -50,12 +50,11 @@ const [virtualAccountsCount, setVirtualAccountsCount] = useState(null);
   // KYC
   const [kycRecords, setKycRecords] = useState([]);
 
-  // auth
   const token = localStorage.getItem("token");
-  // eslint-disable-next-line react-hooks/exhaustive-deps
+  
   const authHeaders = token ? { Authorization: `Bearer ${token}` } : {};
 
-  // --- Fetch user ---
+
   useEffect(() => {
     if (!userId) return;
     const fetchUser = async () => {
@@ -110,14 +109,14 @@ const [virtualAccountsCount, setVirtualAccountsCount] = useState(null);
   }
 };
 
-// --- Trigger fetch when tab is active ---
+
 useEffect(() => {
   if (activeTab === "Virtual Accounts") {
     fetchVirtualAccounts(virtualAccountsPage);
   }
 }, [activeTab, virtualAccountsPage, userId]);
 
-// --- Pagination total ---
+// ---Total Pagination  ---
 const virtualAccountsPagesTotal = virtualAccountsCount
   ? Math.ceil(virtualAccountsCount / virtualAccountsLimit)
   : null;
@@ -186,7 +185,7 @@ const virtualAccountsPagesTotal = virtualAccountsCount
     }
   };
 
-  // --- Tab switching ---
+ 
   useEffect(() => {
     if (activeTab === "Transactions") {
       fetchTransactions(txnsPage);
@@ -235,7 +234,7 @@ const virtualAccountsPagesTotal = virtualAccountsCount
     ? Math.ceil(profitsCount / profitsLimit)
     : null;
 
-  // loading + error UI
+
   if (loadingUser)
     return (
       <div className="flex justify-center items-center min-h-[60vh] text-gray-500">
@@ -256,15 +255,15 @@ const virtualAccountsPagesTotal = virtualAccountsCount
       </div>
     );
 
-  // --- UI ---
+ 
   return (
     <div className="p-4 sm:p-6 space-y-6">
-      {/* Banner */}
+      
     <div className="bg-white rounded-xl overflow-hidden shadow-sm relative">
-  {/* Gradient background */}
+  
   <div className="absolute top-0 left-0 w-full h-16 sm:h-24 bg-[linear-gradient(90deg,#bfefff,white)] -z-10"></div>
 
-  {/* Header content */}
+  
   <div className="px-3 sm:px-6 pb-3 pt-6 flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
     <div className="flex items-center gap-4">
       <div className="w-20 h-20 sm:w-24 sm:h-24 rounded-full bg-white border-4 border-white flex items-center justify-center text-3xl sm:text-4xl font-bold text-gray-800 shadow">
@@ -301,7 +300,7 @@ const virtualAccountsPagesTotal = virtualAccountsCount
 {/* Tabs */}
 
       <div className="bg-white rounded-xl border border-gray-100 shadow-sm p-4">
-        {/* Scrollable Tab Buttons */}
+      
         <div className="flex items-center gap-4 overflow-x-auto pb-3 border-b no-scrollbar">
           {tabs.map((t) => (
             <button

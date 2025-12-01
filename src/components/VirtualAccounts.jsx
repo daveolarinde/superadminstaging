@@ -42,12 +42,12 @@ const VirtualAccounts = () => {
     }
   };
 
-  // Fetch accounts when page changes
+
   useEffect(() => {
     fetchVirtualAccounts(page);
   }, [page]);
 
-  // ✅ Local search filtering
+ 
   useEffect(() => {
     let filtered = [...virtualAccounts];
 
@@ -197,5 +197,4 @@ const VirtualAccounts = () => {
     </div>
   );
 };
-
 export default VirtualAccounts;

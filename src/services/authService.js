@@ -1,6 +1,5 @@
-// src/services/authService.js
-import api from './api';
 
+import api from './api';
 export const loginSuperAdmin = async (email, password) => {
   const response = await api.post('/superAdmin/login', { email, password });
   return response.data; 

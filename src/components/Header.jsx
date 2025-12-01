@@ -7,7 +7,7 @@ export default function Header({ setIsAuthenticated }) {
   const [profile, setProfile] = useState(null);
   const navigate = useNavigate();
 
-  // ✅ Load profile from localStorage on mount
+
   useEffect(() => {
     const storedProfile = localStorage.getItem("superAdmin");
     if (storedProfile) {
@@ -15,11 +15,11 @@ export default function Header({ setIsAuthenticated }) {
     }
   }, []);
 
-  // ✅ Handle logout
+  //  Handle logout
   const handleLogout = () => {
     try {
       localStorage.removeItem("token");
-      localStorage.removeItem("superAdmin"); // clear stored profile
+      localStorage.removeItem("superAdmin"); 
 
       if (typeof setIsAuthenticated === "function") {
         setIsAuthenticated(false);
@@ -36,12 +36,9 @@ export default function Header({ setIsAuthenticated }) {
   return (
     <header className="w-full bg-white shadow-sm border-b border-gray-100 sticky top-0 z-40">
       <div className="flex flex-col md:flex-row items-start md:items-center justify-between p-4 md:px-6 relative">
-        {/* 🧑‍💼 Right Section (Notifications + User Menu) */}
+        
         <div className="flex items-center gap-4 ml-auto">
-          {/* Bell Icon */}
-          
-
-          {/* Profile Dropdown */}
+         
           <div className="relative">
             <button
               onClick={() => setShowMenu((prev) => !prev)}
@@ -71,7 +68,7 @@ export default function Header({ setIsAuthenticated }) {
         </div>
       </div>
 
-      {/* ✨ Animations */}
+     
       <style>{`
         @keyframes fadeIn {
           from { opacity: 0; transform: scale(0.98); }

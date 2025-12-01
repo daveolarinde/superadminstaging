@@ -22,10 +22,9 @@ export default function TransactionTable() {
   const token = localStorage.getItem("token");
   const baseUrl = import.meta.env.VITE_API_URL;
 
-  // ✅ Currency passed from WalletCurrency.jsx
+
   const selectedCurrency = location.state?.currency || "";
 
-  // ✅ Fetch Transactions
   const fetchTransactions = useCallback(
     async (currencyFilter = "") => {
       setLoading(true);
@@ -35,7 +34,7 @@ export default function TransactionTable() {
         if (filterEndDate) params.endDate = filterEndDate;
         if (filterType) params.type = filterType;
 
-        // ✅ Only apply currency filter automatically when coming from WalletCurrency
+       
         if (currencyFilter) {
           params.currency = currencyFilter;
         } else if (filterCurrency) {
@@ -75,18 +74,18 @@ export default function TransactionTable() {
     [filterStartDate, filterEndDate, filterCurrency, filterType, token, baseUrl]
   );
 
-  //  Fetch when mounted
+ 
   useEffect(() => {
     if (selectedCurrency) {
-      // Auto-filter only once if navigated with a currency
+     
       fetchTransactions(selectedCurrency);
     } else {
-      // Fetch all normally
+    
       fetchTransactions();
     }
   }, [fetchTransactions, selectedCurrency]);
 
-  //  Filter logic for search + ID
+ 
   const filteredTransactions = transactions.filter((tx) => {
     const matchesSearch =
       tx.transactionId.toLowerCase().includes(searchTerm.toLowerCase()) ||
@@ -103,7 +102,6 @@ export default function TransactionTable() {
   const startIndex = (currentPage - 1) * pageSize;
   const currentTransactions = filteredTransactions.slice(startIndex, startIndex + pageSize);
 
-  // ✅ Clear filters
   const handleClearFilters = () => {
     setFilterTransactionId("");
     setFilterStartDate("");
@@ -111,13 +109,13 @@ export default function TransactionTable() {
     setFilterCurrency("");
     setFilterType("");
     setCurrentPage(1);
-    // When user clears, show all again (ignore selectedCurrency)
+ 
     fetchTransactions();
   };
 
   return (
     <div className="bg-white rounded-xl shadow p-4 sm:p-6 md:p-8 relative">
-      {/* ✅ Back Button */}
+
       <div className="flex items-center gap-2 mb-6">
         <button
           onClick={() => navigate(-1)}

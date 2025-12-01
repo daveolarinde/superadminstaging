@@ -19,7 +19,7 @@ export default function FeesManagement() {
   const [generalTotal, setGeneralTotal] = useState(0);
   const [conversionTotal, setConversionTotal] = useState(0);
 
-  // Fetch fees from backend
+
   const fetchFees = async () => {
     try {
       setLoading(true);

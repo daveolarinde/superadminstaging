@@ -1,7 +1,6 @@
 import React, { useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { loginSuperAdmin } from "../services/api";
-
 export default function Login({ setIsAuthenticated }) {
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
@@ -16,7 +15,7 @@ export default function Login({ setIsAuthenticated }) {
 
     try {
       const res = await loginSuperAdmin(email, password);
-      localStorage.setItem("token", res.data.token); // ✅ use localStorage
+      localStorage.setItem("token", res.data.token); 
       setIsAuthenticated(true);
       navigate("/admin", { replace: true });
     } catch (err) {

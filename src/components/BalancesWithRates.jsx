@@ -18,7 +18,7 @@ export default function BalancesWithRates() {
 
        
 
-        // ✅ Match the structure from API example
+       
         if (
           res.data &&
           res.data.status === "success" &&

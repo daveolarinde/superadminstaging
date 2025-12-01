@@ -39,7 +39,7 @@ export default function Dashboard() {
     rejected: 0,
   });
   const [summary, setSummary] = useState(null);
-  // const [users, setUsers] = useState([]);
+
   const [rates, setRates] = useState(null);
   const [rateLoading, setRateLoading] = useState(true);
 
@@ -49,8 +49,7 @@ export default function Dashboard() {
   const [type, setType] = useState("");
   const [loading, setLoading] = useState(true);
 
-  // ================= Notification Permission =================
-  
+ 
 
   // ================= Fetch Graph & Summary =================
   useEffect(() => {
@@ -115,7 +114,7 @@ export default function Dashboard() {
     fetchRates();
   }, [baseURL, token]);
 
-  //  GRAPH LOGIC
+  
   const selectedGraph = graphData[activeTab] || [];
 
   const labels =
@@ -188,7 +187,7 @@ export default function Dashboard() {
 
       {/* Chart + Stats */}
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-        {/* Main Chart */}
+        
         <div className="lg:col-span-2 bg-white rounded-xl shadow p-5 flex flex-col">
           <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3 mb-4">
             <h2 className="text-lg font-semibold text-gray-800">
@@ -222,7 +221,7 @@ export default function Dashboard() {
             ))}
           </div>
 
-          {/* Filter */}
+          
           <div className="flex flex-wrap gap-2 mb-6">
             {["", "credit", "debit"].map((t) => (
               <button

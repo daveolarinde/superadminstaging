@@ -1,9 +1,7 @@
 import { useState, useEffect, useCallback } from "react";
 import axios from "axios";
 import { useNavigate } from "react-router-dom";
-
 import dayjs from "dayjs";
-
 export default function RecentTransactionTable() {
   const [transactions, setTransactions] = useState([]);
   const [loading, setLoading] = useState(false);
@@ -14,7 +12,7 @@ export default function RecentTransactionTable() {
   const token = localStorage.getItem("token");
   const baseUrl = import.meta.env.VITE_API_URL;
 
-  //  Fetch all transactions and filter to last 30 mins
+
   const fetchRecentTransactions = useCallback(async () => {
     setLoading(true);
     try {
@@ -59,14 +57,13 @@ export default function RecentTransactionTable() {
     }
   }, [token, baseUrl]);
 
-  //  Fetch on mount + every 30 seconds
+
   useEffect(() => {
     fetchRecentTransactions();
     const interval = setInterval(fetchRecentTransactions, 30000);
     return () => clearInterval(interval);
   }, [fetchRecentTransactions]);
 
-  //  Pagination
   const totalPages = Math.ceil(transactions.length / pageSize);
   const startIndex = (currentPage - 1) * pageSize;
   const currentTransactions = transactions.slice(startIndex, startIndex + pageSize);

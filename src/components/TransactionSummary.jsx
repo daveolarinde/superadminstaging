@@ -360,7 +360,7 @@ function SummaryCard({ title, value }) {
   );
 }
 
-// Simple Pagination Component
+
 function Pagination({ currentPage, totalPages, setPage }) {
   return (
     <div className="flex items-center justify-center mt-2 gap-2 text-sm">
