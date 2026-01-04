@@ -9,7 +9,8 @@ export default function UserProfileView({ onClose }) {
   const { userId } = useParams();
   const navigate = useNavigate();
 
-  // general
+
+  
   const [user, setUser] = useState(null);
   const [loadingUser, setLoadingUser] = useState(true);
   const [errorUser, setErrorUser] = useState("");
@@ -122,7 +123,7 @@ export default function UserProfileView({ onClose }) {
     ? Math.ceil(virtualAccountsCount / virtualAccountsLimit)
     : null;
 
-  // ... rest of your code unchanged ...
+  
 
 
   // --- Fetch Transactions ---
