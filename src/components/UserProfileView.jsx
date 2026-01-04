@@ -1,4 +1,4 @@
-import React, { useEffect, useState } from "react";
+import React, { useEffect, useState, useMemo } from "react";
 import { FiArrowLeft, FiEdit2 } from "react-icons/fi";
 import axios from "axios";
 import { useParams, useNavigate } from "react-router-dom";
@@ -24,12 +24,12 @@ export default function UserProfileView({ onClose }) {
     "Virtual Accounts",
   ];
   const [activeTab, setActiveTab] = useState("Profile");
-const [virtualAccounts, setVirtualAccounts] = useState([]);
-const [virtualAccountsLoading, setVirtualAccountsLoading] = useState(false);
-const [virtualAccountsError, setVirtualAccountsError] = useState("");
-const [virtualAccountsPage, setVirtualAccountsPage] = useState(0);
-const [virtualAccountsLimit] = useState(10);
-const [virtualAccountsCount, setVirtualAccountsCount] = useState(null);
+  const [virtualAccounts, setVirtualAccounts] = useState([]);
+  const [virtualAccountsLoading, setVirtualAccountsLoading] = useState(false);
+  const [virtualAccountsError, setVirtualAccountsError] = useState("");
+  const [virtualAccountsPage, setVirtualAccountsPage] = useState(0);
+  const [virtualAccountsLimit] = useState(10);
+  const [virtualAccountsCount, setVirtualAccountsCount] = useState(null);
   // transactions
   const [txns, setTxns] = useState([]);
   const [txnsLoading, setTxnsLoading] = useState(false);
@@ -51,9 +51,11 @@ const [virtualAccountsCount, setVirtualAccountsCount] = useState(null);
   const [kycRecords, setKycRecords] = useState([]);
 
   const token = localStorage.getItem("token");
-  
-  const authHeaders = token ? { Authorization: `Bearer ${token}` } : {};
 
+  // --- FIX: memoize authHeaders to stop infinite rerenders ---
+  const authHeaders = useMemo(() => {
+    return token ? { Authorization: `Bearer ${token}` } : {};
+  }, [token]);
 
   useEffect(() => {
     if (!userId) return;
@@ -89,37 +91,39 @@ const [virtualAccountsCount, setVirtualAccountsCount] = useState(null);
 
   // -- fetch virtual account
   const fetchVirtualAccounts = async (page = 0) => {
-  if (!userId) return;
-  setVirtualAccountsLoading(true);
-  setVirtualAccountsError("");
-  try {
-    const offset = page * virtualAccountsLimit;
-    const res = await axios.get(`${API_BASE_URL}/superadmin/virtual-accounts`, {
-      headers: authHeaders,
-      params: { userId, limit: virtualAccountsLimit, offset },
-    });
-    const data = res.data?.data || [];
-    setVirtualAccounts(Array.isArray(data) ? data : []);
-    if (typeof res.data?.count === "number") setVirtualAccountsCount(res.data.count);
-  } catch (err) {
-    console.error("Fetch virtual accounts error:", err);
-    setVirtualAccountsError("Failed to fetch virtual accounts");
-  } finally {
-    setVirtualAccountsLoading(false);
-  }
-};
+    if (!userId) return;
+    setVirtualAccountsLoading(true);
+    setVirtualAccountsError("");
+    try {
+      const offset = page * virtualAccountsLimit;
+      const res = await axios.get(`${API_BASE_URL}/superadmin/virtual-accounts`, {
+        headers: authHeaders,
+        params: { userId, limit: virtualAccountsLimit, offset },
+      });
+      const data = res.data?.data || [];
+      setVirtualAccounts(Array.isArray(data) ? data : []);
+      if (typeof res.data?.count === "number") setVirtualAccountsCount(res.data.count);
+    } catch (err) {
+      console.error("Fetch virtual accounts error:", err);
+      setVirtualAccountsError("Failed to fetch virtual accounts");
+    } finally {
+      setVirtualAccountsLoading(false);
+    }
+  };
 
+  useEffect(() => {
+    if (activeTab === "Virtual Accounts") {
+      fetchVirtualAccounts(virtualAccountsPage);
+    }
+  }, [activeTab, virtualAccountsPage, userId]);
 
-useEffect(() => {
-  if (activeTab === "Virtual Accounts") {
-    fetchVirtualAccounts(virtualAccountsPage);
-  }
-}, [activeTab, virtualAccountsPage, userId]);
+  // ---Total Pagination  ---
+  const virtualAccountsPagesTotal = virtualAccountsCount
+    ? Math.ceil(virtualAccountsCount / virtualAccountsLimit)
+    : null;
 
-// ---Total Pagination  ---
-const virtualAccountsPagesTotal = virtualAccountsCount
-  ? Math.ceil(virtualAccountsCount / virtualAccountsLimit)
-  : null;
+  // ... rest of your code unchanged ...
+
 
   // --- Fetch Transactions ---
   const fetchTransactions = async (page = 0) => {
