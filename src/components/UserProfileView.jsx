@@ -2,7 +2,7 @@ import React, { useEffect, useState, useMemo } from "react";
 import { FiArrowLeft, FiEdit2 } from "react-icons/fi";
 import axios from "axios";
 import { useParams, useNavigate } from "react-router-dom";
-
+import UserKYCTab from "./UserProfile/userTabs/UserKYCTab"
 const API_BASE_URL = import.meta.env.VITE_API_URL;
 
 export default function UserProfileView({ onClose }) {
@@ -665,70 +665,45 @@ export default function UserProfileView({ onClose }) {
             </div>
           )}
 
-          {/* ---------------- KYC VERIFICATION ---------------- */}
-          {activeTab === "KYC Verification" && (
-            <div>
-              <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between mb-4 gap-2">
-                <h3 className="text-lg font-semibold text-gray-800">KYC Records</h3>
-                <div className="text-sm text-gray-500">All KYC entries for this user</div>
-              </div>
+        {/* ---------------- KYC VERIFICATION ---------------- */}
+{activeTab === "KYC Verification" && (
+  <div>
+    <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between mb-4 gap-2">
+      <h3 className="text-lg font-semibold text-gray-800">KYC Records</h3>
+      <div className="text-sm text-gray-500">All KYC entries for this user</div>
+    </div>
 
-              <div className="bg-white border border-gray-100 rounded-2xl shadow-sm overflow-x-auto">
-                <table className="min-w-[720px] w-full text-sm text-left text-gray-700">
-                  <thead className="bg-gray-50">
-                    <tr>
-                      <th className="px-4 py-3 sm:sticky sm:top-0 sm:z-10 sm:bg-white whitespace-nowrap">Type</th>
-                      <th className="px-4 py-3 sm:sticky sm:top-0 sm:z-10 sm:bg-white whitespace-nowrap">Value</th>
-                      <th className="px-4 py-3 sm:sticky sm:top-0 sm:z-10 sm:bg-white whitespace-nowrap">Status</th>
-                      <th className="px-4 py-3 sm:sticky sm:top-0 sm:z-10 sm:bg-white whitespace-nowrap">Issued</th>
-                      <th className="px-4 py-3 sm:sticky sm:top-0 sm:z-10 sm:bg-white whitespace-nowrap">Action</th>
-                    </tr>
-                  </thead>
-                  <tbody>
-                    {kycRecords && kycRecords.length > 0 ? (
-                      kycRecords.map((k) => (
-                        <tr key={k.id} className="border-t hover:bg-gray-50">
-                          <td className="px-4 py-3 capitalize whitespace-nowrap">{k.type}</td>
-                          <td className="px-4 py-3 whitespace-nowrap">{k.typeValue || "-"}</td>
-                          <td className="px-4 py-3 whitespace-nowrap">
-                            <span
-                              className={`px-3 py-1 rounded-full text-xs font-semibold ${
-                                k.status === "success"
-                                  ? "bg-green-100 text-green-600"
-                                  : k.status === "pending"
-                                  ? "bg-yellow-100 text-yellow-600"
-                                  : "bg-red-100 text-red-600"
-                              }`}
-                            >
-                              {k.status}
-                            </span>
-                          </td>
-                          <td className="px-4 py-3 whitespace-nowrap">
-                            {k.issuedDate ? new Date(k.issuedDate).toLocaleDateString() : "-"}
-                          </td>
-                          <td className="px-4 py-3 whitespace-nowrap">
-                            {k.documentUrl || k.selfieUrl ? (
-                              <a href={k.documentUrl || k.selfieUrl} target="_blank" rel="noreferrer" className="text-blue-600 hover:underline">
-                                View
-                              </a>
-                            ) : (
-                              <span className="text-gray-500">—</span>
-                            )}
-                          </td>
-                        </tr>
-                      ))
-                    ) : (
-                      <tr>
-                        <td colSpan="5" className="text-center py-6 text-gray-500">
-                          No KYC records found
-                        </td>
-                      </tr>
-                    )}
-                  </tbody>
-                </table>
-              </div>
-            </div>
-          )}
+    <UserKYCTab
+      kycRecords={kycRecords}
+      baseURL={API_BASE_URL}
+      authHeader={authHeaders}
+      fetchKycRecords={async () => {
+        // Re-fetch the KYC records for this user
+        try {
+          const res = await axios.get(`${API_BASE_URL}/superAdmin/kyc`, {
+            headers: authHeaders,
+            params: { userId, limit: 100, offset: 0 },
+          });
+          setKycRecords(Array.isArray(res.data?.data) ? res.data.data : []);
+        } catch (err) {
+          console.warn("Failed to fetch KYC records:", err);
+        }
+      }}
+      fetchSummary={async () => {
+        // optional: refresh any summary if needed
+        try {
+          const res = await axios.get(`${API_BASE_URL}/superAdmin/users/${userId}/summary`, {
+            headers: authHeaders,
+          });
+          // handle summary if needed
+        } catch (err) {
+          console.warn("Failed to fetch summary:", err);
+        }
+      }}
+    />
+  </div>
+)}
+
 
           {/* ---------------- VIRTUAL ACCOUNTS ---------------- */}
 {activeTab === "Virtual Accounts" && (
