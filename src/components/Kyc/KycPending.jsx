@@ -1,3 +1,5 @@
+/* eslint-disable no-unused-vars */
+
 import React, { useEffect, useState, useMemo } from "react";
 import axios from "axios";
 import { Search, Filter, MoreVertical } from "lucide-react";
@@ -140,7 +142,7 @@ const handleStatusChange = async (record, status) => {
   useEffect(() => {
     fetchSummary();
     fetchKycPaginated(1, true);
-  }, []);
+  }, [fetchKycPaginated, fetchSummary]);
 
   useEffect(() => {
     setCurrentPage(1);
@@ -272,7 +274,7 @@ const handleStatusChange = async (record, status) => {
 
           <tbody>
           {filteredKycData.map((record, i) => (
-              <tr key={record.id} className="border-b hover:bg-gray-50">
+              <tr key={record.id} className=" hover:bg-gray-50">
                 <td className="px-6 py-4">
                   {(currentPage - 1) * rowsPerPage + i + 1}
                 </td>
@@ -301,6 +303,8 @@ const handleStatusChange = async (record, status) => {
                         ? "bg-green-100 text-green-600"
                         : record.status === "pending"
                         ? "bg-yellow-100 text-yellow-600"
+                        : record.status === "success"
+                        ? "bg-green-100 text-green-600"
                         : "bg-red-100 text-red-600"
                     }`}
                   >
@@ -308,50 +312,68 @@ const handleStatusChange = async (record, status) => {
                   </span>
                 </td>
 
-                {/* ACTION DROPDOWN */}
-                <td className="px-6 py-4 relative">
-                  <button
-                    onClick={() =>
-                      setActionOpenId(
-                        actionOpenId === record.id ? null : record.id
-                      )
-                    }
-                    className="p-2 border rounded-lg hover:bg-gray-100"
-                  >
-                    <MoreVertical size={16} />
-                  </button>
+                
+              {/* ACTION DROPDOWN */}
+<td className="px-6 py-4 relative">
+ <button
+  onClick={() =>
+    setActionOpenId(actionOpenId === record.id ? null : record.id)
+  }
+  className="flex items-center gap-2 px-3 py-1.5  text-sm
+             transition"
+>
+  <span>Action</span>
+  <MoreVertical size={16} />
+</button>
 
-                  {actionOpenId === record.id && (
-                    <div className="absolute right-0 mt-2 w-40 bg-white border rounded-xl shadow-lg z-20">
-                      <button
-                        onClick={() =>
-                          handleStatusChange(record, "approved")
-                        }
-                        className="block w-full px-4 py-2 text-left hover:bg-gray-50"
-                      >
-                        Approve
-                      </button>
 
-                      <button
-                        onClick={() =>
-                          handleStatusChange(record, "pending")
-                        }
-                        className="block w-full px-4 py-2 text-left hover:bg-gray-50"
-                      >
-                        Set Pending
-                      </button>
+  {actionOpenId === record.id && (
+    <div className="absolute right-0 mt-2 w-44 bg-white border border-gray-100 rounded-xl shadow-lg z-20 overflow-hidden">
+      
+      {/* APPROVE */}
+      <button
+        onClick={() => handleStatusChange(record, "approved")}
+        className="block w-full px-4 py-2 text-left text-sm hover:bg-green-50 text-green-600"
+      >
+        Approve
+      </button>
 
-                      <button
-                        onClick={() =>
-                          handleStatusChange(record, "rejected")
-                        }
-                        className="block w-full px-4 py-2 text-left text-red-600 hover:bg-red-50"
-                      >
-                        Reject
-                      </button>
-                    </div>
-                  )}
-                </td>
+      {/* PENDING */}
+      <button
+        onClick={() => handleStatusChange(record, "pending")}
+        className="block w-full px-4 py-2 text-left text-sm hover:bg-yellow-50 text-yellow-600"
+      >
+        Set Pending
+      </button>
+
+      {/* REJECT */}
+      <button
+        onClick={() => handleStatusChange(record, "rejected")}
+        className="block w-full px-4 py-2 text-left text-sm hover:bg-red-50 text-red-600"
+      >
+        Reject
+      </button>
+
+      {/* DIVIDER */}
+      {(record.documentUrl || record.selfieUrl) && (
+        <div className="h-px bg-gray-100 my-1" />
+      )}
+
+      {/* VIEW DOCUMENT */}
+      {record.documentUrl || record.selfieUrl ? (
+        <a
+          href={record.documentUrl || record.selfieUrl}
+          target="_blank"
+          rel="noreferrer"
+          className="block px-4 py-2 text-left text-sm hover:bg-blue-50 text-blue-600"
+        >
+          View Document
+        </a>
+      ) : null}
+    </div>
+  )}
+</td>
+
               </tr>
             ))}
           </tbody>
