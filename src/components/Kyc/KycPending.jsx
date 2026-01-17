@@ -140,9 +140,9 @@ const handleStatusChange = async (record, status) => {
   
 
   useEffect(() => {
-    fetchSummary();
-    fetchKycPaginated(1, true);
-  }, [fetchKycPaginated, fetchSummary]);
+  fetchSummary();
+  fetchKycPaginated(1, true);
+}, []);
 
   useEffect(() => {
     setCurrentPage(1);

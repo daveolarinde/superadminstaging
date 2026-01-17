@@ -1,4 +1,4 @@
-/* eslint-disable no-unused-vars */
+
 import React, { useEffect, useState, useMemo } from "react";
 import axios from "axios";
 import { Search, Filter, MoreVertical } from "lucide-react";
@@ -138,10 +138,10 @@ const handleStatusChange = async (record, status) => {
 };
   
 
-  useEffect(() => {
-    fetchSummary();
-    fetchKycPaginated(1, true);
-  }, [fetchKycPaginated, fetchSummary]);
+useEffect(() => {
+  fetchSummary();
+  fetchKycPaginated(1, true);
+}, []);
 
   useEffect(() => {
     setCurrentPage(1);
