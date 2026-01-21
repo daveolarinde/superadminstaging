@@ -7,24 +7,28 @@ export default function ExchangeRates() {
   const [tab, setTab] = useState("list");
   const [rates, setRates] = useState([]);
   const [loading, setLoading] = useState(false);
+  const [saving, setSaving] = useState(false);
   const [selected, setSelected] = useState(null);
 
   const [baseCurrency, setBaseCurrency] = useState("");
   const [targetCurrency, setTargetCurrency] = useState("");
   const [rate, setRate] = useState("");
-
   const [editRate, setEditRate] = useState("");
 
   const getToken = () => localStorage.getItem("token");
 
+  /* ===========================
+      FETCH ALL RATES
+  ============================ */
   const fetchRates = useCallback(async () => {
     try {
       setLoading(true);
-
       const token = getToken();
-      const res = await axios.get(`${API_URL}/superAdmin/exchange-rates`, {
-        headers: { Authorization: `Bearer ${token}` },
-      });
+
+      const res = await axios.get(
+        `${API_URL}/superAdmin/exchange-rates`,
+        { headers: { Authorization: `Bearer ${token}` } }
+      );
 
       setRates(res.data.data || []);
     } catch (err) {
@@ -64,24 +68,24 @@ export default function ExchangeRates() {
     try {
       const token = getToken();
 
-      await axios.post(
+      const res = await axios.post(
         `${API_URL}/superAdmin/exchange-rates`,
         {
           baseCurrency,
           targetCurrency,
           rate: Number(rate),
         },
-        {
-          headers: { Authorization: `Bearer ${token}` },
-        }
+        { headers: { Authorization: `Bearer ${token}` } }
       );
 
-      alert("Exchange rate created!");
+      setRates((prev) => [res.data.data, ...prev]);
+
       setBaseCurrency("");
       setTargetCurrency("");
       setRate("");
-      fetchRates();
       setTab("list");
+
+      alert("Exchange rate created!");
     } catch (err) {
       console.error("Create failed:", err);
       alert("Error creating rate");
@@ -89,27 +93,37 @@ export default function ExchangeRates() {
   };
 
   /* ===========================
-      UPDATE RATE
+      UPDATE RATE (FIXED)
   ============================ */
   const updateRate = async () => {
+    if (saving) return;
+
     try {
+      setSaving(true);
       const token = getToken();
 
-      await axios.put(
+      const res = await axios.put(
         `${API_URL}/superAdmin/exchange-rates/${selected.id}`,
-        {
-          rate: Number(editRate),
-        },
-        {
-          headers: { Authorization: `Bearer ${token}` },
-        }
+        { rate: Number(editRate) },
+        { headers: { Authorization: `Bearer ${token}` } }
       );
 
+      const updated = res.data.data;
+
+      // 🔥 Optimistic local update
+      setRates((prev) =>
+        prev.map((r) => (r.id === updated.id ? updated : r))
+      );
+
+      setSelected(updated);
+      setEditRate(updated.rate);
+
       alert("Rate updated!");
-      fetchRates();
     } catch (err) {
       console.error("Update failed:", err);
       alert("Error updating rate");
+    } finally {
+      setSaving(false);
     }
   };
 
@@ -124,21 +138,20 @@ export default function ExchangeRates() {
 
       await axios.delete(
         `${API_URL}/superAdmin/exchange-rates/${selected.id}`,
-        {
-          headers: { Authorization: `Bearer ${token}` },
-        }
+        { headers: { Authorization: `Bearer ${token}` } }
       );
 
-      alert("Rate deleted!");
+      setRates((prev) => prev.filter((r) => r.id !== selected.id));
+      setSelected(null);
       setTab("list");
-      fetchRates();
+
+      alert("Rate deleted!");
     } catch (err) {
       console.error("Delete failed:", err);
       alert("Error deleting rate");
     }
   };
 
-  
   useEffect(() => {
     fetchRates();
   }, [fetchRates]);
@@ -148,7 +161,9 @@ export default function ExchangeRates() {
       {/* HEADER */}
       <div className="flex justify-between items-center">
         <h1 className="text-xl font-semibold text-gray-800">Exchange Rates</h1>
-        <p className="text-sm text-gray-500">Manage all currency exchange rates</p>
+        <p className="text-sm text-gray-500">
+          Manage all currency exchange rates
+        </p>
       </div>
 
       {/* TABS */}
@@ -188,7 +203,9 @@ export default function ExchangeRates() {
                   <th className="px-6 py-4 font-medium text-gray-600">Base</th>
                   <th className="px-6 py-4 font-medium text-gray-600">Target</th>
                   <th className="px-6 py-4 font-medium text-gray-600">Rate</th>
-                  <th className="px-6 py-4 font-medium text-gray-600">Updated</th>
+                  <th className="px-6 py-4 font-medium text-gray-600">
+                    Updated
+                  </th>
                   <th className="px-6 py-4 font-medium text-gray-600 text-center">
                     Action
                   </th>
@@ -204,7 +221,9 @@ export default function ExchangeRates() {
                     <td className="px-6 py-4">{r.baseCurrency}</td>
                     <td className="px-6 py-4">{r.targetCurrency}</td>
                     <td className="px-6 py-4">{r.rate}</td>
-                    <td className="px-6 py-4">{r.updatedAt?.split("T")[0]}</td>
+                    <td className="px-6 py-4">
+                      {r.updatedAt?.split("T")[0]}
+                    </td>
                     <td className="px-6 py-4 text-center">
                       <button
                         className="text-blue-600 font-medium hover:underline"
@@ -289,10 +308,11 @@ export default function ExchangeRates() {
 
           <div className="flex gap-3">
             <button
-              className="bg-green-600 text-white px-4 py-2 rounded-lg font-medium hover:bg-green-700 transition"
+              disabled={saving}
+              className="bg-green-600 text-white px-4 py-2 rounded-lg font-medium hover:bg-green-700 transition disabled:opacity-60"
               onClick={updateRate}
             >
-              Save Changes
+              {saving ? "Saving..." : "Save Changes"}
             </button>
 
             <button
