@@ -12,14 +12,11 @@ export default function ExchangeRates() {
 
   const [baseCurrency, setBaseCurrency] = useState("");
   const [targetCurrency, setTargetCurrency] = useState("");
-  const [rate, setRate] = useState("");
-  const [editRate, setEditRate] = useState("");
+  const [rate, setRate] = useState("");          // keep as string
+  const [editRate, setEditRate] = useState("");  // keep as string
 
   const getToken = () => localStorage.getItem("token");
 
-  /* ===========================
-      FETCH ALL RATES
-  ============================ */
   const fetchRates = useCallback(async () => {
     try {
       setLoading(true);
@@ -38,9 +35,6 @@ export default function ExchangeRates() {
     }
   }, []);
 
-  /* ===========================
-      VIEW SINGLE RATE
-  ============================ */
   const viewRate = async (id) => {
     try {
       setLoading(true);
@@ -52,7 +46,7 @@ export default function ExchangeRates() {
       );
 
       setSelected(res.data.data);
-      setEditRate(res.data.data.rate);
+      setEditRate(String(res.data.data.rate)); // force string
       setTab("view");
     } catch (err) {
       console.error("Error loading rate", err);
@@ -61,9 +55,6 @@ export default function ExchangeRates() {
     }
   };
 
-  /* ===========================
-      CREATE RATE
-  ============================ */
   const createRate = async () => {
     try {
       const token = getToken();
@@ -73,13 +64,12 @@ export default function ExchangeRates() {
         {
           baseCurrency,
           targetCurrency,
-          rate: Number(rate),
+          rate: rate.trim(), // send exact value
         },
         { headers: { Authorization: `Bearer ${token}` } }
       );
 
       setRates((prev) => [res.data.data, ...prev]);
-
       setBaseCurrency("");
       setTargetCurrency("");
       setRate("");
@@ -92,9 +82,6 @@ export default function ExchangeRates() {
     }
   };
 
-  /* ===========================
-      UPDATE RATE (FIXED)
-  ============================ */
   const updateRate = async () => {
     if (saving) return;
 
@@ -104,19 +91,18 @@ export default function ExchangeRates() {
 
       const res = await axios.put(
         `${API_URL}/superAdmin/exchange-rates/${selected.id}`,
-        { rate: Number(editRate) },
+        { rate: editRate.trim() }, // exact value
         { headers: { Authorization: `Bearer ${token}` } }
       );
 
       const updated = res.data.data;
 
-      // 🔥 Optimistic local update
       setRates((prev) =>
         prev.map((r) => (r.id === updated.id ? updated : r))
       );
 
       setSelected(updated);
-      setEditRate(updated.rate);
+      setEditRate(String(updated.rate));
 
       alert("Rate updated!");
     } catch (err) {
@@ -127,9 +113,6 @@ export default function ExchangeRates() {
     }
   };
 
-  /* ===========================
-      DELETE RATE
-  ============================ */
   const deleteRate = async () => {
     if (!confirm("Delete this rate?")) return;
 
@@ -150,6 +133,39 @@ export default function ExchangeRates() {
       console.error("Delete failed:", err);
       alert("Error deleting rate");
     }
+  };
+
+  useEffect(() => {
+    fetchRates();
+  }, [fetchRates]);
+
+  return (
+    <div className="p-6 space-y-6">
+      {/* CREATE */}
+      {tab === "create" && (
+        <input
+          type="text"                  // 🔥 NOT number
+          inputMode="decimal"
+          value={rate}
+          onChange={(e) => setRate(e.target.value)}
+          placeholder="Rate"
+          className="w-full border border-gray-300 rounded-lg p-3 text-sm"
+        />
+      )}
+
+      {/* VIEW / EDIT */}
+      {tab === "view" && selected && (
+        <input
+          type="text"                  // 🔥 NOT number
+          inputMode="decimal"
+          value={editRate}
+          onChange={(e) => setEditRate(e.target.value)}
+          className="w-full border border-gray-300 rounded-lg p-3 text-sm"
+        />
+      )}
+    </div>
+  );
+        }    }
   };
 
   useEffect(() => {
