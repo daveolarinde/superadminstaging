@@ -247,6 +247,7 @@ export default function FeesManagement() {
         <tr>
           <th className="px-6 py-4 font-medium text-gray-600">Name</th>
           <th className="px-6 py-4 font-medium text-gray-600">Where</th>
+          <th className="px-6 py-4 font-medium text-gray-600">Fee Type</th>
           <th className="px-6 py-4 font-medium text-gray-600">Percent (%)</th>
           <th className="px-6 py-4 font-medium text-gray-600">Maximum</th>
           <th className="px-6 py-4 font-medium text-gray-600">Minimum</th>
@@ -270,7 +271,19 @@ export default function FeesManagement() {
 
                 
                   <td className="px-6 py-4">{fee.where}</td>
-
+   <td className="px-6 py-4">{fee.type}</td>
+   <td className="px-6 py-4">
+                          <select
+                            value={editingFee.feeType}
+                            onChange={e =>
+                              setEditingFee({ ...editingFee, feeType: e.target.value })
+                            }
+                            className="w-full border border-gray-300 rounded-lg p-2 text-sm focus:ring-2 focus:ring-blue-400 outline-none"
+                          >
+                            <option value="flat">Flat</option>
+                            <option value="percent">Percent</option>
+                          </select>
+                        </td>
                   <td className="px-6 py-4">
                     <input
                       type="number"
