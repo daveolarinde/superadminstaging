@@ -238,7 +238,8 @@ export default function FeesManagement() {
         </div>
       </div>
       {/* CONVERSION FEES */}
-      <div>
+    
+<div>
   <h3 className="text-lg font-semibold text-gray-800 mb-3">Conversion Fees</h3>
 
   <div className="bg-white rounded-2xl shadow-sm border border-gray-100 p-6 overflow-x-auto">
@@ -258,7 +259,7 @@ export default function FeesManagement() {
       <tbody>
         {displayedConversionFees.length === 0 ? (
           <tr>
-            <td colSpan="6" className="text-center text-gray-500 py-8 italic">
+            <td colSpan="7" className="text-center text-gray-500 py-8 italic">
               No conversion fee data available
             </td>
           </tr>
@@ -268,22 +269,22 @@ export default function FeesManagement() {
               {editingFee?.id === fee.id ? (
                 <>
                   <td className="px-6 py-4">{fee.name}</td>
-
-                
                   <td className="px-6 py-4">{fee.where}</td>
-   <td className="px-6 py-4">{fee.type}</td>
-   <td className="px-6 py-4">
-                          <select
-                            value={editingFee.feeType}
-                            onChange={e =>
-                              setEditingFee({ ...editingFee, feeType: e.target.value })
-                            }
-                            className="w-full border border-gray-300 rounded-lg p-2 text-sm focus:ring-2 focus:ring-blue-400 outline-none"
-                          >
-                            <option value="flat">Flat</option>
-                            <option value="percent">Percent</option>
-                          </select>
-                        </td>
+
+                  {/* Editable Fee Type */}
+                  <td className="px-6 py-4">
+                    <select
+                      value={editingFee.feeType}
+                      onChange={e =>
+                        setEditingFee({ ...editingFee, feeType: e.target.value })
+                      }
+                      className="w-full border border-gray-300 rounded-lg p-2 text-sm focus:ring-2 focus:ring-blue-400 outline-none"
+                    >
+                      <option value="flat">Flat</option>
+                      <option value="percent">Percent</option>
+                    </select>
+                  </td>
+
                   <td className="px-6 py-4">
                     <input
                       type="number"
@@ -336,6 +337,7 @@ export default function FeesManagement() {
                 <>
                   <td className="px-6 py-4">{fee.name}</td>
                   <td className="px-6 py-4 text-gray-700">{fee.where}</td>
+                  <td className="px-6 py-4 capitalize">{fee.feeType}</td>
                   <td className="px-6 py-4">{fee.percent}%</td>
                   <td className="px-6 py-4">₦{Number(fee.maximum).toLocaleString()}</td>
                   <td className="px-6 py-4">₦{Number(fee.minimum).toLocaleString()}</td>
