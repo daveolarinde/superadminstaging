@@ -244,11 +244,14 @@ export default function FeesManagement() {
 
   <div className="bg-white rounded-2xl shadow-sm border border-gray-100 p-6 overflow-x-auto">
     <table className="min-w-full text-sm text-left border-collapse border-none">
+      
       <thead className="bg-gray-50">
         <tr>
+          
           <th className="px-6 py-4 font-medium text-gray-600">Name</th>
           <th className="px-6 py-4 font-medium text-gray-600">Where</th>
           <th className="px-6 py-4 font-medium text-gray-600">Fee Type</th>
+          <th className="px-6 py-4 font-medium text-gray-600">Amount (₦)</th>
           <th className="px-6 py-4 font-medium text-gray-600">Percent (%)</th>
           <th className="px-6 py-4 font-medium text-gray-600">Maximum</th>
           <th className="px-6 py-4 font-medium text-gray-600">Minimum</th>
@@ -259,7 +262,7 @@ export default function FeesManagement() {
       <tbody>
         {displayedConversionFees.length === 0 ? (
           <tr>
-            <td colSpan="7" className="text-center text-gray-500 py-8 italic">
+            <td colSpan="8" className="text-center text-gray-500 py-8 italic">
               No conversion fee data available
             </td>
           </tr>
@@ -271,7 +274,7 @@ export default function FeesManagement() {
                   <td className="px-6 py-4">{fee.name}</td>
                   <td className="px-6 py-4">{fee.where}</td>
 
-                  {/* Editable Fee Type */}
+                  {/* Fee Type */}
                   <td className="px-6 py-4">
                     <select
                       value={editingFee.feeType}
@@ -285,17 +288,33 @@ export default function FeesManagement() {
                     </select>
                   </td>
 
+                  {/* Amount */}
                   <td className="px-6 py-4">
                     <input
                       type="number"
-                      value={editingFee.percent}
+                      value={editingFee.amount || ""}
+                      onChange={e =>
+                        setEditingFee({ ...editingFee, amount: e.target.value })
+                      }
+                      className="w-full border border-gray-300 rounded-lg p-2 text-sm focus:ring-2 focus:ring-blue-400 outline-none"
+                      placeholder="Flat amount"
+                    />
+                  </td>
+
+                  {/* Percent */}
+                  <td className="px-6 py-4">
+                    <input
+                      type="number"
+                      value={editingFee.percent || ""}
                       onChange={e =>
                         setEditingFee({ ...editingFee, percent: e.target.value })
                       }
                       className="w-full border border-gray-300 rounded-lg p-2 text-sm focus:ring-2 focus:ring-blue-400 outline-none"
+                      placeholder="% fee"
                     />
                   </td>
 
+                  {/* Max */}
                   <td className="px-6 py-4">
                     <input
                       type="number"
@@ -307,6 +326,7 @@ export default function FeesManagement() {
                     />
                   </td>
 
+                  {/* Min */}
                   <td className="px-6 py-4">
                     <input
                       type="number"
@@ -318,6 +338,7 @@ export default function FeesManagement() {
                     />
                   </td>
 
+                  {/* Actions */}
                   <td className="px-6 py-4 text-center">
                     <button
                       onClick={() => handleUpdate(fee.id)}
@@ -338,9 +359,20 @@ export default function FeesManagement() {
                   <td className="px-6 py-4">{fee.name}</td>
                   <td className="px-6 py-4 text-gray-700">{fee.where}</td>
                   <td className="px-6 py-4 capitalize">{fee.feeType}</td>
-                  <td className="px-6 py-4">{fee.percent}%</td>
+
+                  {/* Amount Display */}
+                  <td className="px-6 py-4">
+                    {fee.amount ? `₦${Number(fee.amount).toLocaleString()}` : "—"}
+                  </td>
+
+                  {/* Percent Display */}
+                  <td className="px-6 py-4">
+                    {fee.percent ? `${fee.percent}%` : "—"}
+                  </td>
+
                   <td className="px-6 py-4">₦{Number(fee.maximum).toLocaleString()}</td>
                   <td className="px-6 py-4">₦{Number(fee.minimum).toLocaleString()}</td>
+
                   <td className="px-6 py-4 text-center">
                     <button
                       onClick={() => setEditingFee(fee)}
@@ -381,7 +413,6 @@ export default function FeesManagement() {
     </div>
   </div>
 </div>
-
     </div>
   );
 }
