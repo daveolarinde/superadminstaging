@@ -17,9 +17,6 @@ export default function ExchangeRates() {
 
   const getToken = () => localStorage.getItem("token");
 
-  /* ===========================
-      FETCH ALL RATES
-  ============================ */
   const fetchRates = useCallback(async () => {
     try {
       setLoading(true);
@@ -38,9 +35,10 @@ export default function ExchangeRates() {
     }
   }, []);
 
-  /* ===========================
-      VIEW SINGLE RATE
-  ============================ */
+  useEffect(() => {
+    fetchRates();
+  }, [fetchRates]);
+
   const viewRate = async (id) => {
     try {
       setLoading(true);
@@ -52,7 +50,7 @@ export default function ExchangeRates() {
       );
 
       setSelected(res.data.data);
-      setEditRate(res.data.data.rate);
+      setEditRate(String(res.data.data.rate));
       setTab("view");
     } catch (err) {
       console.error("Error loading rate", err);
@@ -61,30 +59,21 @@ export default function ExchangeRates() {
     }
   };
 
-  /* ===========================
-      CREATE RATE
-  ============================ */
   const createRate = async () => {
     try {
       const token = getToken();
 
       const res = await axios.post(
         `${API_URL}/superAdmin/exchange-rates`,
-        {
-          baseCurrency,
-          targetCurrency,
-          rate: Number(rate),
-        },
+        { baseCurrency, targetCurrency, rate: rate.trim() },
         { headers: { Authorization: `Bearer ${token}` } }
       );
 
       setRates((prev) => [res.data.data, ...prev]);
-
       setBaseCurrency("");
       setTargetCurrency("");
       setRate("");
       setTab("list");
-
       alert("Exchange rate created!");
     } catch (err) {
       console.error("Create failed:", err);
@@ -92,9 +81,6 @@ export default function ExchangeRates() {
     }
   };
 
-  /* ===========================
-      UPDATE RATE (FIXED)
-  ============================ */
   const updateRate = async () => {
     if (saving) return;
 
@@ -104,20 +90,18 @@ export default function ExchangeRates() {
 
       const res = await axios.put(
         `${API_URL}/superAdmin/exchange-rates/${selected.id}`,
-        { rate: Number(editRate) },
+        { rate: editRate.trim() },
         { headers: { Authorization: `Bearer ${token}` } }
       );
 
       const updated = res.data.data;
 
-      // 🔥 Optimistic local update
       setRates((prev) =>
         prev.map((r) => (r.id === updated.id ? updated : r))
       );
 
       setSelected(updated);
-      setEditRate(updated.rate);
-
+      setEditRate(String(updated.rate));
       alert("Rate updated!");
     } catch (err) {
       console.error("Update failed:", err);
@@ -127,9 +111,6 @@ export default function ExchangeRates() {
     }
   };
 
-  /* ===========================
-      DELETE RATE
-  ============================ */
   const deleteRate = async () => {
     if (!confirm("Delete this rate?")) return;
 
@@ -144,7 +125,6 @@ export default function ExchangeRates() {
       setRates((prev) => prev.filter((r) => r.id !== selected.id));
       setSelected(null);
       setTab("list");
-
       alert("Rate deleted!");
     } catch (err) {
       console.error("Delete failed:", err);
@@ -152,13 +132,8 @@ export default function ExchangeRates() {
     }
   };
 
-  useEffect(() => {
-    fetchRates();
-  }, [fetchRates]);
-
   return (
     <div className="p-6 space-y-6">
-      {/* HEADER */}
       <div className="flex justify-between items-center">
         <h1 className="text-xl font-semibold text-gray-800">Exchange Rates</h1>
         <p className="text-sm text-gray-500">
@@ -166,7 +141,6 @@ export default function ExchangeRates() {
         </p>
       </div>
 
-      {/* TABS */}
       <div className="flex gap-3">
         <button
           className={`px-4 py-2 rounded-lg text-sm font-medium border ${
@@ -191,7 +165,6 @@ export default function ExchangeRates() {
         </button>
       </div>
 
-      {/* LIST */}
       {tab === "list" && (
         <div className="bg-white rounded-2xl shadow-sm border border-gray-100 p-6 overflow-x-auto">
           {loading ? (
@@ -200,30 +173,20 @@ export default function ExchangeRates() {
             <table className="min-w-full text-sm text-left border-collapse">
               <thead className="bg-gray-50">
                 <tr>
-                  <th className="px-6 py-4 font-medium text-gray-600">Base</th>
-                  <th className="px-6 py-4 font-medium text-gray-600">Target</th>
-                  <th className="px-6 py-4 font-medium text-gray-600">Rate</th>
-                  <th className="px-6 py-4 font-medium text-gray-600">
-                    Updated
-                  </th>
-                  <th className="px-6 py-4 font-medium text-gray-600 text-center">
-                    Action
-                  </th>
+                  <th className="px-6 py-4">Base</th>
+                  <th className="px-6 py-4">Target</th>
+                  <th className="px-6 py-4">Rate</th>
+                  <th className="px-6 py-4">Updated</th>
+                  <th className="px-6 py-4 text-center">Action</th>
                 </tr>
               </thead>
-
               <tbody>
                 {rates.map((r) => (
-                  <tr
-                    key={r.id}
-                    className="border-b hover:bg-gray-50 transition"
-                  >
+                  <tr key={r.id} className="border-b hover:bg-gray-50 transition">
                     <td className="px-6 py-4">{r.baseCurrency}</td>
                     <td className="px-6 py-4">{r.targetCurrency}</td>
                     <td className="px-6 py-4">{r.rate}</td>
-                    <td className="px-6 py-4">
-                      {r.updatedAt?.split("T")[0]}
-                    </td>
+                    <td className="px-6 py-4">{r.updatedAt?.split("T")[0]}</td>
                     <td className="px-6 py-4 text-center">
                       <button
                         className="text-blue-600 font-medium hover:underline"
@@ -240,84 +203,65 @@ export default function ExchangeRates() {
         </div>
       )}
 
-      {/* CREATE */}
       {tab === "create" && (
-        <div className="bg-white rounded-2xl shadow-sm border border-gray-100 p-6 max-w-md">
-          <h2 className="font-semibold text-lg mb-4 text-gray-800">
-            Create Exchange Rate
-          </h2>
-
-          <div className="space-y-4">
-            <input
-              className="w-full border border-gray-300 rounded-lg p-3 text-sm focus:ring-2 focus:ring-blue-400 outline-none"
-              placeholder="Base Currency (USD)"
-              value={baseCurrency}
-              onChange={(e) => setBaseCurrency(e.target.value)}
-            />
-
-            <input
-              className="w-full border border-gray-300 rounded-lg p-3 text-sm focus:ring-2 focus:ring-blue-400 outline-none"
-              placeholder="Target Currency (NGN)"
-              value={targetCurrency}
-              onChange={(e) => setTargetCurrency(e.target.value)}
-            />
-
-            <input
-              className="w-full border border-gray-300 rounded-lg p-3 text-sm focus:ring-2 focus:ring-blue-400 outline-none"
-              placeholder="Rate"
-              type="number"
-              value={rate}
-              onChange={(e) => setRate(e.target.value)}
-            />
-
-            <button
-              className="w-full bg-blue-600 text-white py-3 rounded-lg font-medium hover:bg-blue-700 transition"
-              onClick={createRate}
-            >
-              Create
-            </button>
-          </div>
+        <div className="bg-white rounded-2xl shadow-sm border border-gray-100 p-6 max-w-md space-y-4">
+          <input
+            placeholder="Base Currency (USD)"
+            value={baseCurrency}
+            onChange={(e) => setBaseCurrency(e.target.value)}
+            className="w-full border border-gray-300 rounded-lg p-3 text-sm"
+          />
+          <input
+            placeholder="Target Currency (NGN)"
+            value={targetCurrency}
+            onChange={(e) => setTargetCurrency(e.target.value)}
+            className="w-full border border-gray-300 rounded-lg p-3 text-sm"
+          />
+          <input
+            type="text"
+            inputMode="decimal"
+            placeholder="Rate"
+            value={rate}
+            onChange={(e) => setRate(e.target.value)}
+            className="w-full border border-gray-300 rounded-lg p-3 text-sm"
+          />
+          <button
+            onClick={createRate}
+            className="w-full bg-blue-600 text-white py-3 rounded-lg font-medium hover:bg-blue-700 transition"
+          >
+            Create
+          </button>
         </div>
       )}
 
-      {/* VIEW / EDIT */}
       {tab === "view" && selected && (
         <div className="bg-white rounded-2xl shadow-sm border border-gray-100 p-6 max-w-md">
-          <button
-            className="text-sm mb-4 text-gray-600 hover:underline"
-            onClick={() => setTab("list")}
-          >
+          <button className="text-sm mb-4" onClick={() => setTab("list")}>
             ← Back
           </button>
 
-          <p className="text-gray-700">
-            <strong>Base:</strong> {selected.baseCurrency}
-          </p>
+          <p><strong>Base:</strong> {selected.baseCurrency}</p>
+          <p className="mb-4"><strong>Target:</strong> {selected.targetCurrency}</p>
 
-          <p className="text-gray-700 mb-4">
-            <strong>Target:</strong> {selected.targetCurrency}
-          </p>
-
-          <label className="font-medium text-gray-700">Rate:</label>
           <input
-            className="w-full border border-gray-300 rounded-lg p-3 text-sm mb-4 focus:ring-2 focus:ring-blue-400 outline-none"
-            type="number"
+            type="text"
+            inputMode="decimal"
             value={editRate}
             onChange={(e) => setEditRate(e.target.value)}
+            className="w-full border border-gray-300 rounded-lg p-3 text-sm mb-4"
           />
 
           <div className="flex gap-3">
             <button
               disabled={saving}
-              className="bg-green-600 text-white px-4 py-2 rounded-lg font-medium hover:bg-green-700 transition disabled:opacity-60"
               onClick={updateRate}
+              className="bg-green-600 text-white px-4 py-2 rounded-lg"
             >
               {saving ? "Saving..." : "Save Changes"}
             </button>
-
             <button
-              className="bg-red-600 text-white px-4 py-2 rounded-lg font-medium hover:bg-red-700 transition"
               onClick={deleteRate}
+              className="bg-red-600 text-white px-4 py-2 rounded-lg"
             >
               Delete
             </button>
