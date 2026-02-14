@@ -40,8 +40,8 @@ export default function Dashboard() {
   });
   const [summary, setSummary] = useState(null);
 
-  const [rates, setRates] = useState(null);
-  const [rateLoading, setRateLoading] = useState(true);
+  // const [rates, setRates] = useState(null);
+  // const [rateLoading, setRateLoading] = useState(true);
 
   // === Chart State ===
   const [graphData, setGraphData] = useState({});
@@ -98,21 +98,21 @@ export default function Dashboard() {
   }, [baseURL, token, type]);
 
   // ================= Fetch Exchange Rates =================
-  useEffect(() => {
-    const fetchRates = async () => {
-      try {
-        const res = await axios.get(`${baseURL}/superAdmin/rates`, {
-          headers: { Authorization: `Bearer ${token}` },
-        });
-        setRates(res.data?.data?.rates || null);
-      } catch (error) {
-        console.error("❌ Failed to fetch rates:", error);
-      } finally {
-        setRateLoading(false);
-      }
-    };
-    fetchRates();
-  }, [baseURL, token]);
+  // useEffect(() => {
+  //   const fetchRates = async () => {
+  //     try {
+  //       const res = await axios.get(`${baseURL}/superAdmin/rates`, {
+  //         headers: { Authorization: `Bearer ${token}` },
+  //       });
+  //       setRates(res.data?.data?.rates || null);
+  //     } catch (error) {
+  //       console.error("❌ Failed to fetch rates:", error);
+  //     } finally {
+  //       setRateLoading(false);
+  //     }
+  //   };
+  //   fetchRates();
+  // }, [baseURL, token]);
 
   
   const selectedGraph = graphData[activeTab] || [];
@@ -279,43 +279,7 @@ export default function Dashboard() {
       </div>
 
       {/* Exchange Rates */}
-      <div className="mt-4">
-        <h3 className="text-base font-semibold text-gray-800 mb-3">
-          💱 Exchange Rates
-        </h3>
-        {rateLoading ? (
-          <p className="text-gray-500 text-sm text-center">
-            Loading exchange rates...
-          </p>
-        ) : rates && Object.keys(rates).length > 0 ? (
-          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4 max-h-[400px] overflow-y-auto pr-2">
-            {Object.entries(rates)
-              .filter(([pair]) =>
-                ["NGN-USD", "USD-NGN"].includes(pair.toUpperCase())
-              )
-              .map(([pair, value]) => {
-                const formattedValue = Number(value).toLocaleString(undefined, {
-                  minimumFractionDigits: 6,
-                  maximumFractionDigits: 8,
-                });
-
-                return (
-                  <StatCard
-                    key={pair}
-                    label={`1 ${pair.replace("-", " = ")}`}
-                    value={formattedValue}
-                    icon={<CreditCard className="w-5 h-5" />}
-                    color="#3b82f6"
-                  />
-                );
-              })}
-          </div>
-        ) : (
-          <p className="text-gray-400 text-sm text-center">
-            No exchange rate data available.
-          </p>
-        )}
-      </div>
+      
 
       {/* Other Sections */}
       <div className="bg-white rounded-xl shadow p-5">

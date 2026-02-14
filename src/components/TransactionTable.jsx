@@ -51,9 +51,10 @@ export default function TransactionTable() {
             id: idx + 1,
             transactionId: tx.id,
             user: {
-              name: `${tx.user?.firstname || "Unknown"} ${tx.user?.lastname || ""}`.trim(),
-              username: tx.user?.tag ? `@${tx.user.tag}` : tx.user?.email || "",
-            },
+  id: tx.user?.id, 
+  name: `${tx.user?.firstname || "Unknown"} ${tx.user?.lastname || ""}`.trim(),
+  username: tx.user?.tag ? `@${tx.user.tag}` : tx.user?.email || "",
+},
             amount: `${tx.type === "credit" ? "+" : "-"}${tx.amount} ${tx.currency}`,
             charge: tx.fee ? `${tx.fee} ${tx.currency}` : "0.00",
             remarks: tx.info || tx.type || "-",
@@ -199,7 +200,14 @@ export default function TransactionTable() {
                   <td className="px-3 sm:px-6 py-3 break-words">
                     {tx.transactionId}
                   </td>
-                  <td className="px-3 sm:px-6 py-3 flex items-center gap-2 min-w-[150px]">
+                <td
+  onClick={() => {
+    if (tx.user.id) {
+      navigate(`/admin/all-users/${tx.user.id}`);
+    }
+  }}
+  className="px-3 sm:px-6 py-3 flex items-center gap-2 min-w-[150px] cursor-pointer hover:bg-gray-100 transition"
+>
                     <div className="w-8 h-8 rounded-full bg-gray-200 flex items-center justify-center text-gray-400">
                       👤
                     </div>

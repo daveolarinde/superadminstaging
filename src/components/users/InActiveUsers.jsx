@@ -4,7 +4,9 @@ import { formatDistanceToNow, isToday } from "date-fns";
 import { FiFilter, FiEdit2, FiMoreVertical } from "react-icons/fi";
 import { useNavigate } from "react-router-dom";
 
-export default function AllUsers() {
+
+
+export default function InactiveUsers() {
   const [users, setUsers] = useState([]);
   const [filteredUsers, setFilteredUsers] = useState([]);
   const [loading, setLoading] = useState(true);
@@ -17,14 +19,17 @@ export default function AllUsers() {
   const [statusUpdating, setStatusUpdating] = useState(null);
   const [, setRates] = useState({});
   const [, setRateLoading] = useState(true);
-  const [limit] = useState(20);
-  const [offset] = useState(0);
+ const [limit] = useState(20);
+const [offset, setOffset] = useState(0);
 
-  const navigate = useNavigate();
+const [openMenu, setOpenMenu] = useState(null);
+
+ const navigate = useNavigate();
+
   const token = localStorage.getItem("token");
   const baseURL = import.meta.env.VITE_API_URL;
 
-  // ✅ Fetch summary
+
   useEffect(() => {
     if (!baseURL || !token) return;
 
@@ -124,7 +129,7 @@ export default function AllUsers() {
     fetchUsers();
   }, [baseURL, token, limit, offset, statusFilter, sortFilter]);
 
-  //  Fetch exchange rates (not core to users but kept for consistency)
+ 
   useEffect(() => {
     if (!baseURL || !token) return;
 
@@ -145,7 +150,6 @@ export default function AllUsers() {
     fetchRates();
   }, [baseURL, token]);
 
-  //  Local search & filter combo
   useEffect(() => {
     let filtered = [...users];
 
@@ -414,31 +418,43 @@ export default function AllUsers() {
                       <FiEdit2 size={14} /> Edit
                     </button>
 
-                    <div className="relative group">
-                      <button className="p-2 rounded-md hover:bg-gray-100">
-                        <FiMoreVertical size={14} />
-                      </button>
-                      <div className="hidden group-hover:block absolute right-0 mt-2 bg-white border border-gray-100 rounded-md shadow-md w-32 z-20">
-                        {["active", "inactive", "blocked", "deactivated"].map(
-                          (status) => (
-                            <button
-                              key={status}
-                              disabled={statusUpdating === user.id}
-                              onClick={() => handleStatusChange(user.id, status)}
-                              className={`block w-full text-left px-3 py-2 text-sm hover:bg-gray-50 ${
-                                status === "blocked"
-                                  ? "text-red-600"
-                                  : "text-gray-700"
-                              }`}
-                            >
-                              {statusUpdating === user.id
-                                ? "Updating..."
-                                : `Set ${status}`}
-                            </button>
-                          )
-                        )}
-                      </div>
-                    </div>
+                  <div className="relative">
+  <button
+    onClick={() =>
+      setOpenMenu(openMenu === user.id ? null : user.id)
+    }
+    className="p-2 rounded-md hover:bg-gray-100"
+  >
+    <FiMoreVertical size={14} />
+  </button>
+
+  {openMenu === user.id && (
+    <div className="absolute right-0 mt-2 bg-white border border-gray-100 rounded-md shadow-md w-32 z-20">
+      {["active", "inactive", "blocked", "deactivated"].map(
+        (status) => (
+          <button
+            key={status}
+            disabled={statusUpdating === user.id}
+            onClick={() => {
+              handleStatusChange(user.id, status);
+              setOpenMenu(null); 
+            }}
+            className={`block w-full text-left px-3 py-2 text-sm hover:bg-gray-50 ${
+              status === "blocked"
+                ? "text-red-600"
+                : "text-gray-700"
+            }`}
+          >
+            {statusUpdating === user.id
+              ? "Updating..."
+              : `Set ${status}`}
+          </button>
+        )
+      )}
+    </div>
+  )}
+</div>
+
                   </div>
                 </td>
               </tr>
@@ -462,7 +478,32 @@ export default function AllUsers() {
         Showing {offset + 1}–
         {Math.min(offset + limit, summary?.totalUsers || users.length)} of{" "}
         {summary?.totalUsers || users.length}
-      </div>
+      </div><div className="flex justify-end items-center gap-3 mt-3">
+  <button
+    disabled={offset === 0}
+    onClick={() => setOffset((prev) => Math.max(prev - limit, 0))}
+    className={`px-4 py-2 text-sm rounded-md border ${
+      offset === 0
+        ? "bg-gray-100 text-gray-400 cursor-not-allowed"
+        : "bg-white text-gray-700 hover:bg-gray-50"
+    }`}
+  >
+    Prev
+  </button>
+
+  <button
+    disabled={offset + limit >= (summary?.totalUsers || users.length)}
+    onClick={() => setOffset((prev) => prev + limit)}
+    className={`px-4 py-2 text-sm rounded-md border ${
+      offset + limit >= (summary?.totalUsers || users.length)
+        ? "bg-gray-100 text-gray-400 cursor-not-allowed"
+        : "bg-white text-gray-700 hover:bg-gray-50"
+    }`}
+  >
+    Next
+  </button>
+</div>
+
     </div>
   );
 }
