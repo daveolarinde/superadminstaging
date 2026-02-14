@@ -3,7 +3,7 @@ import axios from "axios";
 import { useNavigate } from "react-router-dom";
 import { FiRefreshCcw } from "react-icons/fi";
 
-const API_BASE_URL = import.meta.env.VITE_API_URL;
+const baseURL = import.meta.env.VITE_API_URL;
 
 export default function VirtualCards() {
   const [cards, setCards] = useState([]);
@@ -11,11 +11,82 @@ export default function VirtualCards() {
   const [error, setError] = useState("");
   const [statusFilter, setStatusFilter] = useState("");
   const [refreshing, setRefreshing] = useState(false);
+  const [summary, setSummary] = useState(null);
   const navigate = useNavigate();
 
+  const token = localStorage.getItem("token");
   useEffect(() => {
     fetchCards();
   }, [statusFilter]);
+
+
+  useEffect(() => {
+      if (!baseURL || !token) return;
+  
+      const fetchSummary = async () => {
+        try {
+          const res = await axios.get(`${baseURL}/superAdmin//superAdmin/cards`, {
+            headers: { Authorization: `Bearer ${token}` },
+          });
+  
+          if (res.data && res.data.success) {
+            const data = res.data.data || {};
+            const cardsList = Array.isArray(data.cards) ? data.cardsList : [];
+  
+            const totalCards =
+              typeof data.totalCards === "number" ? data.totalCards: cardsList.length;
+  
+            const activeCards = cardsList.filter(
+              (c) => String(c.status).toLowerCase() === "active"
+            ).length;
+  
+            const freezeCards = cardsList.filter(
+              (c) => String(c.status).toLowerCase() === "freeze"
+            ).length;
+  
+            const blockedCards = cardsList.filter(
+              (c) => String(c.status).toLowerCase() === "blocked"
+            ).length;
+             const terminatedCards = cardsList.filter(
+              (c) => String(c.status).toLowerCase() === "terminated"
+            ).length;
+  
+  
+           
+  
+            setSummary({
+              ...data,
+              totalCards,
+              activeCards,
+             freezeCards,
+              blockedCards,
+             terminatedCards,
+            });
+          } else {
+            setSummary({
+              totalCards: 0,
+             activeCards: 0,
+             freezeCards: 0,
+              blockedCards: 0,
+              terminatedCards:0,
+
+
+            });
+          }
+        } catch (err) {
+          console.error("Error fetching summary:", err);
+          setSummary({
+             totalCards: 0,
+             activeCards: 0,
+             freezeCards: 0,
+              blockedCards: 0,
+              terminatedCards: 0,
+          });
+        }
+      };
+  
+      fetchSummary();
+    }, [baseURL, token]);
 
   const fetchCards = async () => {
     try {
@@ -23,7 +94,7 @@ export default function VirtualCards() {
       const token = localStorage.getItem("token");
       const params = statusFilter ? { status: statusFilter } : {};
 
-      const res = await axios.get(`${API_BASE_URL}/superAdmin/cards`, {
+      const res = await axios.get(`${baseURL}/superAdmin/cards`, {
         headers: {
           Authorization: `Bearer ${token}`,
           Accept: "application/json",
@@ -51,7 +122,7 @@ export default function VirtualCards() {
 
     try {
       setRefreshing(true);
-      const res = await axios.post(`${API_BASE_URL}${endpointMap[action]}`, payload, {
+      const res = await axios.post(`${baseURL}${endpointMap[action]}`, payload, {
         headers: {
           Authorization: `Bearer ${token}`,
           "Content-Type": "application/json",
@@ -71,7 +142,25 @@ export default function VirtualCards() {
     <div className="p-6">
       <div className="flex items-center justify-between mb-4">
         <h2 className="text-xl font-semibold text-gray-800">Virtual Cards</h2>
-
+<div className="grid grid-cols-1 md:grid-cols-5 gap-4">
+        {[
+          { label: "TOTAL CARDS", value: summary?.totalCards ?? 0 },
+          { label: "ACTIVE CARDS", value: summary?.activeCards ?? 0 },
+          { label: "FREEZED CARDS", value: summary?.freezeCards ?? 0 },
+         { label: "TERMINATED CARDS", value: summary?.terminatedCards ?? 0 },
+          { label: "BLOCKED CARDS", value: summary?.blockedCards ?? 0 },
+        ].map((card, i) => (
+          <div
+            key={i}
+            className="bg-white rounded-lg shadow-sm border border-gray-100 p-4 flex flex-col"
+          >
+            <div className="text-gray-500 text-sm mb-1">{card.label}</div>
+            <div className="text-2xl font-bold text-gray-800">
+              {card.value?.toLocaleString()}
+            </div>
+          </div>
+        ))}
+      </div>
         <div className="flex gap-3">
           <select
             value={statusFilter}
