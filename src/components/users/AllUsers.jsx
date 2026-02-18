@@ -98,7 +98,7 @@ const [openMenu, setOpenMenu] = useState(null);
     fetchSummary();
   }, [baseURL, token]);
 
-  //  Fetch users (affected by filters)
+ 
   useEffect(() => {
     if (!baseURL || !token) return;
     const fetchUsers = async () => {

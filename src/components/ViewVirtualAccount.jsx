@@ -11,7 +11,7 @@ const ViewVirtualAccount = () => {
   const [accounts, setAccounts] = useState([]);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");
-console.log("Params from route:", useParams());
+// console.log("Params from route:", useParams());
 
   const fetchVirtualAccounts = async () => {
     if (!userId) {
@@ -35,7 +35,7 @@ console.log("Params from route:", useParams());
         }
       );
 
-      console.log("API Response:", res.data);
+      // console.log("API Response:", res.data);
 
       if (res.data?.success && Array.isArray(res.data?.data) && res.data.data.length > 0) {
         setAccounts(res.data.data);

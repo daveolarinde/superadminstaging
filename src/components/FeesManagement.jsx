@@ -101,7 +101,7 @@ const formatAmount = (fee) => {
 
   // Conversion fees: currency is the "from" currency in the name
   if (fee.type === "conversion") {
-    const fromCurrency = fee.name.split("_")[0]; // e.g., "usd_to_ngn" -> "usd"
+    const fromCurrency = fee.name.split("_")[0]; 
     return fromCurrency.toLowerCase() === "usd" ? `$${amt}` : `₦${amt}`;
   }
 

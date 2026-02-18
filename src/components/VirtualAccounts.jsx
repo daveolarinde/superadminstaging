@@ -1,7 +1,7 @@
 import React, { useEffect, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import axios from "axios";
-import { FiSearch } from "react-icons/fi";
+import { FiSearch, FiFilter } from "react-icons/fi";
 
 const API_BASE_URL = import.meta.env.VITE_API_URL;
 
@@ -15,6 +15,10 @@ const VirtualAccounts = () => {
   const [count, setCount] = useState(null);
   const [search, setSearch] = useState("");
 
+  const [filterOpen, setFilterOpen] = useState(false);
+  const [currencyFilter, setCurrencyFilter] = useState("");
+  const [statusFilter, setStatusFilter] = useState("");
+
   const navigate = useNavigate();
 
   const authHeaders = {
@@ -24,16 +28,28 @@ const VirtualAccounts = () => {
   const fetchVirtualAccounts = async (page = 0) => {
     setLoading(true);
     setError("");
+
     try {
       const offset = page * limit;
-      const res = await axios.get(`${API_BASE_URL}/superadmin/virtual-accounts`, {
-        headers: authHeaders,
-        params: { limit, offset },
-      });
+
+      const res = await axios.get(
+        `${API_BASE_URL}/superadmin/virtual-accounts`,
+        {
+          headers: authHeaders,
+          params: {
+            limit,
+            offset,
+            ...(currencyFilter && { currency: currencyFilter }),
+            ...(statusFilter && { status: statusFilter }),
+          },
+        }
+      );
 
       const data = res.data?.data || [];
       setVirtualAccounts(Array.isArray(data) ? data : []);
-      if (typeof res.data?.count === "number") setCount(res.data.count);
+      if (typeof res.data?.count === "number") {
+        setCount(res.data.count);
+      }
     } catch (err) {
       console.error("Fetch virtual accounts error:", err);
       setError("Failed to fetch virtual accounts");
@@ -42,12 +58,10 @@ const VirtualAccounts = () => {
     }
   };
 
-
   useEffect(() => {
     fetchVirtualAccounts(page);
-  }, [page]);
+  }, [page, currencyFilter, statusFilter]);
 
- 
   useEffect(() => {
     let filtered = [...virtualAccounts];
 
@@ -71,35 +85,101 @@ const VirtualAccounts = () => {
 
   return (
     <div className="p-4 sm:p-6">
+    
       <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between mb-6 gap-3">
-        <h2 className="text-2xl font-semibold text-gray-800">Virtual Accounts</h2>
+        <h2 className="text-2xl font-semibold text-gray-800">
+          Virtual Accounts
+        </h2>
 
-        <div className="flex items-center gap-2 border border-gray-300 rounded-md px-3 py-1.5 w-full sm:w-80">
-          <FiSearch className="text-gray-400 text-lg" />
-          <input
-            type="text"
-            placeholder="Search by name, email, or account number..."
-            value={search}
-            onChange={(e) => setSearch(e.target.value)}
-            className="w-full bg-transparent focus:outline-none text-sm"
-          />
+        <div className="flex items-center gap-2 w-full sm:w-auto">
+          {/* Search */}
+          <div className="flex items-center gap-2 border border-gray-300 rounded-md px-3 py-1.5 w-full sm:w-80">
+            <FiSearch className="text-gray-400 text-lg" />
+            <input
+              type="text"
+              placeholder="Search..."
+              value={search}
+              onChange={(e) => setSearch(e.target.value)}
+              className="w-full bg-transparent focus:outline-none text-sm"
+            />
+          </div>
+
+         
+          <button
+            onClick={() => setFilterOpen((prev) => !prev)}
+            className="flex items-center gap-1 px-3 py-2 border border-gray-300 rounded-md text-sm bg-white hover:bg-gray-50"
+          >
+            <FiFilter />
+            Filters
+          </button>
         </div>
       </div>
 
+    
+      {filterOpen && (
+        <div className="bg-white p-4 rounded-lg shadow-sm border border-gray-300 text-sm mb-4">
+          <div className="flex flex-col sm:flex-row gap-4">
+
+            {/* Currency Filter */}
+            <select
+              value={currencyFilter}
+              onChange={(e) => {
+                setPage(0);
+                setCurrencyFilter(e.target.value);
+              }}
+              className="border border-gray-300 rounded-lg px-3 py-2"
+            >
+              <option value="">All Currencies</option>
+              <option value="USD">USD</option>
+              <option value="NGN">NGN</option>
+            </select>
+
+            {/* Status Filter */}
+            <select
+              value={statusFilter}
+              onChange={(e) => {
+                setPage(0);
+                setStatusFilter(e.target.value);
+              }}
+              className="border border-gray-300 rounded-lg px-3 py-2"
+            >
+              <option value="">All Status</option>
+              <option value="active">Active</option>
+              <option value="inactive">Inactive</option>
+            
+            </select>
+
+         
+            <button
+              onClick={() => {
+                setCurrencyFilter("");
+                setStatusFilter("");
+                setPage(0);
+              }}
+              className="px-4 py-2 border border-gray-300 rounded-lg bg-gray-100 hover:bg-gray-200"
+            >
+              Clear
+            </button>
+          </div>
+        </div>
+      )}
+
+      {/* TABLE */}
       <div className="bg-white border border-gray-100 rounded-2xl shadow-sm overflow-x-auto">
         <table className="min-w-[900px] w-full text-sm text-left text-gray-700">
           <thead className="bg-gray-50 text-gray-600 uppercase text-xs font-medium">
             <tr>
-              <th className="px-4 py-3 whitespace-nowrap">Account Name</th>
-              <th className="px-4 py-3 whitespace-nowrap">Account Number</th>
-              <th className="px-4 py-3 whitespace-nowrap">Bank</th>
-              <th className="px-4 py-3 whitespace-nowrap">Currency</th>
-              <th className="px-4 py-3 whitespace-nowrap">User</th>
-              <th className="px-4 py-3 whitespace-nowrap">Email</th>
-              <th className="px-4 py-3 whitespace-nowrap">Status</th>
-              <th className="px-4 py-3 whitespace-nowrap">Created At</th>
+              <th className="px-4 py-3">Account Name</th>
+              <th className="px-4 py-3">Account Number</th>
+              <th className="px-4 py-3">Bank</th>
+              <th className="px-4 py-3">Currency</th>
+              <th className="px-4 py-3">User</th>
+              <th className="px-4 py-3">Email</th>
+              <th className="px-4 py-3">Status</th>
+              <th className="px-4 py-3">Created At</th>
             </tr>
           </thead>
+
           <tbody>
             {loading ? (
               <tr>
@@ -124,19 +204,20 @@ const VirtualAccounts = () => {
                     });
                   }}
                   className="border-t hover:bg-blue-50 cursor-pointer transition-colors"
-                  role="button"
                 >
-                  <td className="px-4 py-3 whitespace-nowrap font-medium text-gray-800">
+                  <td className="px-4 py-3 font-medium text-gray-800">
                     {va.accountName || "N/A"}
                   </td>
-                  <td className="px-4 py-3 whitespace-nowrap">{va.accountNumber || "—"}</td>
-                  <td className="px-4 py-3 whitespace-nowrap">{va.bank || "—"}</td>
-                  <td className="px-4 py-3 whitespace-nowrap">{va.currency || "—"}</td>
-                  <td className="px-4 py-3 whitespace-nowrap">
-                    {va.user?.firstname ? `${va.user.firstname} ${va.user.lastname || ""}` : "—"}
+                  <td className="px-4 py-3">{va.accountNumber || "—"}</td>
+                  <td className="px-4 py-3">{va.bank || "—"}</td>
+                  <td className="px-4 py-3">{va.currency || "—"}</td>
+                  <td className="px-4 py-3">
+                    {va.user?.firstname
+                      ? `${va.user.firstname} ${va.user.lastname || ""}`
+                      : "—"}
                   </td>
-                  <td className="px-4 py-3 whitespace-nowrap">{va.user?.email || "—"}</td>
-                  <td className="px-4 py-3 whitespace-nowrap">
+                  <td className="px-4 py-3">{va.user?.email || "—"}</td>
+                  <td className="px-4 py-3">
                     <span
                       className={`px-3 py-1 rounded-full text-xs font-semibold ${
                         va.status === "active"
@@ -149,8 +230,10 @@ const VirtualAccounts = () => {
                       {va.status || "N/A"}
                     </span>
                   </td>
-                  <td className="px-4 py-3 whitespace-nowrap">
-                    {va.createdAt ? new Date(va.createdAt).toLocaleString() : "—"}
+                  <td className="px-4 py-3">
+                    {va.createdAt
+                      ? new Date(va.createdAt).toLocaleString()
+                      : "—"}
                   </td>
                 </tr>
               ))
@@ -165,7 +248,7 @@ const VirtualAccounts = () => {
         </table>
       </div>
 
-      {/* Pagination */}
+      {/* PAGINATION */}
       <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between mt-4 gap-3">
         <div className="text-sm text-gray-500">
           {count !== null ? (
@@ -197,4 +280,5 @@ const VirtualAccounts = () => {
     </div>
   );
 };
+
 export default VirtualAccounts;
