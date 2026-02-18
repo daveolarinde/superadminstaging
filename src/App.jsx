@@ -53,7 +53,7 @@ export default function App() {
         path="/login"
         element={
           isAuthenticated ? (
-            <Navigate to="/admin" replace />
+            <Navigate to="/" replace />
           ) : (
             <Login setIsAuthenticated={setIsAuthenticated} />
           )
