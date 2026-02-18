@@ -15,21 +15,16 @@ export default function Login({ setIsAuthenticated }) {
 
    try {
   const res = await loginSuperAdmin(email, password);
-  localStorage.setItem("token", res.data.token);
+  localStorage.setItem("token", res.token);
   setIsAuthenticated(true);
   navigate("/admin", { replace: true });
-} catch (err) {
-  // Do NOT log the full error in production
-  if (import.meta.env.DEV) {
-    console.error("Login error:", err); // only in dev
-  }
-
-  setError(
-    err.response?.data?.message || "Login failed. Please check credentials."
-  );
+} catch (errMessage) {
+  // errMessage is already sanitized by interceptor
+  setError(errMessage);
 } finally {
   setLoading(false);
 }
+
 
   };
 
