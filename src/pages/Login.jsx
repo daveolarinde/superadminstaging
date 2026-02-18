@@ -1,6 +1,24 @@
 import React, { useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { loginSuperAdmin } from "../services/api";
+import CryptoJS from "crypto-js";
+
+// Secret key for token encryption (frontend only)
+const SECRET_KEY = "mySuperSecretKey123!";
+
+const TokenManager = {
+  save: (token) => {
+    const encrypted = CryptoJS.AES.encrypt(token, SECRET_KEY).toString();
+    localStorage.setItem("token", encrypted);
+  },
+  get: () => {
+    const t = localStorage.getItem("token");
+    if (!t) return null;
+    return CryptoJS.AES.decrypt(t, SECRET_KEY).toString(CryptoJS.enc.Utf8);
+  },
+  remove: () => localStorage.removeItem("token"),
+};
+
 export default function Login({ setIsAuthenticated }) {
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
@@ -13,19 +31,20 @@ export default function Login({ setIsAuthenticated }) {
     setError("");
     setLoading(true);
 
-   try {
-  const res = await loginSuperAdmin(email, password);
-  localStorage.setItem("token", res.token);
-  setIsAuthenticated(true);
-  navigate("/admin", { replace: true });
-} catch (errMessage) {
-  // errMessage is already sanitized by interceptor
-  setError(errMessage);
-} finally {
-  setLoading(false);
-}
+    try {
+      const res = await loginSuperAdmin(email, password);
 
+      // Save token safely
+      TokenManager.save(res.token);
 
+      setIsAuthenticated(true);
+      navigate("/admin", { replace: true });
+    } catch (errMessage) {
+      // Display sanitized error only
+      setError(errMessage);
+    } finally {
+      setLoading(false);
+    }
   };
 
   return (
