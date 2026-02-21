@@ -1,29 +1,23 @@
-// api.js
 import axios from "axios";
-
-const API_URL = import.meta.env.VITE_API_URL; // or your API URL
-
-const api = axios.create({
-  baseURL: API_URL,
-  timeout: 10000,
+const API = axios.create({
+  baseURL: import.meta.env.VITE_API_URL || "/api",
+  headers: {
+    "Content-Type": "application/json",
+  },
 });
-
-// Response interceptor to sanitize errors
-api.interceptors.response.use(
-  (response) => response, // pass through successful responses
-  (error) => {
-    // Only log errors in development
-    if (import.meta.env.DEV) {
-      console.error("API Error:", error);
+API.interceptors.request.use(
+  (config) => {
+    const token = localStorage.getItem("token");
+    if (token) {
+      config.headers.Authorization = `Bearer ${token}`;
+    } else {
+      console.warn("⚠️ No token found in localStorage");
     }
-
-    // Return sanitized error message
-    const message =
-      error.response?.data?.message || "Something went wrong. Please try again.";
-    
-    // Reject with sanitized message
-    return Promise.reject(message);
-  }
+    return config;
+  },
+  (error) => Promise.reject(error)
 );
-
-export default api;
+export const loginSuperAdmin = (email, password) => {
+  return API.post("/superAdmin/login", { email, password });
+};
+export default API;

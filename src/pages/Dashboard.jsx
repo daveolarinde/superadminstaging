@@ -1,8 +1,8 @@
 import { useState, useEffect } from "react";
 import { Line } from "react-chartjs-2";
 import axios from "axios";
-import WalletCurrency from "./WalletCurrency";
-import RecentTransactions from "./RecentTransactionTable"
+import WalletCurrency from "../components/WalletCurrency";
+import RecentTransactions from "../components/RecentTransactionTable"
 import {
   Chart as ChartJS,
   CategoryScale,

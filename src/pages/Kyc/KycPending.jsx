@@ -3,8 +3,9 @@
 import React, { useEffect, useState, useMemo } from "react";
 import axios from "axios";
 import { Search, Filter, MoreVertical } from "lucide-react";
-
-const KycApproved = () => {
+import { useNavigate } from "react-router-dom";
+const KycPending = () => {
+   const navigate = useNavigate();
 const [rejectModal, setRejectModal] = useState(null);
 const [rejectSubject, setRejectSubject] = useState("");
 const [rejectReason, setRejectReason] = useState("");
@@ -22,7 +23,7 @@ const [rejectReason, setRejectReason] = useState("");
   });
 
   const [filterOpen, setFilterOpen] = useState(false);
-  const [statusFilter, setStatusFilter] = useState("success");
+  const [statusFilter, setStatusFilter] = useState("pending");
   const [typeFilter, setTypeFilter] = useState("");
   const [currentPage, setCurrentPage] = useState(1);
   const [totalPages, setTotalPages] = useState(1);
@@ -139,7 +140,7 @@ const handleStatusChange = async (record, status) => {
 };
   
 
-useEffect(() => {
+  useEffect(() => {
   fetchSummary();
   fetchKycPaginated(1, true);
 }, []);
@@ -162,8 +163,7 @@ useEffect(() => {
   if (error)
     return <div className="text-red-500 text-center mt-10">{error}</div>;
 
-  const getPercent = (value) =>
-    summary.total ? ((value / summary.total) * 100).toFixed(1) + "%" : "0%";
+  
 
   return (
     <div className="p-6 bg-gray-50 min-h-screen">
@@ -186,9 +186,7 @@ useEffect(() => {
             <div className="flex items-end justify-between mt-3">
               <div>
                 <p className="text-4xl font-bold text-gray-900">{card.value}</p>
-                <p className="text-gray-400 text-sm mt-1">
-                  {getPercent(card.value)} of total
-                </p>
+                
               </div>
             </div>
           </div>
@@ -353,7 +351,16 @@ useEffect(() => {
       >
         Reject
       </button>
-
+<button
+  onClick={() => {
+   
+    navigate(`/admin/all-users/${record.user.id}`);
+    
+  }}
+  className="block w-full px-4 py-2 text-left text-sm hover:bg-gray-50"
+>
+  View Profile
+</button>
       {/* DIVIDER */}
       {(record.documentUrl || record.selfieUrl) && (
         <div className="h-px bg-gray-100 my-1" />
@@ -466,4 +473,4 @@ useEffect(() => {
   );
 };
 
-export default KycApproved;
+export default KycPending;

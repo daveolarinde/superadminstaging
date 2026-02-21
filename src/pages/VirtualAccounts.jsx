@@ -1,4 +1,4 @@
-import React, { useEffect, useState } from "react";
+import React, { useEffect, useState, useMemo } from "react";
 import { useNavigate } from "react-router-dom";
 import axios from "axios";
 import { FiSearch, FiFilter } from "react-icons/fi";
@@ -47,11 +47,11 @@ const VirtualAccounts = () => {
 
       const data = res.data?.data || [];
       setVirtualAccounts(Array.isArray(data) ? data : []);
+
       if (typeof res.data?.count === "number") {
         setCount(res.data.count);
       }
     } catch (err) {
-      console.error("Fetch virtual accounts error:", err);
       setError("Failed to fetch virtual accounts");
     } finally {
       setLoading(false);
@@ -81,18 +81,61 @@ const VirtualAccounts = () => {
     setFilteredAccounts(filtered);
   }, [search, virtualAccounts]);
 
+  /* ================= SUMMARY LOGIC ================= */
+
+  const summary = useMemo(() => {
+    const total = count || 0;
+
+    const usd = virtualAccounts.filter((v) => v.currency === "USD").length;
+    const ngn = virtualAccounts.filter((v) => v.currency === "NGN").length;
+
+    const active = virtualAccounts.filter(
+      (v) => v.status === "active"
+    ).length;
+
+    const failed = virtualAccounts.filter(
+      (v) => v.status === "inactive"
+    ).length;
+
+    return { total, usd, ngn, active, failed };
+  }, [virtualAccounts, count]);
+
   const pagesTotal = count ? Math.ceil(count / limit) : null;
 
   return (
     <div className="p-4 sm:p-6">
-    
+
+      {/* ================= SUMMARY CARDS ================= */}
+      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-6 gap-4 mb-6">
+        {[
+          { title: "TOTAL ACCOUNTS", value: summary.total },
+          { title: "USD ACCOUNTS", value: summary.usd },
+          { title: "NGN ACCOUNTS", value: summary.ngn },
+          { title: "ACTIVE", value: summary.active },
+          { title: "FAILED", value: summary.failed },
+          { title: "ALL", value: summary.total },
+        ].map((card, i) => (
+          <div
+            key={i}
+            className="bg-white border border-gray-100 rounded-xl p-4 shadow-sm"
+          >
+            <p className="text-xs uppercase text-gray-400 font-semibold">
+              {card.title}
+            </p>
+            <p className="text-2xl font-bold text-gray-900 mt-2">
+              {card.value}
+            </p>
+          </div>
+        ))}
+      </div>
+
+      {/* ================= HEADER ================= */}
       <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between mb-6 gap-3">
         <h2 className="text-2xl font-semibold text-gray-800">
           Virtual Accounts
         </h2>
 
         <div className="flex items-center gap-2 w-full sm:w-auto">
-          {/* Search */}
           <div className="flex items-center gap-2 border border-gray-300 rounded-md px-3 py-1.5 w-full sm:w-80">
             <FiSearch className="text-gray-400 text-lg" />
             <input
@@ -104,7 +147,6 @@ const VirtualAccounts = () => {
             />
           </div>
 
-         
           <button
             onClick={() => setFilterOpen((prev) => !prev)}
             className="flex items-center gap-1 px-3 py-2 border border-gray-300 rounded-md text-sm bg-white hover:bg-gray-50"
