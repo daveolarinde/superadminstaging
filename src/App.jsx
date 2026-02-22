@@ -24,6 +24,8 @@ import VirtualAccounts from "./pages/VirtualAccounts";
 import ViewVirtualAccount from "./components/ViewVirtualAccount";
 import FeesManagement from "./components/FeesManagement";
 import ExchangeRates from "./components/ExchangeRates";
+
+
 function ProtectedRoute({ children, isAuthenticated }) {
   return isAuthenticated ? children : <Navigate to="/login" replace />;
 }
@@ -34,16 +36,6 @@ export default function App() {
   useEffect(() => {
     const token = localStorage.getItem("token");
     if (token) setIsAuthenticated(true);
-
-    
-    const handleBeforeUnload = () => {
-      localStorage.removeItem("token");
-    };
-    window.addEventListener("beforeunload", handleBeforeUnload);
-
-    return () => {
-      window.removeEventListener("beforeunload", handleBeforeUnload);
-    };
   }, []);
 
   return (
@@ -90,6 +82,7 @@ export default function App() {
         <Route path="virtual-accounts" element={<VirtualAccounts />} />
         <Route path="virtual-accounts/:userId" element={<ViewVirtualAccount />} />
         <Route path="exchange-rates" element={<ExchangeRates />} />
+        
       </Route>
 
       {/* Catch all */}

@@ -2,106 +2,102 @@ import { useState, useEffect, useCallback } from "react";
 import axios from "axios";
 import { useNavigate, useLocation } from "react-router-dom";
 import { FiArrowLeft } from "react-icons/fi";
+import { Search, SlidersHorizontal, X, ChevronLeft, ChevronRight } from "lucide-react";
+
+// ── Pagination helper ─────────────────────────────────────────────────────────
+const getPageNumbers = (current, total) => {
+  if (total <= 7) return Array.from({ length: total }, (_, i) => i + 1);
+  if (current <= 4) return [1, 2, 3, 4, 5, "...", total];
+  if (current >= total - 3) return [1, "...", total - 4, total - 3, total - 2, total - 1, total];
+  return [1, "...", current - 1, current, current + 1, "...", total];
+};
 
 export default function TransactionTable() {
-  const [transactions, setTransactions] = useState([]);
-  const [searchTerm, setSearchTerm] = useState("");
-  const [showFilter, setShowFilter] = useState(false);
+  const [transactions, setTransactions]               = useState([]);
+  const [searchTerm, setSearchTerm]                   = useState("");
+  const [showFilter, setShowFilter]                   = useState(false);
   const [filterTransactionId, setFilterTransactionId] = useState("");
-  const [filterStartDate, setFilterStartDate] = useState("");
-  const [filterEndDate, setFilterEndDate] = useState("");
-  const [filterCurrency, setFilterCurrency] = useState("");
-  const [filterType, setFilterType] = useState("");
-  const [loading, setLoading] = useState(false);
-  const [currentPage, setCurrentPage] = useState(1);
+  const [filterStartDate, setFilterStartDate]         = useState("");
+  const [filterEndDate, setFilterEndDate]             = useState("");
+  const [filterCurrency, setFilterCurrency]           = useState("");
+  const [filterType, setFilterType]                   = useState("");
+  const [loading, setLoading]                         = useState(false);
+  const [currentPage, setCurrentPage]                 = useState(1);
 
   const pageSize = 10;
   const navigate = useNavigate();
   const location = useLocation();
-
-  const token = localStorage.getItem("token");
-  const baseUrl = import.meta.env.VITE_API_URL;
-
-
+  const token    = localStorage.getItem("token");
+  const baseUrl  = import.meta.env.VITE_API_URL;
   const selectedCurrency = location.state?.currency || "";
 
-  const fetchTransactions = useCallback(
-    async (currencyFilter = "") => {
-      setLoading(true);
-      try {
-        const params = {};
-        if (filterStartDate) params.startDate = filterStartDate;
-        if (filterEndDate) params.endDate = filterEndDate;
-        if (filterType) params.type = filterType;
+  // ── Fetch ─────────────────────────────────────────────────────────────────
+  const fetchTransactions = useCallback(async (currencyFilter = "") => {
+    setLoading(true);
+    try {
+      const params = {};
+      if (filterStartDate) params.startDate = filterStartDate;
+      if (filterEndDate)   params.endDate   = filterEndDate;
+      if (filterType)      params.type      = filterType;
+      if (currencyFilter)      params.currency = currencyFilter;
+      else if (filterCurrency) params.currency = filterCurrency;
 
-       
-        if (currencyFilter) {
-          params.currency = currencyFilter;
-        } else if (filterCurrency) {
-          params.currency = filterCurrency;
-        }
+      const res = await axios.get(`${baseUrl}/superAdmin/transactions`, {
+        headers: { Authorization: `Bearer ${token}` },
+        params,
+      });
 
-        const res = await axios.get(`${baseUrl}/superAdmin/transactions`, {
-          headers: { Authorization: `Bearer ${token}` },
-          params,
-        });
-
-        if (res.data.success && Array.isArray(res.data.data)) {
-          const formatted = res.data.data.map((tx, idx) => ({
-            id: idx + 1,
-            transactionId: tx.id,
-            user: {
-  id: tx.user?.id, 
-  name: `${tx.user?.firstname || "Unknown"} ${tx.user?.lastname || ""}`.trim(),
-  username: tx.user?.tag ? `@${tx.user.tag}` : tx.user?.email || "",
-},
-            amount: `${tx.type === "credit" ? "+" : "-"}${tx.amount} ${tx.currency}`,
-            charge: tx.fee ? `${tx.fee} ${tx.currency}` : "0.00",
-            remarks: tx.info || tx.type || "-",
-            dateTime: new Date(tx.createdAt || Date.now()).toLocaleString(),
-            raw: tx,
-          }));
-          setTransactions(formatted);
-        } else {
-          setTransactions([]);
-        }
-      } catch (err) {
-        console.error("❌ Error fetching transactions:", err);
+      if (res.data.success && Array.isArray(res.data.data)) {
+        const formatted = res.data.data.map((tx, idx) => ({
+          id:            idx + 1,
+          transactionId: tx.id,
+          type:          tx.type,
+          user: {
+            id:       tx.user?.id,
+            name:     `${tx.user?.firstname || "Unknown"} ${tx.user?.lastname || ""}`.trim(),
+            username: tx.user?.tag ? `@${tx.user.tag}` : tx.user?.email || "",
+          },
+          amount:      `${tx.type === "credit" ? "+" : "-"}${tx.amount} ${tx.currency}`,
+          old_balance: tx.oldBalance ?? tx.old_balance ?? "-",
+          new_balance: tx.newBalance ?? tx.new_balance ?? "-",
+          charge:      tx.fee ? `${tx.fee} ${tx.currency}` : "0.00",
+          remarks:     tx.info || tx.type || "-",
+          dateTime:    new Date(tx.createdAt || Date.now()).toLocaleString(),
+          raw:         tx,
+        }));
+        setTransactions(formatted);
+      } else {
         setTransactions([]);
-      } finally {
-        setLoading(false);
       }
-    },
-    [filterStartDate, filterEndDate, filterCurrency, filterType, token, baseUrl]
-  );
-
- 
-  useEffect(() => {
-    if (selectedCurrency) {
-     
-      fetchTransactions(selectedCurrency);
-    } else {
-    
-      fetchTransactions();
+    } catch (err) {
+      console.error("❌ Error fetching transactions:", err);
+      setTransactions([]);
+    } finally {
+      setLoading(false);
     }
+  }, [filterStartDate, filterEndDate, filterCurrency, filterType, token, baseUrl]);
+
+  useEffect(() => {
+    fetchTransactions(selectedCurrency || "");
   }, [fetchTransactions, selectedCurrency]);
 
- 
+  // ── Client-side filter + paginate ─────────────────────────────────────────
   const filteredTransactions = transactions.filter((tx) => {
     const matchesSearch =
       tx.transactionId.toLowerCase().includes(searchTerm.toLowerCase()) ||
       tx.user.name.toLowerCase().includes(searchTerm.toLowerCase());
-
     const matchesFilterId = filterTransactionId
       ? tx.transactionId.toLowerCase().includes(filterTransactionId.toLowerCase())
       : true;
-
     return matchesSearch && matchesFilterId;
   });
 
-  const totalPages = Math.ceil(filteredTransactions.length / pageSize);
-  const startIndex = (currentPage - 1) * pageSize;
+  const totalPages  = Math.ceil(filteredTransactions.length / pageSize);
+  const startIndex  = (currentPage - 1) * pageSize;
+  const endIndex    = Math.min(startIndex + pageSize, filteredTransactions.length);
   const currentTransactions = filteredTransactions.slice(startIndex, startIndex + pageSize);
+  const pageNumbers = getPageNumbers(currentPage, totalPages);
+  const activeFilterCount = [filterStartDate, filterEndDate, filterCurrency, filterType].filter(Boolean).length;
 
   const handleClearFilters = () => {
     setFilterTransactionId("");
@@ -110,138 +106,154 @@ export default function TransactionTable() {
     setFilterCurrency("");
     setFilterType("");
     setCurrentPage(1);
- 
     fetchTransactions();
   };
 
-  return (
-    <div className="bg-white rounded-xl shadow p-4 sm:p-6 md:p-8 relative">
+  const headers = ["No.", "Transaction ID", "User", "Amount", "Old Balance", "New Balance", "Charge", "Remarks", "Date & Time", "Action"];
 
-      <div className="flex items-center gap-2 mb-6">
+  return (
+    <div className="bg-white rounded-2xl shadow-sm border border-gray-100 p-4 sm:p-6 relative">
+
+      {/* ── Top bar ── */}
+      <div className="flex items-center justify-between mb-6 flex-wrap gap-3">
         <button
           onClick={() => navigate(-1)}
-          className="flex items-center gap-1 px-3 py-2 rounded-lg text-sm bg-gray-100 hover:bg-gray-200 transition"
+          className="inline-flex items-center gap-1.5 px-3 py-2 rounded-xl text-sm font-medium text-gray-600 bg-gray-100 hover:bg-gray-200 transition"
         >
-          <FiArrowLeft className="text-gray-600" /> Back
+          <FiArrowLeft size={15} /> Back
         </button>
         {selectedCurrency && (
-          <span className="text-sm text-gray-600">
-            Viewing transactions in{" "}
-            <span className="font-semibold">{selectedCurrency}</span>
+          <span className="text-sm text-gray-500">
+            Filtering by:{" "}
+            <span className="font-bold text-gray-800 bg-gray-100 px-2 py-0.5 rounded-lg">{selectedCurrency}</span>
           </span>
         )}
       </div>
 
-      {/* Search + Filter */}
-      <div className="flex flex-col sm:flex-row justify-between items-stretch sm:items-center mb-6 gap-3">
-        <input
-          type="text"
-          placeholder="Search transaction"
-          value={searchTerm}
-          onChange={(e) => setSearchTerm(e.target.value)}
-          className="border border-gray-200 rounded-lg px-4 py-3 text-sm w-full sm:w-64 focus:ring-2 focus:ring-blue-500 outline-none"
-        />
-        <div className="flex gap-3">
+      {/* ── Search + Filter row ── */}
+      <div className="flex flex-col sm:flex-row justify-between items-stretch sm:items-center mb-5 gap-3">
+        <div className="relative w-full sm:w-72">
+          <Search size={15} className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400 pointer-events-none" />
+          <input
+            type="text"
+            placeholder="Search by name or transaction ID…"
+            value={searchTerm}
+            onChange={(e) => { setSearchTerm(e.target.value); setCurrentPage(1); }}
+            className="w-full pl-9 pr-4 py-2.5 border border-gray-200 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-blue-400 bg-gray-50"
+          />
+        </div>
+        <div className="flex gap-2">
           <button
             onClick={() => setShowFilter(true)}
-            className="border border-gray-200 px-6 py-3 rounded-lg text-sm bg-gray-50 hover:bg-gray-100 transition"
+            className="relative inline-flex items-center gap-2 px-4 py-2.5 rounded-xl text-sm font-medium border border-gray-200 bg-white hover:bg-gray-50 transition text-gray-700"
           >
-            ⚙️ Filter
+            <SlidersHorizontal size={15} /> Filter
+            {activeFilterCount > 0 && (
+              <span className="absolute -top-1.5 -right-1.5 w-4 h-4 bg-blue-600 text-white text-[10px] font-bold rounded-full flex items-center justify-center">
+                {activeFilterCount}
+              </span>
+            )}
           </button>
-          <button
-            onClick={handleClearFilters}
-            className="border border-gray-200 px-6 py-3 rounded-lg text-sm bg-gray-50 hover:bg-gray-100 transition"
-          >
-            ❌ Clear
-          </button>
+          {activeFilterCount > 0 && (
+            <button
+              onClick={handleClearFilters}
+              className="inline-flex items-center gap-1.5 px-4 py-2.5 rounded-xl text-sm font-medium border border-red-100 bg-red-50 text-red-600 hover:bg-red-100 transition"
+            >
+              <X size={14} /> Clear
+            </button>
+          )}
         </div>
       </div>
 
-      {/* Table */}
-      <div className="overflow-x-auto rounded-lg">
+      {/* ── Table ── */}
+      <div className="overflow-x-auto rounded-xl border border-gray-100">
         {loading ? (
-          <div className="py-10 text-center text-gray-500">
-            Loading transactions...
+          <div className="py-16 flex flex-col items-center gap-3 text-gray-400 text-sm">
+            <span className="w-6 h-6 rounded-full border-2 border-blue-400 border-t-transparent animate-spin" />
+            Loading transactions…
           </div>
         ) : currentTransactions.length === 0 ? (
-          <div className="py-10 text-center text-gray-500">
-            No transactions found
-          </div>
+          <div className="py-16 text-center text-gray-400 text-sm">No transactions found</div>
         ) : (
-          <table className="min-w-full text-sm text-left border-collapse">
-            <thead className="bg-gray-50">
-              <tr>
-                {[
-                  "NO.",
-                  "TRANSACTION ID",
-                  "USER",
-                  "AMOUNT",
-                  "CHARGE",
-                  "REMARKS",
-                  "DATE-TIME",
-                  "ACTION",
-                ].map((header) => (
-                  <th
-                    key={header}
-                    className="px-3 sm:px-6 py-3 font-medium text-gray-600"
-                  >
-                    {header}
+          <table className="min-w-full text-sm text-left">
+            <thead>
+              <tr className="bg-gray-50 border-b border-gray-100">
+                {headers.map((h) => (
+                  <th key={h} className="px-4 py-3.5 text-xs font-bold text-gray-400 uppercase tracking-wider whitespace-nowrap">
+                    {h}
                   </th>
                 ))}
               </tr>
             </thead>
-            <tbody>
+            <tbody className="divide-y divide-gray-50">
               {currentTransactions.map((tx, index) => (
-                <tr
-                  key={tx.transactionId}
-                  className="hover:bg-gray-50 transition"
-                >
-                  <td className="px-3 sm:px-6 py-3">{startIndex + index + 1}</td>
-                  <td className="px-3 sm:px-6 py-3 break-words">
-                    {tx.transactionId}
+                <tr key={tx.transactionId} className="hover:bg-blue-50/30 transition-colors">
+
+                  {/* No. */}
+                  <td className="px-4 py-3.5 text-xs font-mono text-gray-400">
+                    {String(startIndex + index + 1).padStart(2, "0")}
                   </td>
-                <td
-  onClick={() => {
-    if (tx.user.id) {
-      navigate(`/admin/all-users/${tx.user.id}`);
-    }
-  }}
-  className="px-3 sm:px-6 py-3 flex items-center gap-2 min-w-[150px] cursor-pointer hover:bg-gray-100 transition"
->
-                    <div className="w-8 h-8 rounded-full bg-gray-200 flex items-center justify-center text-gray-400">
-                      👤
-                    </div>
-                    <div>
-                      <div className="font-medium text-gray-800 text-xs sm:text-sm">
-                        {tx.user.name}
-                      </div>
-                      <div className="text-[10px] sm:text-xs text-gray-500">
-                        {tx.user.username}
-                      </div>
-                    </div>
+
+                  {/* Transaction ID */}
+                  <td className="px-4 py-3.5">
+                    <span className="font-mono text-xs text-gray-500 bg-gray-100 px-2 py-1 rounded-lg">
+                      {tx.transactionId.slice(0, 8)}…
+                    </span>
                   </td>
+
+                  {/* User */}
                   <td
-                    className={`px-3 sm:px-6 py-3 font-semibold ${
-                      tx.amount.startsWith("+")
-                        ? "text-green-600"
-                        : "text-red-600"
-                    }`}
+                    className="px-4 py-3.5 cursor-pointer group"
+                    onClick={() => tx.user.id && navigate(`/admin/all-users/${tx.user.id}`)}
                   >
-                    {tx.amount}
+                    <div className="flex items-center gap-2.5 min-w-[140px]">
+                      <div className="w-8 h-8 rounded-full bg-indigo-100 flex items-center justify-center text-indigo-600 text-xs font-bold shrink-0">
+                        {tx.user.name.charAt(0).toUpperCase()}
+                      </div>
+                      <div>
+                        <p className="font-semibold text-gray-800 text-xs group-hover:text-blue-600 transition leading-tight">
+                          {tx.user.name}
+                        </p>
+                        <p className="text-[11px] text-gray-400">{tx.user.username}</p>
+                      </div>
+                    </div>
                   </td>
-                  <td className="px-3 sm:px-6 py-3 text-red-500">{tx.charge}</td>
-                  <td className="px-3 sm:px-6 py-3">{tx.remarks}</td>
-                  <td className="px-3 sm:px-6 py-3 whitespace-nowrap text-xs sm:text-sm">
+
+                  {/* Amount */}
+                  <td className="px-4 py-3.5">
+                    <span className={`font-bold text-sm ${tx.type === "credit" ? "text-emerald-600" : "text-red-500"}`}>
+                      {tx.amount}
+                    </span>
+                  </td>
+
+                  {/* Old Balance */}
+                  <td className="px-4 py-3.5 text-xs text-gray-400 font-mono">{tx.old_balance}</td>
+
+                  {/* New Balance */}
+                  <td className="px-4 py-3.5 text-xs text-gray-700 font-mono font-medium">{tx.new_balance}</td>
+
+                  {/* Charge */}
+                  <td className="px-4 py-3.5">
+                    <span className="text-xs text-orange-600 bg-orange-50 px-2 py-0.5 rounded-full font-medium">
+                      {tx.charge}
+                    </span>
+                  </td>
+
+                  {/* Remarks */}
+                  <td className="px-4 py-3.5 text-xs text-gray-500 capitalize max-w-[110px] truncate">
+                    {tx.remarks}
+                  </td>
+
+                  {/* Date */}
+                  <td className="px-4 py-3.5 whitespace-nowrap text-xs text-gray-400">
                     {tx.dateTime}
                   </td>
-                  <td className="px-3 sm:px-6 py-3">
+
+                  {/* Action */}
+                  <td className="px-4 py-3.5">
                     <button
-                      onClick={() =>
-                        navigate(`/admin/transactions/view`, {
-                          state: { transaction: tx.raw },
-                        })
-                      }
-                      className="flex items-center gap-1 px-3 py-1.5 text-xs bg-blue-50 text-blue-600 rounded-md hover:bg-blue-100"
+                      onClick={() => navigate(`/admin/transactions/view`, { state: { transaction: tx.raw } })}
+                      className="px-3 py-1.5 text-xs font-semibold bg-blue-50 text-blue-600 rounded-lg hover:bg-blue-100 transition"
                     >
                       View
                     </button>
@@ -253,103 +265,151 @@ export default function TransactionTable() {
         )}
       </div>
 
-      {/* Pagination */}
-      {filteredTransactions.length > 0 && (
-        <div className="flex flex-col sm:flex-row justify-between items-center mt-6 text-sm text-gray-600 gap-3">
-          <span>
-            Showing {startIndex + 1}–
-            {Math.min(startIndex + pageSize, filteredTransactions.length)} of{" "}
-            {filteredTransactions.length}
-          </span>
-          <div className="flex gap-2">
+      {/* ── Pagination ── */}
+      {filteredTransactions.length > pageSize && (
+        <div className="flex flex-col sm:flex-row items-center justify-between gap-4 mt-5">
+          <p className="text-xs text-gray-400">
+            Showing <span className="font-semibold text-gray-600">{startIndex + 1}–{endIndex}</span> of{" "}
+            <span className="font-semibold text-gray-600">{filteredTransactions.length}</span> transactions
+          </p>
+          <div className="flex items-center gap-1">
             <button
+              onClick={() => setCurrentPage((p) => Math.max(1, p - 1))}
               disabled={currentPage === 1}
-              onClick={() => setCurrentPage((p) => p - 1)}
-              className={`px-4 py-2 rounded-lg border border-gray-200 ${
-                currentPage === 1 ? "text-gray-400" : "hover:bg-gray-50"
+              className={`w-8 h-8 flex items-center justify-center rounded-lg border text-sm transition ${
+                currentPage === 1
+                  ? "border-gray-100 text-gray-300 cursor-not-allowed bg-white"
+                  : "border-gray-200 text-gray-600 hover:bg-gray-100 bg-white"
               }`}
             >
-              Prev
+              <ChevronLeft size={15} />
             </button>
+
+            {pageNumbers.map((p, idx) =>
+              p === "..." ? (
+                <span key={`e-${idx}`} className="w-8 h-8 flex items-center justify-center text-gray-400 text-sm">…</span>
+              ) : (
+                <button
+                  key={p}
+                  onClick={() => setCurrentPage(p)}
+                  className={`w-8 h-8 flex items-center justify-center rounded-lg border text-xs font-semibold transition ${
+                    p === currentPage
+                      ? "bg-blue-600 border-blue-600 text-white shadow-sm"
+                      : "border-gray-200 text-gray-600 hover:bg-gray-100 bg-white"
+                  }`}
+                >
+                  {p}
+                </button>
+              )
+            )}
+
             <button
+              onClick={() => setCurrentPage((p) => Math.min(totalPages, p + 1))}
               disabled={currentPage === totalPages}
-              onClick={() => setCurrentPage((p) => p + 1)}
-              className={`px-4 py-2 rounded-lg border border-gray-200 ${
+              className={`w-8 h-8 flex items-center justify-center rounded-lg border text-sm transition ${
                 currentPage === totalPages
-                  ? "text-gray-400"
-                  : "hover:bg-gray-50"
+                  ? "border-gray-100 text-gray-300 cursor-not-allowed bg-white"
+                  : "border-gray-200 text-gray-600 hover:bg-gray-100 bg-white"
               }`}
             >
-              Next
+              <ChevronRight size={15} />
             </button>
           </div>
         </div>
       )}
 
-      {/* Filter Modal */}
+      {/* ── Filter Modal ── */}
       {showFilter && (
-        <div className="fixed inset-0 bg-black bg-opacity-40 flex items-center justify-center z-50">
-          <div className="bg-white p-6 rounded-lg shadow-md w-full max-w-md space-y-4">
-            <h3 className="text-lg font-medium">Filter Transactions</h3>
+        <div className="fixed inset-0 bg-black/50 backdrop-blur-sm flex items-center justify-center z-50 p-4">
+          <div className="bg-white rounded-2xl shadow-2xl w-full max-w-md overflow-hidden">
 
-            <div className="grid grid-cols-2 gap-3">
-              <input
-                type="date"
-                value={filterStartDate}
-                onChange={(e) => setFilterStartDate(e.target.value)}
-                className="border border-gray-200 rounded-lg px-3 py-2 text-sm"
-              />
-              <input
-                type="date"
-                value={filterEndDate}
-                onChange={(e) => setFilterEndDate(e.target.value)}
-                className="border border-gray-200 rounded-lg px-3 py-2 text-sm"
-              />
-              <select
-                value={filterCurrency || selectedCurrency}
-                onChange={(e) => setFilterCurrency(e.target.value)}
-                disabled={!!selectedCurrency}
-                className="border border-gray-200 rounded-lg px-3 py-2 text-sm col-span-2 bg-gray-50"
-              >
-                <option value="">All Currencies</option>
-                <option value="NGN">NGN</option>
-                <option value="USD">USD</option>
-              </select>
-              <select
-                value={filterType}
-                onChange={(e) => setFilterType(e.target.value)}
-                className="border border-gray-200 rounded-lg px-3 py-2 text-sm col-span-2"
-              >
-                <option value="">All Types</option>
-                <option value="credit">Credit</option>
-                <option value="debit">Debit</option>
-              </select>
+            <div className="flex items-center justify-between px-6 py-4 border-b border-gray-100">
+              <h3 className="font-bold text-gray-800">Filter Transactions</h3>
+              <button onClick={() => setShowFilter(false)} className="w-8 h-8 flex items-center justify-center rounded-lg hover:bg-gray-100 transition">
+                <X size={16} className="text-gray-500" />
+              </button>
             </div>
 
-            <div className="flex justify-between items-center gap-3 pt-4">
-              <button
-                onClick={() => setShowFilter(false)}
-                className="px-4 py-2 bg-gray-100 text-gray-700 rounded-lg hover:bg-gray-200"
-              >
-                Back
-              </button>
-              <div className="flex gap-3">
-                <button
-                  onClick={handleClearFilters}
-                  className="px-4 py-2 bg-gray-200 text-gray-700 rounded-lg hover:bg-gray-300"
-                >
-                  Clear
-                </button>
-                <button
-                  onClick={() => {
-                    setShowFilter(false);
-                    fetchTransactions();
-                  }}
-                  className="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700"
-                >
-                  Apply
-                </button>
+            <div className="px-6 py-5 space-y-5">
+
+              {/* Date range */}
+              <div>
+                <label className="block text-xs font-bold text-gray-400 uppercase tracking-wider mb-2">Date Range</label>
+                <div className="grid grid-cols-2 gap-3">
+                  <div>
+                    <label className="text-xs text-gray-500 mb-1 block">From</label>
+                    <input
+                      type="date"
+                      value={filterStartDate}
+                      onChange={(e) => setFilterStartDate(e.target.value)}
+                      className="w-full border border-gray-200 rounded-xl px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-400"
+                    />
+                  </div>
+                  <div>
+                    <label className="text-xs text-gray-500 mb-1 block">To</label>
+                    <input
+                      type="date"
+                      value={filterEndDate}
+                      onChange={(e) => setFilterEndDate(e.target.value)}
+                      className="w-full border border-gray-200 rounded-xl px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-400"
+                    />
+                  </div>
+                </div>
               </div>
+
+              {/* Currency */}
+              <div>
+                <label className="block text-xs font-bold text-gray-400 uppercase tracking-wider mb-2">Currency</label>
+                <select
+                  value={filterCurrency || selectedCurrency}
+                  onChange={(e) => setFilterCurrency(e.target.value)}
+                  disabled={!!selectedCurrency}
+                  className="w-full border border-gray-200 rounded-xl px-3 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-blue-400 disabled:bg-gray-50 disabled:text-gray-400"
+                >
+                  <option value="">All Currencies</option>
+                  <option value="NGN">NGN</option>
+                  <option value="USD">USD</option>
+                </select>
+              </div>
+
+              {/* Type toggle buttons */}
+              <div>
+                <label className="block text-xs font-bold text-gray-400 uppercase tracking-wider mb-2">Transaction Type</label>
+                <div className="flex gap-2">
+                  {["", "credit", "debit"].map((t) => (
+                    <button
+                      key={t}
+                      onClick={() => setFilterType(t)}
+                      className={`flex-1 py-2 rounded-xl text-xs font-semibold border transition ${
+                        filterType === t
+                          ? t === "credit"
+                            ? "bg-emerald-600 border-emerald-600 text-white"
+                            : t === "debit"
+                            ? "bg-red-500 border-red-500 text-white"
+                            : "bg-blue-600 border-blue-600 text-white"
+                          : "border-gray-200 text-gray-600 bg-white hover:bg-gray-50"
+                      }`}
+                    >
+                      {t === "" ? "All" : t.charAt(0).toUpperCase() + t.slice(1)}
+                    </button>
+                  ))}
+                </div>
+              </div>
+            </div>
+
+            <div className="flex items-center justify-between gap-3 px-6 py-4 border-t border-gray-100 bg-gray-50">
+              <button
+                onClick={() => { handleClearFilters(); setShowFilter(false); }}
+                className="px-4 py-2 rounded-xl text-sm font-medium border border-gray-200 bg-white text-gray-700 hover:bg-gray-100 transition"
+              >
+                Clear All
+              </button>
+              <button
+                onClick={() => { setShowFilter(false); setCurrentPage(1); fetchTransactions(); }}
+                className="px-6 py-2 rounded-xl text-sm font-semibold bg-blue-600 text-white hover:bg-blue-700 transition shadow-sm"
+              >
+                Apply Filters
+              </button>
             </div>
           </div>
         </div>
