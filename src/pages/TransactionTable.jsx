@@ -21,6 +21,7 @@ export default function TransactionTable() {
   const [filterEndDate, setFilterEndDate]             = useState("");
   const [filterCurrency, setFilterCurrency]           = useState("");
   const [filterType, setFilterType]                   = useState("");
+  const [filterClass, setFilterClass]                 = useState(""); // ✅ NEW
   const [loading, setLoading]                         = useState(false);
   const [currentPage, setCurrentPage]                 = useState(1);
 
@@ -36,9 +37,10 @@ export default function TransactionTable() {
     setLoading(true);
     try {
       const params = {};
-      if (filterStartDate) params.startDate = filterStartDate;
-      if (filterEndDate)   params.endDate   = filterEndDate;
-      if (filterType)      params.type      = filterType;
+      if (filterStartDate) params.startDate        = filterStartDate;
+      if (filterEndDate)   params.endDate          = filterEndDate;
+      if (filterType)      params.type             = filterType;
+      if (filterClass)     params.transactionClass = filterClass; // ✅ NEW
       if (currencyFilter)      params.currency = currencyFilter;
       else if (filterCurrency) params.currency = filterCurrency;
 
@@ -75,7 +77,7 @@ export default function TransactionTable() {
     } finally {
       setLoading(false);
     }
-  }, [filterStartDate, filterEndDate, filterCurrency, filterType, token, baseUrl]);
+  }, [filterStartDate, filterEndDate, filterCurrency, filterType, filterClass, token, baseUrl]);
 
   useEffect(() => {
     fetchTransactions(selectedCurrency || "");
@@ -97,7 +99,7 @@ export default function TransactionTable() {
   const endIndex    = Math.min(startIndex + pageSize, filteredTransactions.length);
   const currentTransactions = filteredTransactions.slice(startIndex, startIndex + pageSize);
   const pageNumbers = getPageNumbers(currentPage, totalPages);
-  const activeFilterCount = [filterStartDate, filterEndDate, filterCurrency, filterType].filter(Boolean).length;
+  const activeFilterCount = [filterStartDate, filterEndDate, filterCurrency, filterType, filterClass].filter(Boolean).length;
 
   const handleClearFilters = () => {
     setFilterTransactionId("");
@@ -105,11 +107,20 @@ export default function TransactionTable() {
     setFilterEndDate("");
     setFilterCurrency("");
     setFilterType("");
+    setFilterClass(""); // ✅ NEW
     setCurrentPage(1);
     fetchTransactions();
   };
 
   const headers = ["No.", "Transaction ID", "User", "Amount", "Old Balance", "New Balance", "Charge", "Remarks", "Date & Time", "Action"];
+
+  // ── Class badge helper ────────────────────────────────────────────────────
+  const classBadgeMap = {
+    card:     "bg-violet-50 text-violet-700 border border-violet-200",
+    swap:     "bg-amber-50 text-amber-700 border border-amber-200",
+    transfer: "bg-blue-50 text-blue-700 border border-blue-200",
+    wallet:   "bg-teal-50 text-teal-700 border border-teal-200",
+  };
 
   return (
     <div className="bg-white rounded-2xl shadow-sm border border-gray-100 p-4 sm:p-6 relative">
@@ -165,6 +176,42 @@ export default function TransactionTable() {
         </div>
       </div>
 
+      {/* ── Active filter chips ── */}
+      {activeFilterCount > 0 && (
+        <div className="flex flex-wrap gap-2 mb-4">
+          {filterType && (
+            <span className="flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-semibold bg-blue-50 text-blue-700 border border-blue-100">
+              Type: {filterType}
+              <button onClick={() => setFilterType("")}><X size={10} /></button>
+            </span>
+          )}
+          {filterClass && (
+            <span className={`flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-semibold ${classBadgeMap[filterClass] || "bg-gray-100 text-gray-700"}`}>
+              Class: {filterClass}
+              <button onClick={() => setFilterClass("")}><X size={10} /></button>
+            </span>
+          )}
+          {filterCurrency && (
+            <span className="flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-semibold bg-gray-100 text-gray-700 border border-gray-200">
+              Currency: {filterCurrency}
+              <button onClick={() => setFilterCurrency("")}><X size={10} /></button>
+            </span>
+          )}
+          {filterStartDate && (
+            <span className="flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-semibold bg-gray-100 text-gray-700 border border-gray-200">
+              From: {filterStartDate}
+              <button onClick={() => setFilterStartDate("")}><X size={10} /></button>
+            </span>
+          )}
+          {filterEndDate && (
+            <span className="flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-semibold bg-gray-100 text-gray-700 border border-gray-200">
+              To: {filterEndDate}
+              <button onClick={() => setFilterEndDate("")}><X size={10} /></button>
+            </span>
+          )}
+        </div>
+      )}
+
       {/* ── Table ── */}
       <div className="overflow-x-auto rounded-xl border border-gray-100">
         {loading ? (
@@ -173,7 +220,10 @@ export default function TransactionTable() {
             Loading transactions…
           </div>
         ) : currentTransactions.length === 0 ? (
-          <div className="py-16 text-center text-gray-400 text-sm">No transactions found</div>
+          <div className="py-16 text-center text-gray-400 text-sm">
+            <p className="text-2xl mb-2">📭</p>
+            No transactions found
+          </div>
         ) : (
           <table className="min-w-full text-sm text-left">
             <thead>
@@ -255,7 +305,7 @@ export default function TransactionTable() {
                       onClick={() => navigate(`/admin/transactions/view`, { state: { transaction: tx.raw } })}
                       className="px-3 py-1.5 text-xs font-semibold bg-blue-50 text-blue-600 rounded-lg hover:bg-blue-100 transition"
                     >
-                      View
+                      View →
                     </button>
                   </td>
                 </tr>
@@ -284,7 +334,6 @@ export default function TransactionTable() {
             >
               <ChevronLeft size={15} />
             </button>
-
             {pageNumbers.map((p, idx) =>
               p === "..." ? (
                 <span key={`e-${idx}`} className="w-8 h-8 flex items-center justify-center text-gray-400 text-sm">…</span>
@@ -302,7 +351,6 @@ export default function TransactionTable() {
                 </button>
               )
             )}
-
             <button
               onClick={() => setCurrentPage((p) => Math.min(totalPages, p + 1))}
               disabled={currentPage === totalPages}
@@ -324,13 +372,16 @@ export default function TransactionTable() {
           <div className="bg-white rounded-2xl shadow-2xl w-full max-w-md overflow-hidden">
 
             <div className="flex items-center justify-between px-6 py-4 border-b border-gray-100">
-              <h3 className="font-bold text-gray-800">Filter Transactions</h3>
+              <div>
+                <h3 className="font-bold text-gray-800">Filter Transactions</h3>
+                <p className="text-xs text-gray-400 mt-0.5">Narrow down results</p>
+              </div>
               <button onClick={() => setShowFilter(false)} className="w-8 h-8 flex items-center justify-center rounded-lg hover:bg-gray-100 transition">
                 <X size={16} className="text-gray-500" />
               </button>
             </div>
 
-            <div className="px-6 py-5 space-y-5">
+            <div className="px-6 py-5 space-y-5 max-h-[65vh] overflow-y-auto">
 
               {/* Date range */}
               <div>
@@ -338,21 +389,13 @@ export default function TransactionTable() {
                 <div className="grid grid-cols-2 gap-3">
                   <div>
                     <label className="text-xs text-gray-500 mb-1 block">From</label>
-                    <input
-                      type="date"
-                      value={filterStartDate}
-                      onChange={(e) => setFilterStartDate(e.target.value)}
-                      className="w-full border border-gray-200 rounded-xl px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-400"
-                    />
+                    <input type="date" value={filterStartDate} onChange={(e) => setFilterStartDate(e.target.value)}
+                      className="w-full border border-gray-200 rounded-xl px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-400" />
                   </div>
                   <div>
                     <label className="text-xs text-gray-500 mb-1 block">To</label>
-                    <input
-                      type="date"
-                      value={filterEndDate}
-                      onChange={(e) => setFilterEndDate(e.target.value)}
-                      className="w-full border border-gray-200 rounded-xl px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-400"
-                    />
+                    <input type="date" value={filterEndDate} onChange={(e) => setFilterEndDate(e.target.value)}
+                      className="w-full border border-gray-200 rounded-xl px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-400" />
                   </div>
                 </div>
               </div>
@@ -372,25 +415,53 @@ export default function TransactionTable() {
                 </select>
               </div>
 
-              {/* Type toggle buttons */}
+              {/* Transaction Type */}
               <div>
                 <label className="block text-xs font-bold text-gray-400 uppercase tracking-wider mb-2">Transaction Type</label>
                 <div className="flex gap-2">
-                  {["", "credit", "debit"].map((t) => (
+                  {[
+                    { v: "",       l: "All"    },
+                    { v: "credit", l: "Credit" },
+                    { v: "debit",  l: "Debit"  },
+                  ].map((t) => (
                     <button
-                      key={t}
-                      onClick={() => setFilterType(t)}
+                      key={t.v}
+                      onClick={() => setFilterType(t.v)}
                       className={`flex-1 py-2 rounded-xl text-xs font-semibold border transition ${
-                        filterType === t
-                          ? t === "credit"
-                            ? "bg-emerald-600 border-emerald-600 text-white"
-                            : t === "debit"
-                            ? "bg-red-500 border-red-500 text-white"
-                            : "bg-blue-600 border-blue-600 text-white"
+                        filterType === t.v
+                          ? t.v === "credit" ? "bg-emerald-600 border-emerald-600 text-white"
+                          : t.v === "debit"  ? "bg-red-500 border-red-500 text-white"
+                          : "bg-blue-600 border-blue-600 text-white"
                           : "border-gray-200 text-gray-600 bg-white hover:bg-gray-50"
                       }`}
                     >
-                      {t === "" ? "All" : t.charAt(0).toUpperCase() + t.slice(1)}
+                      {t.l}
+                    </button>
+                  ))}
+                </div>
+              </div>
+
+              {/* ✅ Transaction Class — NEW */}
+              <div>
+                <label className="block text-xs font-bold text-gray-400 uppercase tracking-wider mb-2">Transaction Class</label>
+                <div className="grid grid-cols-2 gap-2">
+                  {[
+                    { v: "",         l: "All",      cls: "bg-blue-600 border-blue-600 text-white"      },
+                    { v: "card",     l: "💳 Card",   cls: "bg-violet-600 border-violet-600 text-white"  },
+                    { v: "swap",     l: "🔄 Swap",   cls: "bg-amber-500 border-amber-500 text-white"    },
+                    { v: "transfer", l: "↗ Transfer",cls: "bg-blue-600 border-blue-600 text-white"      },
+                    { v: "wallet",   l: "👜 Wallet", cls: "bg-teal-600 border-teal-600 text-white"      },
+                  ].map((c) => (
+                    <button
+                      key={c.v}
+                      onClick={() => setFilterClass(c.v)}
+                      className={`py-2 rounded-xl text-xs font-semibold border transition ${
+                        filterClass === c.v
+                          ? c.cls
+                          : "border-gray-200 text-gray-600 bg-white hover:bg-gray-50"
+                      } ${c.v === "" ? "col-span-2" : ""}`}
+                    >
+                      {c.l}
                     </button>
                   ))}
                 </div>
