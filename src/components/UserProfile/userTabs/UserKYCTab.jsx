@@ -1,6 +1,16 @@
 // components/tabs/UserKYCTab.jsx
-import React, { useEffect, useMemo, useRef, useState } from "react";
-import { X, MoreVertical, FileText, Eye, CheckCircle2, Clock3, XCircle, Pencil } from "lucide-react";
+import React, { useEffect, useMemo, useRef, useState, useLayoutEffect } from "react";
+import { createPortal } from "react-dom";
+import {
+  X,
+  MoreVertical,
+  FileText,
+  Eye,
+  CheckCircle2,
+  Clock3,
+  XCircle,
+  Pencil,
+} from "lucide-react";
 import axios from "axios";
 import KycUpdateModal from "../../KycUpdateModal";
 
@@ -28,14 +38,16 @@ const StatusBadge = ({ status }) => {
   const dot = dotMap[s] || "bg-gray-400";
 
   return (
-    <span className={`inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-xs font-semibold capitalize ${cls}`}>
+    <span
+      className={`inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-xs font-semibold capitalize ${cls}`}
+    >
       <span className={`w-1.5 h-1.5 rounded-full ${dot}`} />
       {status}
     </span>
   );
 };
 
-// ── Improved Action Menu (better UX: click-outside, Esc, focus, animation, aria) ──
+// ── Action Menu (PORTAL + fixed positioning so it never gets clipped) ─────────
 const ActionMenu = ({
   open,
   anchorRef,
@@ -48,6 +60,42 @@ const ActionMenu = ({
   disabled,
 }) => {
   const menuRef = useRef(null);
+  const [pos, setPos] = useState({ top: 0, left: 0, ready: false });
+
+  const updatePosition = () => {
+    const btnEl = anchorRef?.current;
+    if (!btnEl) return;
+
+    const rect = btnEl.getBoundingClientRect();
+    const MENU_W = 224; // ~ w-56
+    const GAP = 8;
+
+    // Default: align menu right edge to button right edge
+    let left = rect.right - MENU_W;
+    let top = rect.bottom + GAP;
+
+    // Clamp to viewport with small padding
+    const pad = 8;
+    const vw = window.innerWidth;
+    const vh = window.innerHeight;
+
+    left = Math.max(pad, Math.min(left, vw - MENU_W - pad));
+
+    // If near bottom, flip upward (once we know menu height)
+    const menuH = menuRef.current?.offsetHeight || 260;
+    if (top + menuH > vh - pad) {
+      const flippedTop = rect.top - GAP - menuH;
+      if (flippedTop >= pad) top = flippedTop;
+    }
+
+    setPos({ top, left, ready: true });
+  };
+
+  useLayoutEffect(() => {
+    if (!open) return;
+    updatePosition();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [open]);
 
   useEffect(() => {
     if (!open) return;
@@ -61,16 +109,29 @@ const ActionMenu = ({
       const btnEl = anchorRef?.current;
       const target = e.target;
 
-      // close if click is outside menu + outside button
-      if (menuEl && !menuEl.contains(target) && btnEl && !btnEl.contains(target)) {
+      if (
+        menuEl &&
+        !menuEl.contains(target) &&
+        btnEl &&
+        !btnEl.contains(target)
+      ) {
         onClose();
       }
     };
 
-    window.addEventListener("keydown", onKeyDown);
-    window.addEventListener("pointerdown", onPointerDown);
+    const onAnyScrollOrResize = () => {
+      // keep it open but reposition while user scrolls any container
+      updatePosition();
+    };
 
-    // focus first item for keyboard users
+    window.addEventListener("keydown", onKeyDown);
+    window.addEventListener("pointerdown", onPointerDown, true);
+
+    // IMPORTANT: scroll doesn't bubble, but capture=true on window catches it from any scroll container
+    window.addEventListener("scroll", onAnyScrollOrResize, true);
+    window.addEventListener("resize", onAnyScrollOrResize);
+
+    // focus first item
     const t = setTimeout(() => {
       const first = menuRef.current?.querySelector('[data-menuitem="true"]');
       first?.focus();
@@ -79,26 +140,34 @@ const ActionMenu = ({
     return () => {
       clearTimeout(t);
       window.removeEventListener("keydown", onKeyDown);
-      window.removeEventListener("pointerdown", onPointerDown);
+      window.removeEventListener("pointerdown", onPointerDown, true);
+      window.removeEventListener("scroll", onAnyScrollOrResize, true);
+      window.removeEventListener("resize", onAnyScrollOrResize);
     };
-  }, [open, onClose, anchorRef]);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [open, onClose]);
 
   if (!open) return null;
 
-  return (
+  return createPortal(
     <div
       ref={menuRef}
       role="menu"
       aria-label="Row actions"
+      style={{
+        position: "fixed",
+        top: pos.top,
+        left: pos.left,
+        width: 224,
+        zIndex: 9999,
+        visibility: pos.ready ? "visible" : "hidden",
+      }}
       className="
-        absolute right-0 mt-2 w-56 z-30
         rounded-2xl border border-gray-100 bg-white shadow-xl
-        overflow-hidden
-        origin-top-right
+        overflow-hidden origin-top-right
         animate-[fadeIn_120ms_ease-out]
       "
     >
-      {/* Section: status */}
       <div className="py-1">
         <button
           type="button"
@@ -154,7 +223,6 @@ const ActionMenu = ({
 
       <div className="h-px bg-gray-100" />
 
-      {/* Section: other */}
       <div className="py-1">
         <button
           type="button"
@@ -190,19 +258,106 @@ const ActionMenu = ({
         )}
       </div>
 
-      {/* tiny tip row */}
       <div className="px-4 py-2 text-[10px] text-gray-400 bg-gray-50/60 border-t border-gray-100">
         Tip: press <span className="font-semibold text-gray-500">Esc</span> to close
       </div>
 
-      {/* keyframes */}
       <style>{`
         @keyframes fadeIn {
           from { opacity: 0; transform: translateY(-4px) scale(0.98); }
           to   { opacity: 1; transform: translateY(0) scale(1); }
         }
       `}</style>
-    </div>
+    </div>,
+    document.body
+  );
+};
+
+// ── Row component ─────────────────────────────────────────────────────────────
+const KycRow = ({
+  k,
+  isOpen,
+  isBusy,
+  onToggle,
+  onClose,
+  onApprove,
+  onPending,
+  onReject,
+  onUpdateKyc,
+  viewUrl,
+}) => {
+  const btnRef = useRef(null);
+
+  return (
+    <tr className="hover:bg-gray-50/80 transition-colors">
+      <td className="px-5 py-4">
+        <span className="px-2.5 py-1 rounded-lg bg-gray-100 text-gray-600 text-xs font-medium capitalize">
+          {k.type}
+        </span>
+      </td>
+
+      <td className="px-5 py-4 text-gray-700 font-mono text-xs">
+        {k.typeValue || <span className="text-gray-300">—</span>}
+      </td>
+
+      <td className="px-5 py-4">
+        <StatusBadge status={k.status} />
+      </td>
+
+      <td className="px-5 py-4 text-gray-500 text-xs">
+        {k.issuedDate ? (
+          new Date(k.issuedDate).toLocaleDateString("en-GB", {
+            day: "2-digit",
+            month: "short",
+            year: "numeric",
+          })
+        ) : (
+          <span className="text-gray-300">—</span>
+        )}
+      </td>
+
+      <td className="px-5 py-4">
+        <button
+          ref={btnRef}
+          type="button"
+          onClick={onToggle}
+          aria-haspopup="menu"
+          aria-expanded={isOpen}
+          className={`
+            inline-flex items-center gap-2 px-3 py-1.5 rounded-xl text-xs font-semibold
+            border transition
+            ${
+              isOpen
+                ? "bg-gray-200 border-gray-200 text-gray-700"
+                : "bg-gray-100 border-gray-100 text-gray-600 hover:bg-gray-200"
+            }
+          `}
+        >
+          {isBusy ? (
+            <>
+              <span className="w-3 h-3 rounded-full bg-blue-500 animate-pulse" />
+              Working…
+            </>
+          ) : (
+            <>
+              Action <MoreVertical size={14} />
+            </>
+          )}
+        </button>
+
+        <ActionMenu
+          open={isOpen}
+          anchorRef={btnRef}
+          onClose={onClose}
+          disabled={isBusy}
+          onApprove={onApprove}
+          onPending={onPending}
+          onReject={onReject}
+          onUpdateKyc={onUpdateKyc}
+          viewUrl={viewUrl}
+        />
+      </td>
+    </tr>
   );
 };
 
@@ -231,7 +386,11 @@ export default function UserKYCTab({
   const updateKycStatus = async (kycId, payload) => {
     if (!safeBaseURL) throw new Error("Missing baseURL / VITE_API_URL");
     if (!authConfig.headers.Authorization) throw new Error("Missing auth token");
-    return axios.patch(`${safeBaseURL}/superAdmin/kyc/${kycId}/status`, payload, authConfig);
+    return axios.patch(
+      `${safeBaseURL}/superAdmin/kyc/${kycId}/status`,
+      payload,
+      authConfig
+    );
   };
 
   const handleStatusChange = async (record, status) => {
@@ -247,7 +406,11 @@ export default function UserKYCTab({
       await Promise.allSettled([fetchKycRecords?.(), fetchSummary?.()]);
     } catch (err) {
       const code = err?.response?.status;
-      alert(code === 401 ? "Unauthorized (401). Your session expired—login again." : "Failed to update KYC status");
+      alert(
+        code === 401
+          ? "Unauthorized (401). Your session expired—login again."
+          : "Failed to update KYC status"
+      );
     } finally {
       setUpdatingId(null);
       setActionOpenId(null);
@@ -271,7 +434,11 @@ export default function UserKYCTab({
       setRejectReason("");
     } catch (err) {
       const code = err?.response?.status;
-      alert(code === 401 ? "Unauthorized (401). Your session expired—login again." : "Failed to reject KYC");
+      alert(
+        code === 401
+          ? "Unauthorized (401). Your session expired—login again."
+          : "Failed to reject KYC"
+      );
     } finally {
       setUpdatingId(null);
     }
@@ -305,82 +472,26 @@ export default function UserKYCTab({
             </thead>
 
             <tbody className="divide-y divide-gray-50">
-              {kycRecords.map((k) => {
-                const isOpen = actionOpenId === k.id;
-                const isBusy = updatingId === k.id;
-                const btnRef = useRef(null); // per-row ref (ok inside map for stable list in React)
-
-                return (
-                  <tr key={k.id} className="hover:bg-gray-50/80 transition-colors">
-                    <td className="px-5 py-4">
-                      <span className="px-2.5 py-1 rounded-lg bg-gray-100 text-gray-600 text-xs font-medium capitalize">
-                        {k.type}
-                      </span>
-                    </td>
-
-                    <td className="px-5 py-4 text-gray-700 font-mono text-xs">
-                      {k.typeValue || <span className="text-gray-300">—</span>}
-                    </td>
-
-                    <td className="px-5 py-4">
-                      <StatusBadge status={k.status} />
-                    </td>
-
-                    <td className="px-5 py-4 text-gray-500 text-xs">
-                      {k.issuedDate ? (
-                        new Date(k.issuedDate).toLocaleDateString("en-GB", {
-                          day: "2-digit",
-                          month: "short",
-                          year: "numeric",
-                        })
-                      ) : (
-                        <span className="text-gray-300">—</span>
-                      )}
-                    </td>
-
-                    <td className="px-5 py-4 relative">
-                      <button
-                        ref={btnRef}
-                        type="button"
-                        onClick={() => setActionOpenId(isOpen ? null : k.id)}
-                        aria-haspopup="menu"
-                        aria-expanded={isOpen}
-                        className={`
-                          inline-flex items-center gap-2 px-3 py-1.5 rounded-xl text-xs font-semibold
-                          border transition
-                          ${isOpen ? "bg-gray-200 border-gray-200 text-gray-700" : "bg-gray-100 border-gray-100 text-gray-600 hover:bg-gray-200"}
-                        `}
-                      >
-                        {isBusy ? (
-                          <>
-                            <span className="w-3 h-3 rounded-full bg-blue-500 animate-pulse" />
-                            Working…
-                          </>
-                        ) : (
-                          <>
-                            Action <MoreVertical size={14} />
-                          </>
-                        )}
-                      </button>
-
-                      <ActionMenu
-                        open={isOpen}
-                        anchorRef={btnRef}
-                        onClose={() => setActionOpenId(null)}
-                        disabled={isBusy}
-                        onApprove={() => handleStatusChange(k, "approved")}
-                        onPending={() => handleStatusChange(k, "pending")}
-                        onReject={() => handleStatusChange(k, "rejected")}
-                        onUpdateKyc={() => {
-                          setSelectedUser(k.user || k);
-                          setActionOpenId(null);
-                        }}
-                        viewUrl={k.documentUrl || k.selfieUrl || null}
-                      />
-                    </td>
-                  </tr>
-                );
-              })}
+              {kycRecords.map((k) => (
+                <KycRow
+                  key={k.id}
+                  k={k}
+                  isOpen={actionOpenId === k.id}
+                  isBusy={updatingId === k.id}
+                  onToggle={() =>
+                    setActionOpenId((prev) => (prev === k.id ? null : k.id))
+                  }
+                  onClose={() => setActionOpenId(null)}
+                  onApprove={() => handleStatusChange(k, "approved")}
+                  onPending={() => handleStatusChange(k, "pending")}
+                  onReject={() => handleStatusChange(k, "rejected")}
+                  onUpdateKyc={() => {
+                    setSelectedUser(k.user || k);
+                    setActionOpenId(null);
+                  }}
+                  viewUrl={k.documentUrl || k.selfieUrl || null}
+                />
+              ))}
             </tbody>
           </table>
         </div>
@@ -393,7 +504,9 @@ export default function UserKYCTab({
             <div className="flex items-center justify-between px-6 pt-5 pb-4 border-b border-gray-100">
               <div>
                 <h3 className="font-semibold text-gray-800">Reject KYC</h3>
-                <p className="text-xs text-gray-400 mt-0.5">Provide a reason for rejection</p>
+                <p className="text-xs text-gray-400 mt-0.5">
+                  Provide a reason for rejection
+                </p>
               </div>
               <button
                 onClick={() => {
@@ -447,7 +560,11 @@ export default function UserKYCTab({
               </button>
 
               <button
-                disabled={!rejectSubject || !rejectReason || updatingId === rejectModal?.id}
+                disabled={
+                  !rejectSubject ||
+                  !rejectReason ||
+                  updatingId === rejectModal?.id
+                }
                 onClick={handleRejectSubmit}
                 className="flex-1 bg-red-600 text-white py-2.5 rounded-xl text-sm font-semibold hover:bg-red-700 transition disabled:opacity-40 disabled:cursor-not-allowed"
               >
