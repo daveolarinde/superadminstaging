@@ -37,12 +37,9 @@ const ViewVirtualAccount = () => {
         }
       );
 
-      if (
-        res.data?.success &&
-        Array.isArray(res.data?.data) &&
-        res.data.data.length > 0
-      ) {
-        setAccounts(res.data.data);
+      if (res.data?.success && Array.isArray(res.data?.data)) {
+        if (res.data.data.length > 0) setAccounts(res.data.data);
+        else setError("No virtual accounts found for this user.");
       } else {
         setError("No virtual accounts found for this user.");
       }
@@ -72,8 +69,20 @@ const ViewVirtualAccount = () => {
       );
 
       if (res.data?.success) {
+        // ✅ Backend sets status to "pending" (your sample proves it)
+        // Update UI immediately so button disappears right away
+        setAccounts((prev) =>
+          prev.map((a) =>
+            a.id === account.id
+              ? { ...a, status: "pending", updatedAt: new Date().toISOString() }
+              : a
+          )
+        );
+
         alert("Retry triggered successfully.");
-        fetchVirtualAccounts(); // refresh data
+        fetchVirtualAccounts(); // sync with backend
+      } else {
+        alert(res.data?.message || "Retry failed. Please try again.");
       }
     } catch (err) {
       console.error("Retry failed:", err);
@@ -85,6 +94,7 @@ const ViewVirtualAccount = () => {
 
   useEffect(() => {
     fetchVirtualAccounts();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [userId]);
 
   return (
@@ -123,9 +133,15 @@ const ViewVirtualAccount = () => {
       {!loading && !error && accounts.length > 0 && (
         <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-3">
           {accounts.map((account) => {
-            const isUsd = account.currency === "USD";
-            const isFailed =
-              account.status !== "active" && account.status !== "success";
+            const isUsd = String(account.currency || "").toUpperCase() === "USD";
+            const status = String(account.status || "").toLowerCase();
+
+            // ✅ button should show ONLY when truly failed
+            // (pending means retry is already processing)
+            const isRetryBlocked =
+              status === "active" || status === "success" || status === "pending";
+
+            const showRetryButton = isUsd && !isRetryBlocked;
 
             return (
               <div
@@ -170,9 +186,9 @@ const ViewVirtualAccount = () => {
                     <span className="font-medium text-gray-700">Status:</span>{" "}
                     <span
                       className={`px-2 py-1 rounded-full text-xs font-semibold ${
-                        account.status === "active"
+                        status === "active" || status === "success"
                           ? "bg-green-100 text-green-700"
-                          : account.status === "pending"
+                          : status === "pending"
                           ? "bg-yellow-100 text-yellow-700"
                           : "bg-red-100 text-red-700"
                       }`}
@@ -190,7 +206,7 @@ const ViewVirtualAccount = () => {
                 </div>
 
                 {/* Retry Button */}
-                {isUsd && isFailed && (
+                {showRetryButton && (
                   <div className="mt-4">
                     <button
                       onClick={() => handleRetry(account)}
@@ -202,6 +218,13 @@ const ViewVirtualAccount = () => {
                         : "Retry USD Account Creation"}
                     </button>
                   </div>
+                )}
+
+                {/* Optional: small hint when pending (nice UX) */}
+                {isUsd && status === "pending" && (
+                  <p className="mt-3 text-xs text-gray-400">
+                    Retry is processing… this will update once the account is created.
+                  </p>
                 )}
 
                 {/* User Info */}
