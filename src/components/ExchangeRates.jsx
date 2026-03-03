@@ -1,33 +1,63 @@
-import React, { useEffect, useState, useCallback } from "react";
+import React, { useEffect, useState, useCallback, useMemo } from "react";
 import axios from "axios";
 import { ArrowLeftRight, Plus, ChevronLeft, Pencil, Trash2, RefreshCw } from "lucide-react";
 
 const API_URL = import.meta.env.VITE_API_URL;
 const getToken = () => localStorage.getItem("token");
 
-// ── Overview rate card ────────────────────────────────────────────────────────
-const RateOverviewCard = ({ pair, value }) => {
-  const [base, target] = pair.split("-");
-  const formatted = Number(value).toLocaleString(undefined, {
-    minimumFractionDigits: 2,
-    maximumFractionDigits: 6,
-  });
+// ── Rate pill UI (matches screenshot style) ───────────────────────────────────
+const RatePill = ({ pair, value }) => {
+  const [base, target] = String(pair || "").split("-");
+
+  const formatted = useMemo(() => {
+    const n = Number(value);
+    if (!Number.isFinite(n)) return String(value ?? "");
+
+    // Big numbers like 1390.50 -> 2dp
+    if (n >= 1) {
+      return n.toLocaleString(undefined, {
+        minimumFractionDigits: 2,
+        maximumFractionDigits: 2,
+      });
+    }
+
+    // Small numbers like 0.0007407407 -> show as 0.000740 (6 dp)
+    return n.toLocaleString(undefined, {
+      minimumFractionDigits: 8,
+      maximumFractionDigits: 8,
+    });
+  }, [value]);
 
   return (
-    <div className="bg-white rounded-2xl border border-gray-100 shadow-sm p-5">
-      <div className="flex items-center justify-between mb-3">
-        <div className="flex items-center gap-2">
-          <span className="px-2 py-1 rounded-lg bg-blue-50 text-blue-700 text-xs font-bold">{base}</span>
-          <ArrowLeftRight size={12} className="text-gray-400" />
-          <span className="px-2 py-1 rounded-lg bg-emerald-50 text-emerald-700 text-xs font-bold">{target}</span>
-        </div>
-        <div className="w-8 h-8 rounded-xl bg-indigo-50 flex items-center justify-center">
-          <ArrowLeftRight size={14} className="text-indigo-600" />
+    <div className="flex items-center justify-center">
+      <div className="w-full max-w-md">
+        <div className="flex items-center justify-between gap-3 px-4 py-2.5 rounded-full bg-white/70 backdrop-blur border border-gray-200 shadow-sm">
+          <div className="flex items-center gap-2 min-w-0">
+            <div className="w-9 h-9 rounded-full bg-gray-50 border border-gray-200 flex items-center justify-center shrink-0">
+              <ArrowLeftRight size={16} className="text-gray-500" />
+            </div>
+
+            <p className="text-sm text-gray-600 truncate">
+              <span className="text-gray-500">1 </span>
+              <span className="font-semibold text-gray-900">{base}</span>
+              <span className="text-gray-500"> = </span>
+              <span className="font-semibold text-gray-900">{formatted}</span>
+              <span className="text-gray-500"> </span>
+              <span className="font-semibold text-gray-900">{target}</span>
+            </p>
+          </div>
+
+          {/* <button
+            type="button"
+            onClick={onRefresh}
+            className="p-2 rounded-full hover:bg-gray-100 active:scale-95 transition shrink-0"
+            aria-label="Refresh rate"
+            title="Refresh"
+          >
+            <RefreshCw size={16} className="text-gray-600" />
+          </button> */}
         </div>
       </div>
-      <p className="text-xs text-gray-400 mb-1">1 {base} equals</p>
-      <p className="text-2xl font-bold text-gray-900 leading-tight">{formatted}</p>
-      <p className="text-xs text-gray-400 mt-0.5">{target}</p>
     </div>
   );
 };
@@ -35,7 +65,11 @@ const RateOverviewCard = ({ pair, value }) => {
 // ── Input ─────────────────────────────────────────────────────────────────────
 const Input = ({ label, ...props }) => (
   <div>
-    {label && <label className="block text-xs font-semibold text-gray-500 uppercase tracking-wide mb-1.5">{label}</label>}
+    {label && (
+      <label className="block text-xs font-semibold text-gray-500 uppercase tracking-wide mb-1.5">
+        {label}
+      </label>
+    )}
     <input
       className="w-full border border-gray-200 rounded-xl px-3.5 py-2.5 text-sm text-gray-800 placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-blue-400 focus:border-transparent bg-white transition"
       {...props}
@@ -47,18 +81,18 @@ const Input = ({ label, ...props }) => (
 export default function ExchangeRates() {
   const [tab, setTab] = useState("list");
 
-  const [rates, setRates]               = useState([]);
-  const [loading, setLoading]           = useState(true);
-  const [overviewRates, setOverviewRates]     = useState({});
+  const [rates, setRates] = useState([]);
+  const [loading, setLoading] = useState(true);
+  const [overviewRates, setOverviewRates] = useState({});
   const [overviewLoading, setOverviewLoading] = useState(true);
 
-  const [saving, setSaving]   = useState(false);
+  const [saving, setSaving] = useState(false);
   const [selected, setSelected] = useState(null);
 
   // Create form
-  const [baseCurrency, setBaseCurrency]     = useState("");
+  const [baseCurrency, setBaseCurrency] = useState("");
   const [targetCurrency, setTargetCurrency] = useState("");
-  const [rate, setRate]                     = useState("");
+  const [rate, setRate] = useState("");
 
   // Edit
   const [editRate, setEditRate] = useState("");
@@ -92,7 +126,10 @@ export default function ExchangeRates() {
     }
   }, []);
 
-  useEffect(() => { fetchRates(); fetchOverviewRates(); }, [fetchRates, fetchOverviewRates]);
+  useEffect(() => {
+    fetchRates();
+    fetchOverviewRates();
+  }, [fetchRates, fetchOverviewRates]);
 
   // ── Actions ─────────────────────────────────────────────────────────────────
   const viewRate = async (id) => {
@@ -121,7 +158,9 @@ export default function ExchangeRates() {
       );
       setRates((prev) => [res.data.data, ...prev]);
       fetchOverviewRates();
-      setBaseCurrency(""); setTargetCurrency(""); setRate("");
+      setBaseCurrency("");
+      setTargetCurrency("");
+      setRate("");
       setTab("list");
     } catch (err) {
       console.error("Create failed:", err);
@@ -169,13 +208,23 @@ export default function ExchangeRates() {
   const thCls = "px-5 py-3.5 text-left text-xs font-bold text-gray-400 uppercase tracking-wider";
   const tdCls = "px-5 py-4 text-sm text-gray-700";
 
-  const overviewPairs = Object.entries(overviewRates).filter(([pair]) =>
-    ["USD-NGN", "NGN-USD"].includes(pair.toUpperCase())
-  );
+  // ✅ FIX: map backend swapped keys to correct display labels (NO MATH / NO inversion)
+  // backend:
+  //   NGN-USD: 1390.5  -> should display as USD-NGN
+  //   USD-NGN: 0.0007407407 -> should display as NGN-USD
+  const overviewPairs = useMemo(() => {
+    const usdNgnDisplayValue = overviewRates["NGN-USD"]; // big number
+    const ngnUsdDisplayValue = overviewRates["USD-NGN"]; // small number
+
+    const pairs = [];
+    if (usdNgnDisplayValue !== undefined) pairs.push(["USD-NGN", usdNgnDisplayValue]);
+    if (ngnUsdDisplayValue !== undefined) pairs.push(["NGN-USD", ngnUsdDisplayValue]);
+
+    return pairs;
+  }, [overviewRates]);
 
   return (
     <div className="p-4 md:p-6 bg-gray-50 min-h-screen space-y-6">
-
       {/* ── Page header ── */}
       <div className="flex items-center justify-between">
         <div>
@@ -183,27 +232,34 @@ export default function ExchangeRates() {
           <p className="text-xs text-gray-400 mt-0.5">Manage currency exchange rates</p>
         </div>
         <button
-          onClick={() => { fetchRates(); fetchOverviewRates(); }}
+          onClick={() => {
+            fetchRates();
+            fetchOverviewRates();
+          }}
           className="flex items-center gap-2 px-3.5 py-2 rounded-xl text-xs font-semibold border border-gray-200 bg-white text-gray-600 hover:bg-gray-50 shadow-sm transition"
         >
           <RefreshCw size={13} /> Refresh
         </button>
       </div>
 
-      {/* ── Overview cards (list tab only) ── */}
+      {/* ── Overview (list tab only) ── */}
       {tab === "list" && (
-        <div>
-          <p className="text-xs font-bold text-gray-400 uppercase tracking-widest mb-3">Live Rates</p>
+        <div className="space-y-3">
+          <p className="text-xs font-bold text-gray-400 uppercase tracking-widest mb-2">Live Rates</p>
+
           {overviewLoading ? (
-            <div className="grid grid-cols-2 gap-4">
+            <div className="space-y-3">
               {[1, 2].map((i) => (
-                <div key={i} className="bg-white rounded-2xl border border-gray-100 h-28 animate-pulse" />
+                <div
+                  key={i}
+                  className="w-full max-w-md mx-auto h-12 rounded-full bg-white border border-gray-100 animate-pulse"
+                />
               ))}
             </div>
           ) : overviewPairs.length > 0 ? (
-            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+            <div className="space-y-3">
               {overviewPairs.map(([pair, value]) => (
-                <RateOverviewCard key={pair} pair={pair} value={value} />
+                <RatePill key={pair} pair={pair} value={value} onRefresh={() => fetchOverviewRates()} />
               ))}
             </div>
           ) : (
@@ -329,7 +385,9 @@ export default function ExchangeRates() {
           {baseCurrency && targetCurrency && rate && (
             <div className="flex items-center gap-2 px-4 py-3 bg-blue-50 rounded-xl text-sm text-blue-700">
               <ArrowLeftRight size={14} />
-              <span>1 <strong>{baseCurrency}</strong> = <strong>{rate}</strong> {targetCurrency}</span>
+              <span>
+                1 <strong>{baseCurrency}</strong> = <strong>{rate}</strong> {targetCurrency}
+              </span>
             </div>
           )}
 
@@ -374,17 +432,14 @@ export default function ExchangeRates() {
               </span>
             </div>
 
-            <Input
-              label="Rate"
-              type="number"
-              value={editRate}
-              onChange={(e) => setEditRate(e.target.value)}
-            />
+            <Input label="Rate" type="number" value={editRate} onChange={(e) => setEditRate(e.target.value)} />
 
             {editRate && (
               <div className="flex items-center gap-2 px-4 py-3 bg-blue-50 rounded-xl text-sm text-blue-700">
                 <ArrowLeftRight size={14} />
-                <span>1 <strong>{selected.baseCurrency}</strong> = <strong>{editRate}</strong> {selected.targetCurrency}</span>
+                <span>
+                  1 <strong>{selected.baseCurrency}</strong> = <strong>{editRate}</strong> {selected.targetCurrency}
+                </span>
               </div>
             )}
 
@@ -395,9 +450,13 @@ export default function ExchangeRates() {
                 className="flex-1 flex items-center justify-center gap-2 py-2.5 rounded-xl text-sm font-semibold bg-emerald-600 text-white hover:bg-emerald-700 disabled:opacity-50 transition shadow-sm"
               >
                 {saving ? (
-                  <><div className="w-3.5 h-3.5 rounded-full border-2 border-white/40 border-t-white animate-spin" /> Saving…</>
+                  <>
+                    <div className="w-3.5 h-3.5 rounded-full border-2 border-white/40 border-t-white animate-spin" /> Saving…
+                  </>
                 ) : (
-                  <><Pencil size={13} /> Save Changes</>
+                  <>
+                    <Pencil size={13} /> Save Changes
+                  </>
                 )}
               </button>
               <button
