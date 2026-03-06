@@ -5,59 +5,29 @@ import { ArrowLeftRight, Plus, ChevronLeft, Pencil, Trash2, RefreshCw } from "lu
 const API_URL = import.meta.env.VITE_API_URL;
 const getToken = () => localStorage.getItem("token");
 
-// ── Rate pill UI (matches screenshot style) ───────────────────────────────────
-const RatePill = ({ pair, value }) => {
-  const [base, target] = String(pair || "").split("-");
-
-  const formatted = useMemo(() => {
-    const n = Number(value);
-    if (!Number.isFinite(n)) return String(value ?? "");
-
-    // Big numbers like 1390.50 -> 2dp
-    if (n >= 1) {
-      return n.toLocaleString(undefined, {
-        minimumFractionDigits: 2,
-        maximumFractionDigits: 2,
-      });
-    }
-
-    // Small numbers like 0.0007407407 -> show as 0.000740 (6 dp)
-    return n.toLocaleString(undefined, {
-      minimumFractionDigits: 8,
-      maximumFractionDigits: 8,
-    });
-  }, [value]);
+// ── Overview rate card ────────────────────────────────────────────────────────
+const RateOverviewCard = ({ pair, value }) => {
+  const [base, target] = pair.split("-");
+  const formatted = Number(value).toLocaleString(undefined, {
+    minimumFractionDigits: 2,
+    maximumFractionDigits: 6,
+  });
 
   return (
-    <div className="flex items-center justify-center">
-      <div className="w-full max-w-md">
-        <div className="flex items-center justify-between gap-3 px-4 py-2.5 rounded-full bg-white/70 backdrop-blur border border-gray-200 shadow-sm">
-          <div className="flex items-center gap-2 min-w-0">
-            <div className="w-9 h-9 rounded-full bg-gray-50 border border-gray-200 flex items-center justify-center shrink-0">
-              <ArrowLeftRight size={16} className="text-gray-500" />
-            </div>
-
-            <p className="text-sm text-gray-600 truncate">
-              <span className="text-gray-500">1 </span>
-              <span className="font-semibold text-gray-900">{base}</span>
-              <span className="text-gray-500"> = </span>
-              <span className="font-semibold text-gray-900">{formatted}</span>
-              <span className="text-gray-500"> </span>
-              <span className="font-semibold text-gray-900">{target}</span>
-            </p>
-          </div>
-
-          {/* <button
-            type="button"
-            onClick={onRefresh}
-            className="p-2 rounded-full hover:bg-gray-100 active:scale-95 transition shrink-0"
-            aria-label="Refresh rate"
-            title="Refresh"
-          >
-            <RefreshCw size={16} className="text-gray-600" />
-          </button> */}
+    <div className="bg-white rounded-2xl border border-gray-100 shadow-sm p-5">
+      <div className="flex items-center justify-between mb-3">
+        <div className="flex items-center gap-2">
+          <span className="px-2 py-1 rounded-lg bg-blue-50 text-blue-700 text-xs font-bold">{base}</span>
+          <ArrowLeftRight size={12} className="text-gray-400" />
+          <span className="px-2 py-1 rounded-lg bg-emerald-50 text-emerald-700 text-xs font-bold">{target}</span>
+        </div>
+        <div className="w-8 h-8 rounded-xl bg-indigo-50 flex items-center justify-center">
+          <ArrowLeftRight size={14} className="text-indigo-600" />
         </div>
       </div>
+      <p className="text-xs text-gray-400 mb-1">1 {base} equals</p>
+      <p className="text-2xl font-bold text-gray-900 leading-tight">{formatted}</p>
+      <p className="text-xs text-gray-400 mt-0.5">{target}</p>
     </div>
   );
 };
@@ -65,11 +35,7 @@ const RatePill = ({ pair, value }) => {
 // ── Input ─────────────────────────────────────────────────────────────────────
 const Input = ({ label, ...props }) => (
   <div>
-    {label && (
-      <label className="block text-xs font-semibold text-gray-500 uppercase tracking-wide mb-1.5">
-        {label}
-      </label>
-    )}
+    {label && <label className="block text-xs font-semibold text-gray-500 uppercase tracking-wide mb-1.5">{label}</label>}
     <input
       className="w-full border border-gray-200 rounded-xl px-3.5 py-2.5 text-sm text-gray-800 placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-blue-400 focus:border-transparent bg-white transition"
       {...props}
@@ -96,6 +62,11 @@ export default function ExchangeRates() {
 
   // Edit
   const [editRate, setEditRate] = useState("");
+
+  // ── NEW: Converter state (client-side calc) ────────────────────────────────
+  const [fromCur, setFromCur] = useState("NGN");
+  const [toCur, setToCur] = useState("USD");
+  const [amount, setAmount] = useState("1000");
 
   // ── Fetch ───────────────────────────────────────────────────────────────────
   const fetchRates = useCallback(async () => {
@@ -208,20 +179,62 @@ export default function ExchangeRates() {
   const thCls = "px-5 py-3.5 text-left text-xs font-bold text-gray-400 uppercase tracking-wider";
   const tdCls = "px-5 py-4 text-sm text-gray-700";
 
-  // ✅ FIX: map backend swapped keys to correct display labels (NO MATH / NO inversion)
-  // backend:
-  //   NGN-USD: 1390.5  -> should display as USD-NGN
-  //   USD-NGN: 0.0007407407 -> should display as NGN-USD
-  const overviewPairs = useMemo(() => {
-    const usdNgnDisplayValue = overviewRates["NGN-USD"]; // big number
-    const ngnUsdDisplayValue = overviewRates["USD-NGN"]; // small number
+  const overviewPairs = Object.entries(overviewRates).filter(([pair]) =>
+    ["USD-NGN", "NGN-USD"].includes(pair.toUpperCase())
+  );
 
-    const pairs = [];
-    if (usdNgnDisplayValue !== undefined) pairs.push(["USD-NGN", usdNgnDisplayValue]);
-    if (ngnUsdDisplayValue !== undefined) pairs.push(["NGN-USD", ngnUsdDisplayValue]);
+  // ── NEW: normalize your swapped backend rates (for calculation only) ───────
+  // backend sample:
+  //   "NGN-USD": 1390.5           (this is actually USD->NGN)
+  //   "USD-NGN": 0.0007407407     (this is actually NGN->USD)
+  const normalized = useMemo(() => {
+    const usdToNgn = Number(overviewRates?.["NGN-USD"]);
+    const ngnToUsd = Number(overviewRates?.["USD-NGN"]);
 
-    return pairs;
+    return {
+      usdToNgn: Number.isFinite(usdToNgn) ? usdToNgn : null,
+      ngnToUsd: Number.isFinite(ngnToUsd) ? ngnToUsd : null,
+    };
   }, [overviewRates]);
+
+  const activeRate = useMemo(() => {
+    if (fromCur === "USD" && toCur === "NGN") return normalized.usdToNgn;
+    if (fromCur === "NGN" && toCur === "USD") return normalized.ngnToUsd;
+    return null;
+  }, [fromCur, toCur, normalized]);
+
+  const received = useMemo(() => {
+    const amt = Number(String(amount).replace(/,/g, ""));
+    if (!Number.isFinite(amt) || amt < 0) return 0;
+    if (!activeRate) return 0;
+    return amt * activeRate;
+  }, [amount, activeRate]);
+
+  const formatMoney = (cur, val) => {
+    const n = Number(val);
+    if (!Number.isFinite(n)) return "0.00";
+
+    // USD -> 2dp, NGN -> 2dp
+    return n.toLocaleString(undefined, {
+      minimumFractionDigits: 2,
+      maximumFractionDigits: 2,
+    });
+  };
+
+  const formatRate = (rateVal) => {
+    const n = Number(rateVal);
+    if (!Number.isFinite(n)) return "—";
+    // big rate like 1390.5 => 2dp; small like 0.0007407407 => show 6dp (0.000740)
+    if (n >= 1) {
+      return n.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+    }
+    return n.toLocaleString(undefined, { minimumFractionDigits: 6, maximumFractionDigits: 6 });
+  };
+
+  const swap = () => {
+    setFromCur((prev) => (prev === "NGN" ? "USD" : "NGN"));
+    setToCur((prev) => (prev === "USD" ? "NGN" : "USD"));
+  };
 
   return (
     <div className="p-4 md:p-6 bg-gray-50 min-h-screen space-y-6">
@@ -242,31 +255,111 @@ export default function ExchangeRates() {
         </button>
       </div>
 
-      {/* ── Overview (list tab only) ── */}
+      {/* ── Overview cards (list tab only) ── */}
       {tab === "list" && (
-        <div className="space-y-3">
-          <p className="text-xs font-bold text-gray-400 uppercase tracking-widest mb-2">Live Rates</p>
+        <div className="space-y-4">
+          <div>
+            <p className="text-xs font-bold text-gray-400 uppercase tracking-widest mb-3">Live Rates</p>
+            {overviewLoading ? (
+              <div className="grid grid-cols-2 gap-4">
+                {[1, 2].map((i) => (
+                  <div key={i} className="bg-white rounded-2xl border border-gray-100 h-28 animate-pulse" />
+                ))}
+              </div>
+            ) : overviewPairs.length > 0 ? (
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                {overviewPairs.map(([pair, value]) => (
+                  <RateOverviewCard key={pair} pair={pair} value={value} />
+                ))}
+              </div>
+            ) : (
+              <div className="bg-white rounded-2xl border border-gray-100 p-8 text-center">
+                <p className="text-sm text-gray-400">No exchange rate data available</p>
+              </div>
+            )}
+          </div>
 
-          {overviewLoading ? (
-            <div className="space-y-3">
-              {[1, 2].map((i) => (
-                <div
-                  key={i}
-                  className="w-full max-w-md mx-auto h-12 rounded-full bg-white border border-gray-100 animate-pulse"
+          {/* ── NEW: Converter block (client-side) ── */}
+          <div className="bg-white rounded-2xl border border-gray-100 shadow-sm p-5">
+            <div className="flex items-center justify-between mb-4">
+              <div>
+                <p className="text-sm font-bold text-gray-900">Quick Convert</p>
+                <p className="text-xs text-gray-400">Calculated from your rate table</p>
+              </div>
+
+              <button
+                onClick={swap}
+                className="px-3 py-2 rounded-xl border border-gray-200 bg-white text-gray-600 hover:bg-gray-50 transition flex items-center gap-2 text-xs font-semibold"
+              >
+                <ArrowLeftRight size={14} /> Swap
+              </button>
+            </div>
+
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+              <div>
+                <label className="block text-xs font-semibold text-gray-500 uppercase tracking-wide mb-1.5">
+                  Amount to convert ({fromCur})
+                </label>
+                <input
+                  value={amount}
+                  onChange={(e) => setAmount(e.target.value)}
+                  inputMode="decimal"
+                  placeholder="e.g. 1000"
+                  className="w-full border border-gray-200 rounded-xl px-3.5 py-3 text-sm text-gray-800 placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-blue-400 focus:border-transparent bg-white transition"
                 />
-              ))}
+              </div>
+
+              <div>
+                <label className="block text-xs font-semibold text-gray-500 uppercase tracking-wide mb-1.5">
+                  Amount you will receive ({toCur})
+                </label>
+                <div className="w-full border border-gray-200 rounded-xl px-3.5 py-3 bg-gray-50 text-gray-900 font-bold text-lg">
+                  {toCur === "USD" ? "$" : "₦"}
+                  {formatMoney(toCur, received)}
+                </div>
+                <p className="text-[11px] text-gray-400 mt-2">
+                  Rate: 1 {fromCur} = <span className="font-semibold text-gray-700">{formatRate(activeRate)}</span> {toCur}
+                </p>
+              </div>
             </div>
-          ) : overviewPairs.length > 0 ? (
-            <div className="space-y-3">
-              {overviewPairs.map(([pair, value]) => (
-                <RatePill key={pair} pair={pair} value={value} onRefresh={() => fetchOverviewRates()} />
-              ))}
+
+            {/* Currency toggles (fixed to NGN/USD like your context) */}
+            <div className="flex items-center gap-2 mt-4">
+              <button
+                onClick={() => {
+                  setFromCur("NGN");
+                  setToCur("USD");
+                }}
+                className={`px-3 py-2 rounded-xl text-xs font-semibold border transition ${
+                  fromCur === "NGN"
+                    ? "bg-blue-600 text-white border-blue-600"
+                    : "bg-white text-gray-600 border-gray-200 hover:bg-gray-50"
+                }`}
+              >
+                NGN → USD
+              </button>
+              <button
+                onClick={() => {
+                  setFromCur("USD");
+                  setToCur("NGN");
+                }}
+                className={`px-3 py-2 rounded-xl text-xs font-semibold border transition ${
+                  fromCur === "USD"
+                    ? "bg-blue-600 text-white border-blue-600"
+                    : "bg-white text-gray-600 border-gray-200 hover:bg-gray-50"
+                }`}
+              >
+                USD → NGN
+              </button>
+
+              <button
+                onClick={fetchOverviewRates}
+                className="ml-auto px-3 py-2 rounded-xl text-xs font-semibold border border-gray-200 bg-white text-gray-600 hover:bg-gray-50 transition flex items-center gap-2"
+              >
+                <RefreshCw size={13} /> Update rate
+              </button>
             </div>
-          ) : (
-            <div className="bg-white rounded-2xl border border-gray-100 p-8 text-center">
-              <p className="text-sm text-gray-400">No exchange rate data available</p>
-            </div>
-          )}
+          </div>
         </div>
       )}
 
