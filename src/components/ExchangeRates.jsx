@@ -17,17 +17,17 @@ const RateOverviewCard = ({ pair, value }) => {
     <div className="bg-white rounded-2xl border border-gray-100 shadow-sm p-5">
       <div className="flex items-center justify-between mb-3">
         <div className="flex items-center gap-2">
-          <span className="px-2 py-1 rounded-lg bg-blue-50 text-blue-700 text-xs font-bold">{base}</span>
+          <span className="px-2 py-1 rounded-lg bg-blue-50 text-blue-700 text-xs font-bold">{target}</span>
           <ArrowLeftRight size={12} className="text-gray-400" />
-          <span className="px-2 py-1 rounded-lg bg-emerald-50 text-emerald-700 text-xs font-bold">{target}</span>
+          <span className="px-2 py-1 rounded-lg bg-emerald-50 text-emerald-700 text-xs font-bold">{base}</span>
         </div>
         <div className="w-8 h-8 rounded-xl bg-indigo-50 flex items-center justify-center">
           <ArrowLeftRight size={14} className="text-indigo-600" />
         </div>
       </div>
-      <p className="text-xs text-gray-400 mb-1">1 {base} equals</p>
+      <p className="text-xs text-gray-400 mb-1">1 {target} equals</p>
       <p className="text-2xl font-bold text-gray-900 leading-tight">{formatted}</p>
-      <p className="text-xs text-gray-400 mt-0.5">{target}</p>
+      <p className="text-xs text-gray-400 mt-0.5">{base}</p>
     </div>
   );
 };
@@ -63,10 +63,12 @@ export default function ExchangeRates() {
   // Edit
   const [editRate, setEditRate] = useState("");
 
-  // ── NEW: Converter state (client-side calc) ────────────────────────────────
+  // ── Converter state ────────────────────────────────────────────────────────
   const [fromCur, setFromCur] = useState("NGN");
   const [toCur, setToCur] = useState("USD");
-  const [amount, setAmount] = useState("1000");
+  const [fromAmount, setFromAmount] = useState("1000");
+  const [toAmount, setToAmount] = useState("");
+  const [lastEdited, setLastEdited] = useState("from"); // "from" | "to"
 
   // ── Fetch ───────────────────────────────────────────────────────────────────
   const fetchRates = useCallback(async () => {
@@ -183,10 +185,7 @@ export default function ExchangeRates() {
     ["USD-NGN", "NGN-USD"].includes(pair.toUpperCase())
   );
 
-  // ── NEW: normalize your swapped backend rates (for calculation only) ───────
-  // backend sample:
-  //   "NGN-USD": 1390.5           (this is actually USD->NGN)
-  //   "USD-NGN": 0.0007407407     (this is actually NGN->USD)
+  // ── Normalize swapped backend rates ───────────────────────────────────────
   const normalized = useMemo(() => {
     const usdToNgn = Number(overviewRates?.["NGN-USD"]);
     const ngnToUsd = Number(overviewRates?.["USD-NGN"]);
@@ -203,28 +202,57 @@ export default function ExchangeRates() {
     return null;
   }, [fromCur, toCur, normalized]);
 
-  const received = useMemo(() => {
-    const amt = Number(String(amount).replace(/,/g, ""));
-    if (!Number.isFinite(amt) || amt < 0) return 0;
-    if (!activeRate) return 0;
-    return amt * activeRate;
-  }, [amount, activeRate]);
+  // ── Sync the "other" input whenever activeRate, fromAmount, or toAmount changes ──
+  useEffect(() => {
+    if (!activeRate) return;
 
-  const formatMoney = (cur, val) => {
-    const n = Number(val);
-    if (!Number.isFinite(n)) return "0.00";
+    if (lastEdited === "from") {
+      const amt = Number(String(fromAmount).replace(/,/g, ""));
+      if (Number.isFinite(amt) && amt >= 0) {
+        setToAmount((amt * activeRate).toFixed(2));
+      } else {
+        setToAmount("");
+      }
+    } else {
+      const amt = Number(String(toAmount).replace(/,/g, ""));
+      if (Number.isFinite(amt) && amt >= 0) {
+        setFromAmount((amt / activeRate).toFixed(2));
+      } else {
+        setFromAmount("");
+      }
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [activeRate, fromCur, toCur]);
 
-    // USD -> 2dp, NGN -> 2dp
-    return n.toLocaleString(undefined, {
-      minimumFractionDigits: 2,
-      maximumFractionDigits: 2,
-    });
+  const handleFromAmountChange = (e) => {
+    const val = e.target.value;
+    setLastEdited("from");
+    setFromAmount(val);
+    if (!activeRate) return;
+    const amt = Number(String(val).replace(/,/g, ""));
+    if (Number.isFinite(amt) && amt >= 0) {
+      setToAmount((amt * activeRate).toFixed(2));
+    } else {
+      setToAmount("");
+    }
+  };
+
+  const handleToAmountChange = (e) => {
+    const val = e.target.value;
+    setLastEdited("to");
+    setToAmount(val);
+    if (!activeRate) return;
+    const amt = Number(String(val).replace(/,/g, ""));
+    if (Number.isFinite(amt) && amt >= 0) {
+      setFromAmount((amt / activeRate).toFixed(2));
+    } else {
+      setFromAmount("");
+    }
   };
 
   const formatRate = (rateVal) => {
     const n = Number(rateVal);
     if (!Number.isFinite(n)) return "—";
-    // big rate like 1390.5 => 2dp; small like 0.0007407407 => show 6dp (0.000740)
     if (n >= 1) {
       return n.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 });
     }
@@ -234,6 +262,10 @@ export default function ExchangeRates() {
   const swap = () => {
     setFromCur((prev) => (prev === "NGN" ? "USD" : "NGN"));
     setToCur((prev) => (prev === "USD" ? "NGN" : "USD"));
+    // Also swap the displayed amounts
+    setFromAmount(toAmount);
+    setToAmount(fromAmount);
+    setLastEdited("from");
   };
 
   return (
@@ -279,7 +311,7 @@ export default function ExchangeRates() {
             )}
           </div>
 
-          {/* ── NEW: Converter block (client-side) ── */}
+          {/* ── Converter block (bi-directional) ── */}
           <div className="bg-white rounded-2xl border border-gray-100 shadow-sm p-5">
             <div className="flex items-center justify-between mb-4">
               <div>
@@ -296,39 +328,45 @@ export default function ExchangeRates() {
             </div>
 
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+              {/* FROM input */}
               <div>
                 <label className="block text-xs font-semibold text-gray-500 uppercase tracking-wide mb-1.5">
-                  Amount to convert ({fromCur})
+                  Amount ({fromCur})
                 </label>
                 <input
-                  value={amount}
-                  onChange={(e) => setAmount(e.target.value)}
+                  value={fromAmount}
+                  onChange={handleFromAmountChange}
                   inputMode="decimal"
                   placeholder="e.g. 1000"
                   className="w-full border border-gray-200 rounded-xl px-3.5 py-3 text-sm text-gray-800 placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-blue-400 focus:border-transparent bg-white transition"
                 />
               </div>
 
+              {/* TO input — now editable */}
               <div>
                 <label className="block text-xs font-semibold text-gray-500 uppercase tracking-wide mb-1.5">
-                  Amount you will receive ({toCur})
+                  Amount ({toCur})
                 </label>
-                <div className="w-full border border-gray-200 rounded-xl px-3.5 py-3 bg-gray-50 text-gray-900 font-bold text-lg">
-                  {toCur === "USD" ? "$" : "₦"}
-                  {formatMoney(toCur, received)}
-                </div>
+                <input
+                  value={toAmount}
+                  onChange={handleToAmountChange}
+                  inputMode="decimal"
+                  placeholder="e.g. 0.72"
+                  className="w-full border border-gray-200 rounded-xl px-3.5 py-3 text-sm text-gray-800 placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-blue-400 focus:border-transparent bg-white transition"
+                />
                 <p className="text-[11px] text-gray-400 mt-2">
                   Rate: 1 {fromCur} = <span className="font-semibold text-gray-700">{formatRate(activeRate)}</span> {toCur}
                 </p>
               </div>
             </div>
 
-            {/* Currency toggles (fixed to NGN/USD like your context) */}
+            {/* Currency toggles */}
             <div className="flex items-center gap-2 mt-4">
               <button
                 onClick={() => {
                   setFromCur("NGN");
                   setToCur("USD");
+                  setLastEdited("from");
                 }}
                 className={`px-3 py-2 rounded-xl text-xs font-semibold border transition ${
                   fromCur === "NGN"
@@ -342,6 +380,7 @@ export default function ExchangeRates() {
                 onClick={() => {
                   setFromCur("USD");
                   setToCur("NGN");
+                  setLastEdited("from");
                 }}
                 className={`px-3 py-2 rounded-xl text-xs font-semibold border transition ${
                   fromCur === "USD"
