@@ -17,17 +17,17 @@ const RateOverviewCard = ({ pair, value }) => {
     <div className="bg-white rounded-2xl border border-gray-100 shadow-sm p-5">
       <div className="flex items-center justify-between mb-3">
         <div className="flex items-center gap-2">
-          <span className="px-2 py-1 rounded-lg bg-blue-50 text-blue-700 text-xs font-bold">{target}</span>
+          <span className="px-2 py-1 rounded-lg bg-blue-50 text-blue-700 text-xs font-bold">{base}</span>
           <ArrowLeftRight size={12} className="text-gray-400" />
-          <span className="px-2 py-1 rounded-lg bg-emerald-50 text-emerald-700 text-xs font-bold">{base}</span>
+          <span className="px-2 py-1 rounded-lg bg-emerald-50 text-emerald-700 text-xs font-bold">{target}</span>
         </div>
         <div className="w-8 h-8 rounded-xl bg-indigo-50 flex items-center justify-center">
           <ArrowLeftRight size={14} className="text-indigo-600" />
         </div>
       </div>
-      <p className="text-xs text-gray-400 mb-1">1 {target} equals</p>
+      <p className="text-xs text-gray-400 mb-1">1 {base} equals</p>
       <p className="text-2xl font-bold text-gray-900 leading-tight">{formatted}</p>
-      <p className="text-xs text-gray-400 mt-0.5">{base}</p>
+      <p className="text-xs text-gray-400 mt-0.5">{target}</p>
     </div>
   );
 };
