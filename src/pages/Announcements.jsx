@@ -60,8 +60,11 @@ const MediaPreview = ({ media = [], type }) => {
 
   return (
     <div className="flex items-center gap-1">
-      <button onClick={() => setIdx((i) => Math.max(0, i - 1))} disabled={idx === 0}
-        className="text-gray-400 hover:text-gray-600 disabled:opacity-30">
+      <button
+        onClick={() => setIdx((i) => Math.max(0, i - 1))}
+        disabled={idx === 0}
+        className="text-gray-400 hover:text-gray-600 disabled:opacity-30"
+      >
         <ChevronLeft size={12} />
       </button>
       <img
@@ -70,8 +73,11 @@ const MediaPreview = ({ media = [], type }) => {
         className="w-14 h-10 object-cover rounded-lg border border-gray-100"
         onError={(e) => { e.target.style.display = "none"; }}
       />
-      <button onClick={() => setIdx((i) => Math.min(media.length - 1, i + 1))} disabled={idx === media.length - 1}
-        className="text-gray-400 hover:text-gray-600 disabled:opacity-30">
+      <button
+        onClick={() => setIdx((i) => Math.min(media.length - 1, i + 1))}
+        disabled={idx === media.length - 1}
+        className="text-gray-400 hover:text-gray-600 disabled:opacity-30"
+      >
         <ChevronRight size={12} />
       </button>
       <span className="text-xs text-gray-400">{idx + 1}/{media.length}</span>
@@ -147,7 +153,7 @@ const AnnouncementModal = ({ open, onClose, onSaved, editData }) => {
   const [form, setForm] = useState({
     name: "", type: "single_image", placement: "", actionUrl: "", status: "active",
   });
-  const [files, setFiles] = useState([]);   // new File objects
+  const [files, setFiles] = useState([]);
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState("");
 
@@ -269,7 +275,9 @@ const AnnouncementModal = ({ open, onClose, onSaved, editData }) => {
                       : "border-gray-200 text-gray-500 hover:border-gray-300"
                   }`}
                 >
-                  <span className="text-lg">{val === "single_image" ? "🖼️" : val === "carousel" ? "🎠" : "📄"}</span>
+                  <span className="text-lg">
+                    {val === "single_image" ? "🖼️" : val === "carousel" ? "🎠" : "📄"}
+                  </span>
                   {meta.label}
                 </button>
               ))}
@@ -300,7 +308,8 @@ const AnnouncementModal = ({ open, onClose, onSaved, editData }) => {
           {form.type === "carousel" && (
             <div>
               <label className="block text-xs font-semibold text-gray-500 uppercase tracking-wide mb-1.5">
-                Carousel Images {!isEdit && "*"} <span className="text-gray-400 normal-case font-normal">(2 or more recommended)</span>
+                Carousel Images {!isEdit && "*"}{" "}
+                <span className="text-gray-400 normal-case font-normal">(2 or more recommended)</span>
               </label>
               <FileDropZone
                 label="Drop or click to upload multiple images"
@@ -415,6 +424,7 @@ export default function Announcements() {
   const [modalOpen, setModalOpen]         = useState(false);
   const [editData, setEditData]           = useState(null);
   const [togglingId, setTogglingId]       = useState(null);
+  const [deletingId, setDeletingId]       = useState(null);
 
   const fetchAnnouncements = async (showRefresh = false) => {
     try {
@@ -424,8 +434,8 @@ export default function Announcements() {
       const res = await axios.get(`${API_BASE_URL}/superadmin/announcements`, {
         headers: authHeaders(),
       });
-    const raw = res.data?.data || res.data;
-setAnnouncements(Array.isArray(raw) ? raw : []);
+      const raw = res.data?.data || res.data;
+      setAnnouncements(Array.isArray(raw) ? raw : []);
     } catch (err) {
       console.error(err);
       setError("Failed to load announcements");
@@ -454,6 +464,22 @@ setAnnouncements(Array.isArray(raw) ? raw : []);
       alert("Failed to update status");
     } finally {
       setTogglingId(null);
+    }
+  };
+
+  const handleDelete = async (item) => {
+    if (!window.confirm(`Delete "${item.name}"? This cannot be undone.`)) return;
+    setDeletingId(item.id);
+    try {
+      await axios.delete(`${API_BASE_URL}/superadmin/announcements/${item.id}`, {
+        headers: authHeaders(),
+      });
+      setAnnouncements((prev) => prev.filter((a) => a.id !== item.id));
+    } catch (err) {
+      console.error(err);
+      alert("Failed to delete announcement");
+    } finally {
+      setDeletingId(null);
     }
   };
 
@@ -514,8 +540,9 @@ setAnnouncements(Array.isArray(raw) ? raw : []);
             onClick={() => fetchAnnouncements(true)}
             disabled={refreshing}
             className={`flex items-center gap-1.5 px-3.5 py-2 rounded-xl text-sm font-semibold border shadow-sm transition ${
-              refreshing ? "bg-gray-100 text-gray-400 border-gray-200 cursor-not-allowed"
-                         : "bg-white text-gray-600 border-gray-200 hover:bg-gray-50"
+              refreshing
+                ? "bg-gray-100 text-gray-400 border-gray-200 cursor-not-allowed"
+                : "bg-white text-gray-600 border-gray-200 hover:bg-gray-50"
             }`}
           >
             <RefreshCw size={13} className={refreshing ? "animate-spin" : ""} />
@@ -558,7 +585,10 @@ setAnnouncements(Array.isArray(raw) ? raw : []);
           <div className="flex flex-col items-center justify-center py-24 gap-2 text-center px-4">
             <p className="text-2xl">⚠️</p>
             <p className="text-sm font-medium text-red-500">{error}</p>
-            <button onClick={() => fetchAnnouncements()} className="mt-2 px-4 py-1.5 text-xs bg-red-50 text-red-600 rounded-lg hover:bg-red-100 transition">
+            <button
+              onClick={() => fetchAnnouncements()}
+              className="mt-2 px-4 py-1.5 text-xs bg-red-50 text-red-600 rounded-lg hover:bg-red-100 transition"
+            >
               Try again
             </button>
           </div>
@@ -570,7 +600,10 @@ setAnnouncements(Array.isArray(raw) ? raw : []);
               {filterType || filterStatus ? "Try adjusting your filters" : "Create your first announcement"}
             </p>
             {!filterType && !filterStatus && (
-              <button onClick={openCreate} className="mt-3 px-4 py-2 text-sm bg-blue-600 text-white rounded-xl hover:bg-blue-700 transition">
+              <button
+                onClick={openCreate}
+                className="mt-3 px-4 py-2 text-sm bg-blue-600 text-white rounded-xl hover:bg-blue-700 transition"
+              >
                 + Create one
               </button>
             )}
@@ -581,7 +614,10 @@ setAnnouncements(Array.isArray(raw) ? raw : []);
               <thead>
                 <tr className="bg-gray-50 border-b border-gray-100">
                   {["Preview", "Name", "Type", "Placement", "Action URL", "Status", "Created", "Actions"].map((h) => (
-                    <th key={h} className="px-4 py-3.5 text-left text-xs font-bold text-gray-400 uppercase tracking-wider whitespace-nowrap">
+                    <th
+                      key={h}
+                      className="px-4 py-3.5 text-left text-xs font-bold text-gray-400 uppercase tracking-wider whitespace-nowrap"
+                    >
                       {h}
                     </th>
                   ))}
@@ -645,6 +681,7 @@ setAnnouncements(Array.isArray(raw) ? raw : []);
                     {/* Actions */}
                     <td className="px-4 py-3.5">
                       <div className="flex items-center gap-2">
+
                         {/* Toggle status */}
                         <button
                           onClick={() => handleToggleStatus(item)}
@@ -673,6 +710,21 @@ setAnnouncements(Array.isArray(raw) ? raw : []);
                         >
                           <Edit2 size={15} />
                         </button>
+
+                        {/* Delete */}
+                        <button
+                          onClick={() => handleDelete(item)}
+                          disabled={deletingId === item.id}
+                          title="Delete"
+                          className="p-1.5 rounded-lg text-red-400 hover:bg-red-50 hover:text-red-600 transition disabled:opacity-40"
+                        >
+                          {deletingId === item.id ? (
+                            <div className="w-4 h-4 border-2 border-red-400 border-t-transparent rounded-full animate-spin" />
+                          ) : (
+                            <Trash2 size={15} />
+                          )}
+                        </button>
+
                       </div>
                     </td>
                   </tr>
