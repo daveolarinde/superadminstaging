@@ -24,7 +24,7 @@ import VirtualAccounts from "./pages/VirtualAccounts";
 import ViewVirtualAccount from "./components/ViewVirtualAccount";
 import FeesManagement from "./components/FeesManagement";
 import ExchangeRates from "./components/ExchangeRates";
-
+import Announcements from "./pages/Announcements";
 
 function ProtectedRoute({ children, isAuthenticated }) {
   return isAuthenticated ? children : <Navigate to="/login" replace />;
@@ -82,7 +82,7 @@ export default function App() {
         <Route path="virtual-accounts" element={<VirtualAccounts />} />
         <Route path="virtual-accounts/:userId" element={<ViewVirtualAccount />} />
         <Route path="exchange-rates" element={<ExchangeRates />} />
-        
+        <Route path="Announcements" element={<Announcements/>} />
       </Route>
 
       {/* Catch all */}

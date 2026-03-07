@@ -9,6 +9,7 @@ import TransactionsTab from "./UserProfile/userTabs/TransactionsTab";
 import ProfitHistoryTab from "./UserProfile/userTabs/ProfitHistoryTab";
 import VirtualAccountsTab from "./UserProfile/userTabs/VirtualAccountsTab";
 import UserKYCTab from "./UserProfile/userTabs/UserKYCTab";
+import UserVirtualCardsTab from "./UserProfile/userTabs/Uservirtualcardstab";
 
 const API_BASE_URL = import.meta.env.VITE_API_URL;
 
@@ -19,6 +20,7 @@ const TABS = [
   "Profit History",
   "KYC Verification",
   "Virtual Accounts",
+  "Virtual Cards",
 ];
 
 export default function UserProfileView({ onClose }) {
@@ -264,11 +266,9 @@ export default function UserProfileView({ onClose }) {
 
       {/* ── Profile Header Card ── */}
       <div className="bg-white rounded-2xl overflow-hidden shadow-sm border border-gray-100 relative">
-        {/* Gradient banner */}
         <div className="h-20 sm:h-24 bg-gradient-to-r from-[#dbeafe] via-[#eff6ff] to-white" />
 
         <div className="px-4 sm:px-6 pb-5 -mt-10 flex flex-col sm:flex-row sm:items-end sm:justify-between gap-4">
-          {/* Avatar + name */}
           <div className="flex items-end gap-4">
             <div className="w-20 h-20 rounded-2xl bg-white border-4 border-white shadow-md flex items-center justify-center text-3xl font-bold text-blue-600 select-none">
               {user.firstname?.[0]?.toUpperCase() || "U"}
@@ -294,7 +294,6 @@ export default function UserProfileView({ onClose }) {
             </div>
           </div>
 
-          {/* Back button */}
           <button
             onClick={onClose || (() => navigate(-1))}
             className="flex items-center gap-1.5 text-sm text-gray-500 px-3 py-2 rounded-lg hover:bg-gray-100 transition self-start sm:self-auto"
@@ -389,6 +388,14 @@ export default function UserProfileView({ onClose }) {
               virtualAccountsPage={virtualAccountsPage}
               virtualAccountsPagesTotal={virtualAccountsPagesTotal}
               setVirtualAccountsPage={setVirtualAccountsPage}
+            />
+          )}
+
+          {activeTab === "Virtual Cards" && (
+            <UserVirtualCardsTab
+              userId={userId}
+              baseURL={API_BASE_URL}
+              authHeader={authHeaders}
             />
           )}
         </div>

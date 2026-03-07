@@ -43,12 +43,12 @@ export default function UserProfileTab({ user }) {
               {user.walletBalance ?? "₦0.00"}
             </p>
           </div>
-          <div className="bg-white border border-gray-200 rounded-md p-3">
+          {/* <div className="bg-white border border-gray-200 rounded-md p-3">
             <p className="text-sm text-gray-500">Referral Count</p>
             <p className="text-lg font-bold text-gray-800">
               {user.referrals?.length ?? 0}
             </p>
-          </div>
+          </div> */}
           <div className="bg-white border border-gray-200 rounded-md p-3">
             <p className="text-sm text-gray-500">Total Transactions</p>
             <p className="text-lg font-bold text-gray-800">

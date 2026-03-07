@@ -25,7 +25,7 @@ const RateOverviewCard = ({ pair, value }) => {
           <ArrowLeftRight size={14} className="text-indigo-600" />
         </div>
       </div>
-      <p className="text-xs text-gray-400 mb-1">1 {base} equals</p>
+      <p className="text-xs text-gray-400 mb-1"> {base} equals</p>
       <p className="text-2xl font-bold text-gray-900 leading-tight">{formatted}</p>
       <p className="text-xs text-gray-400 mt-0.5">{target}</p>
     </div>

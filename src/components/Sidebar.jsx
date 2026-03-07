@@ -4,7 +4,7 @@ import {
   LayoutDashboard, ArrowLeftRight, Users, ShieldCheck,
   UserCheck, UserX, UserMinus, Clock, BadgeCheck,
   CreditCard, Landmark, TrendingUp, Percent, DollarSign,
-  ChevronRight, X, Menu, FileText,
+  ChevronRight, X, Menu, FileText,Megaphone
 } from "lucide-react";
 
 // ── Nav link item ─────────────────────────────────────────────────────────────
@@ -85,6 +85,8 @@ const SidebarContent = ({ onClose }) => {
     { to: "/admin/transaction-summary",label: "Transactions Summary",         icon: <TrendingUp size={16} />      },
     { to: "/admin/transaction",        label: "Transactions",       icon: <ArrowLeftRight size={16} />  },
     { to: "/admin/profit",             label: "Profits",            icon: <DollarSign size={16} />      },
+    { to: "/admin/Announcements", label: "Announcements", icon: <Megaphone size={16} /> },
+    
   ];
 
   const financeItems = [
