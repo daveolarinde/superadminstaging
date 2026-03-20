@@ -2,7 +2,7 @@ import React, { useEffect, useState, useCallback, useMemo } from "react";
 import axios from "axios";
 import { ArrowLeftRight, Plus, ChevronLeft, Pencil, Trash2, RefreshCw } from "lucide-react";
 
-const API_URL = import.meta.env.VITE_API_URL;
+const API_URL = import.meta.env.VITE_STAGE_API_URL;
 const getToken = () => localStorage.getItem("token");
 
 // ── Overview rate card ────────────────────────────────────────────────────────

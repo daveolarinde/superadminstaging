@@ -5,11 +5,22 @@ import {
   Edit2, Eye, EyeOff, X, Upload, Trash2, ChevronLeft, ChevronRight, ExternalLink
 } from "lucide-react";
 
-const API_BASE_URL = import.meta.env.VITE_STAGE_API_URL;
+const API_BASE_URL = import.meta.env.VITE_STAGE_API_URL
 
 // ── Helpers ───────────────────────────────────────────────────────────────────
 const getToken = () => localStorage.getItem("token");
 const authHeaders = () => ({ Authorization: `Bearer ${getToken()}` });
+
+const PLACEMENT_OPTIONS = [
+  { value: "",                   label: "Select placement…" },
+  { value: "home_dashboard",     label: "Home Dashboard"     },
+  { value: "wallet_screen",      label: "Wallet Screen"      },
+  { value: "referral_page",      label: "Referral Page"      },
+  { value: "transaction_history",label: "Transaction History"},
+  { value: "transfer_screen",    label: "Transfer Screen"    },
+  { value: "kyc_banner",         label: "KYC Banner"         },
+  { value: "login_popup",        label: "Login Popup"        },
+];
 
 const TYPE_META = {
   single_image: { label: "Single Image",  icon: <ImageIcon size={14} />,  color: "bg-violet-50 text-violet-600 ring-1 ring-violet-200" },
@@ -337,13 +348,17 @@ const AnnouncementModal = ({ open, onClose, onSaved, editData }) => {
             <label className="block text-xs font-semibold text-gray-500 uppercase tracking-wide mb-1.5">
               Placement
             </label>
-            <input
-              type="text"
+            <select
               value={form.placement}
               onChange={(e) => set("placement", e.target.value)}
-              placeholder="e.g. homepage, dashboard, login"
-              className="w-full border border-gray-200 rounded-xl px-4 py-2.5 text-sm text-gray-800 focus:outline-none focus:ring-2 focus:ring-blue-400 placeholder-gray-300"
-            />
+              className="w-full border border-gray-200 rounded-xl px-4 py-2.5 text-sm text-gray-800 bg-white focus:outline-none focus:ring-2 focus:ring-blue-400 transition"
+            >
+              {PLACEMENT_OPTIONS.map(({ value, label }) => (
+                <option key={value} value={value} disabled={value === ""}>
+                  {label}
+                </option>
+              ))}
+            </select>
           </div>
 
           {/* Action URL */}
@@ -498,6 +513,10 @@ export default function Announcements() {
     inactive: announcements.filter((a) => a.status === "inactive").length,
   };
 
+  // Resolve a placement value to its readable label
+  const placementLabel = (value) =>
+    PLACEMENT_OPTIONS.find((o) => o.value === value)?.label || value || "—";
+
   return (
     <div className="p-4 md:p-6 bg-gray-50 min-h-screen space-y-6">
 
@@ -644,7 +663,9 @@ export default function Announcements() {
 
                     {/* Placement */}
                     <td className="px-4 py-3.5 text-gray-500 text-xs">
-                      {item.placement || <span className="text-gray-300">—</span>}
+                      {item.placement
+                        ? <span className="inline-flex items-center px-2 py-0.5 rounded-md bg-gray-100 text-gray-600 font-medium">{placementLabel(item.placement)}</span>
+                        : <span className="text-gray-300">—</span>}
                     </td>
 
                     {/* Action URL */}

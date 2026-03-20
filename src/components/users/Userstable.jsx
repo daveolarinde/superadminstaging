@@ -7,6 +7,8 @@ import {
   Mail, X, Send, ChevronDown, Users,
 } from "lucide-react";
 
+const API_URL = import.meta.env.VITE_STAGE_API_URL
+
 // ── Status badge ──────────────────────────────────────────────────────────────
 const StatusBadge = ({ status }) => {
   const map = {
@@ -65,13 +67,17 @@ const EmailModal = ({ onClose, totalUsers, preselectedUsers }) => {
     setSending(true);
     try {
       const payload = isTargeted
-        ? { subject: subject.trim(), body: body.trim(), audience: "selected", userIds: recipients.map(u => u.id) }
-        : { subject: subject.trim(), body: body.trim(), audience };
+        ? { subject: subject.trim(), htmlContent: body.trim(), sendTo: "selected", userIds: recipients.map(u => u.id) }
+        : { subject: subject.trim(), htmlContent: body.trim(), sendTo: audience };
 
-      const res  = await fetch("/superAdmin/broadcast-email", {
+      const token = localStorage.getItem("token");
+      const res   = await fetch(`${API_URL}/superAdmin/broadcast-email`, {
         method:  "POST",
-        headers: { "Content-Type": "application/json" },
-        body:    JSON.stringify(payload),
+        headers: {
+          "Content-Type":  "application/json",
+          "Authorization": `Bearer ${token}`,
+        },
+        body: JSON.stringify(payload),
       });
       const data = await res.json();
       if (!res.ok) {
@@ -314,7 +320,7 @@ const UsersTable = ({
   const [openMenu,      setOpenMenu]      = useState(null);
   const [selectedIds,   setSelectedIds]   = useState(new Set());
   const [modalOpen,     setModalOpen]     = useState(false);
-  const [targetedUsers, setTargetedUsers] = useState(null); // null = broadcast, [...] = targeted
+  const [targetedUsers, setTargetedUsers] = useState(null);
 
   const totalPages  = Math.ceil(totalUsers / limit);
   const currentPage = Math.floor(offset / limit) + 1;
@@ -325,8 +331,8 @@ const UsersTable = ({
   const statusOptions = ["active", "inactive", "blocked", "deactivated"];
 
   // ── Selection helpers ────────────────────────────────────────────────────
-  const allSelected  = users.length > 0 && users.every(u => selectedIds.has(u.id));
-  const someSelected = users.some(u => selectedIds.has(u.id));
+  const allSelected   = users.length > 0 && users.every(u => selectedIds.has(u.id));
+  const someSelected  = users.some(u => selectedIds.has(u.id));
   const selectedUsers = users.filter(u => selectedIds.has(u.id));
 
   const toggleUser = (id) =>
@@ -345,8 +351,8 @@ const UsersTable = ({
   };
 
   // ── Modal helpers ────────────────────────────────────────────────────────
-  const openBroadcast          = ()     => { setTargetedUsers(null);  setModalOpen(true); };
-  const openTargeted           = (list) => { setTargetedUsers(list);  setModalOpen(true); };
+  const openBroadcast          = ()     => { setTargetedUsers(null); setModalOpen(true); };
+  const openTargeted           = (list) => { setTargetedUsers(list); setModalOpen(true); };
   const openTargetedFromSelect = ()     => openTargeted(selectedUsers);
   const closeModal             = ()     => { setModalOpen(false); setTargetedUsers(null); };
 
@@ -379,7 +385,7 @@ const UsersTable = ({
           </button>
         </div>
 
-        {/* ── Selection action bar (slides in when rows are checked) ── */}
+        {/* ── Selection action bar ── */}
         {someSelected && (
           <div className="flex items-center justify-between px-5 py-2.5 bg-purple-50 border-b border-purple-100">
             <div className="flex items-center gap-2">
@@ -618,5 +624,5 @@ const UsersTable = ({
     </>
   );
 };
-
+ 
 export default UsersTable;

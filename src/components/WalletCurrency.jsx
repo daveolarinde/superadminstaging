@@ -13,7 +13,7 @@ export default function WalletCurrency() {
       try {
         const token = localStorage.getItem("token");
         const res = await axios.get(
-          `${import.meta.env.VITE_API_URL}/superAdmin/get-accountBalance-summary`,
+          `${import.meta.env.VITE_STAGE_API_URL}/superAdmin/get-accountBalance-summary`,
           {
             headers: { Authorization: `Bearer ${token}` },
           }

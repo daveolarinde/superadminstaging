@@ -41,7 +41,7 @@ function EditBasicInfoModal({ user, onClose, onSuccess }) {
     });
 
     try {
-      const baseUrl = import.meta.env.VITE_STAGE_API_URL;
+      const baseUrl = import.meta.env.VITE_STAGE_API_URL
       const res = await fetch(`${baseUrl}/superAdmin/users/${user.id}/basic-info`, {
         method: "PUT",
         headers: {

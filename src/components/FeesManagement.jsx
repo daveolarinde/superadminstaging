@@ -3,7 +3,7 @@ import axios from "axios";
 
 export default function FeesManagement() {
   const token = localStorage.getItem("token");
-  const API_URL = import.meta.env.VITE_API_URL;
+  const API_URL = import.meta.env.VITE_STAGE_API_URL;
 
   const ITEMS_PER_PAGE = 10;
 

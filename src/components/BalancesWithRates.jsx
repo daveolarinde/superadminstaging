@@ -10,7 +10,7 @@ export default function BalancesWithRates() {
       try {
         const token = localStorage.getItem("token");
         const res = await axios.get(
-          `${import.meta.env.VITE_API_URL}/superAdmin/balances-with-rates`,
+          `${import.meta.env.VITE_STAGE_API_URL}/superAdmin/balances-with-rates`,
           {
             headers: { Authorization: `Bearer ${token}` },
           }

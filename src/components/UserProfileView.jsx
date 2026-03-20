@@ -11,7 +11,7 @@ import VirtualAccountsTab from "./UserProfile/userTabs/VirtualAccountsTab";
 import UserKYCTab from "./UserProfile/userTabs/UserKYCTab";
 import UserVirtualCardsTab from "./UserProfile/userTabs/Uservirtualcardstab";
 
-const API_BASE_URL = import.meta.env.VITE_API_URL;
+const API_BASE_URL = import.meta.env.VITE_STAGE_API_URL;
 
 const TABS = [
   "Profile",

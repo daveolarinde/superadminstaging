@@ -19,7 +19,7 @@ const ProfitFilter = ({ filters: initialFilters = {}, onApply }) => {
     });
   }, [initialFilters]);
 
-  const baseURL = import.meta.env.VITE_API_URL;
+  const baseURL = import.meta.env.VITE_STAGE_API_URL;
   const token = localStorage.getItem("token");
 
 

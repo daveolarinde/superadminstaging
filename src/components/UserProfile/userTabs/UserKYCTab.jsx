@@ -376,7 +376,7 @@ export default function UserKYCTab({
   const [actionOpenId, setActionOpenId] = useState(null);
   const [selectedUser, setSelectedUser] = useState(null);
 
-  const safeBaseURL = baseURL || import.meta.env.VITE_API_URL;
+  const safeBaseURL = baseURL || import.meta.env.VITE_STAGE_API_URL;
 
   const authConfig = useMemo(() => {
     const t = token || localStorage.getItem("token");

@@ -247,7 +247,7 @@ const KycTable = ({
         user={selectedUser}
         isOpen={!!selectedUser}
         onClose={() => setSelectedUser(null)}
-        baseURL={import.meta.env.VITE_API_URL}
+        baseURL={import.meta.env.VITE_STAGE_API_URL}
         token={localStorage.getItem("token")}
         onSuccess={() => window.location.reload()}
       />

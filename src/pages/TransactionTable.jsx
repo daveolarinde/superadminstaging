@@ -29,7 +29,7 @@ export default function TransactionTable() {
   const navigate = useNavigate();
   const location = useLocation();
   const token    = localStorage.getItem("token");
-  const baseUrl  = import.meta.env.VITE_API_URL;
+  const baseUrl  = import.meta.env.VITE_STAGE_API_URL;
   const selectedCurrency = location.state?.currency || "";
 
   // ── Fetch ─────────────────────────────────────────────────────────────────

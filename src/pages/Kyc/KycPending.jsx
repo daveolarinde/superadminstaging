@@ -30,7 +30,7 @@ const Kycpending = () => {
   const [actionOpenId, setActionOpenId] = useState(null);
 
   const rowsPerPage = 10;
-  const baseURL     = import.meta.env.VITE_API_URL;
+  const baseURL     = import.meta.env.VITE_STAGE_API_URL;
   const token       = localStorage.getItem("token");
   const authHeader  = { headers: { Authorization: `Bearer ${token}` } };
 
