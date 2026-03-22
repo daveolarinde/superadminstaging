@@ -25,7 +25,8 @@ import ViewVirtualAccount from "./components/ViewVirtualAccount";
 import FeesManagement from "./components/FeesManagement";
 import ExchangeRates from "./components/ExchangeRates";
 import Announcements from "./pages/Announcements";
-
+import KycLimit from "./pages/Kyc/KycLimit";
+import ReferralSettings from "./pages/Referralsettings";
 function ProtectedRoute({ children, isAuthenticated }) {
   return isAuthenticated ? children : <Navigate to="/login" replace />;
 }
@@ -83,6 +84,8 @@ export default function App() {
         <Route path="virtual-accounts/:userId" element={<ViewVirtualAccount />} />
         <Route path="exchange-rates" element={<ExchangeRates />} />
         <Route path="Announcements" element={<Announcements/>} />
+        <Route path="kyc-limit" element={<KycLimit/>}/>
+        <Route path="referral-settings" element={<ReferralSettings/>}/>
       </Route>
 
       {/* Catch all */}

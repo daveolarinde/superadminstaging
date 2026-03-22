@@ -86,6 +86,7 @@ const SidebarContent = ({ onClose }) => {
     { to: "/admin/transaction",        label: "Transactions",       icon: <ArrowLeftRight size={16} />  },
     { to: "/admin/profit",             label: "Profits",            icon: <DollarSign size={16} />      },
     { to: "/admin/Announcements", label: "Announcements", icon: <Megaphone size={16} /> },
+    { to: "/admin/referral-settings",             label: "referralsettings",            icon: <DollarSign size={16} />      },
     
   ];
 
@@ -108,7 +109,9 @@ const SidebarContent = ({ onClose }) => {
     { to: "/admin/kyc-all",            label: "All KYC",            icon: <FileText size={15} />    },
     { to: "/admin/kyc-approved",       label: "Approved",           icon: <BadgeCheck size={15} />  },
     { to: "/admin/kyc-pending",        label: "Pending",            icon: <Clock size={15} />       },
-    { to: "/admin/kyc-rejected",       label: "Rejected",           icon: <UserX size={15} />       },
+    { to: "/admin/kyc-rejected",       label: "Rejected",           icon: <UserX size={15} />
+         },
+         {to: "/admin/kyc-limit",       label: "limit",           icon: <UserX size={15} />}
   ];
 
   return (
