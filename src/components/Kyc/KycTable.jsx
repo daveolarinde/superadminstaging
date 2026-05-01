@@ -47,14 +47,67 @@ const KycTable = ({
 }) => {
   const navigate = useNavigate();
   const [selectedUser, setSelectedUser] = useState(null);
+  const [wewireLoading, setWewireLoading] = useState(null); // tracks userId being submitted
+  const [wewireToast, setWewireToast] = useState(null);     // { type: "success"|"error", message }
 
   const totalPages = Math.ceil(totalCount / rowsPerPage);
   const pageNumbers = getPageNumbers(currentPage, totalPages);
   const startItem = (currentPage - 1) * rowsPerPage + 1;
   const endItem = Math.min(currentPage * rowsPerPage, totalCount);
 
+  // ── Submit KYC to WeWire ──────────────────────────────────────────────────
+  const handleSubmitToWeWire = async (userId) => {
+    setWewireLoading(userId);
+    setWewireToast(null);
+    try {
+      const baseURL = import.meta.env.VITE_STAGE_API_URL;
+      const token = localStorage.getItem("token");
+      const res = await fetch(`${baseURL}/superAdmin/users/${userId}/submit-wewire-kyc`, {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          Authorization: `Bearer ${token}`,
+        },
+      });
+
+      const body = await res.json().catch(() => ({}));
+
+      if (!res.ok || body.success === false) {
+        throw new Error(body?.message || `Request failed (${res.status})`);
+      }
+
+      setWewireToast({ type: "success", message: body.message || "KYC submitted to WeWire successfully." });
+    } catch (err) {
+      setWewireToast({ type: "error", message: err.message || "Failed to submit KYC to WeWire." });
+    } finally {
+      setWewireLoading(null);
+      // Auto-dismiss toast after 4 s
+      setTimeout(() => setWewireToast(null), 4000);
+    }
+  };
+
   return (
     <>
+      {/* ── WeWire toast notification ── */}
+      {wewireToast && (
+        <div
+          className={`flex items-center gap-3 mb-3 px-4 py-3 rounded-xl text-sm font-medium shadow-sm border transition-all ${
+            wewireToast.type === "success"
+              ? "bg-emerald-50 border-emerald-200 text-emerald-700"
+              : "bg-red-50 border-red-200 text-red-600"
+          }`}
+        >
+          <span>{wewireToast.type === "success" ? "✅" : "❌"}</span>
+          {wewireToast.message}
+          <button
+            onClick={() => setWewireToast(null)}
+            className="ml-auto text-xs opacity-50 hover:opacity-100"
+          >
+            ✕
+          </button>
+        </div>
+      )}
+
       {tableLoading && (
         <div className="flex items-center gap-2 text-sm text-gray-400 mb-3">
           <span className="w-3 h-3 rounded-full bg-blue-400 animate-pulse" />
@@ -139,7 +192,7 @@ const KycTable = ({
                       <>
                         {/* Backdrop to close */}
                         <div className="fixed inset-0 z-10" onClick={() => setActionOpenId(null)} />
-                        <div className="absolute right-4 mt-1 w-48 bg-white border border-gray-100 rounded-xl shadow-xl z-20 overflow-hidden py-1">
+                        <div className="absolute right-4 mt-1 w-52 bg-white border border-gray-100 rounded-xl shadow-xl z-20 overflow-hidden py-1">
                           <button onClick={() => onStatusChange(record, "approved")} className="flex items-center gap-2 w-full px-4 py-2.5 text-left text-xs font-medium hover:bg-emerald-50 text-emerald-700 transition">
                             <span className="w-2 h-2 rounded-full bg-emerald-500" /> Approve
                           </button>
@@ -158,6 +211,20 @@ const KycTable = ({
                             className="flex items-center gap-2 w-full px-4 py-2.5 text-left text-xs font-medium hover:bg-blue-50 text-blue-600 transition"
                           >
                             ✏️ Update KYC
+                          </button>
+                          <button
+                            onClick={() => { handleSubmitToWeWire(record.user.id); setActionOpenId(null); }}
+                            disabled={wewireLoading === record.user.id}
+                            className="flex items-center gap-2 w-full px-4 py-2.5 text-left text-xs font-medium hover:bg-purple-50 text-purple-600 transition disabled:opacity-50 disabled:cursor-not-allowed"
+                          >
+                            {wewireLoading === record.user.id ? (
+                              <>
+                                <span className="w-2 h-2 rounded-full bg-purple-400 animate-pulse" />
+                                Submitting…
+                              </>
+                            ) : (
+                              <>🚀 Submit KYC to WeWire</>
+                            )}
                           </button>
                           {(record.documentUrl || record.selfieUrl) && (
                             <a

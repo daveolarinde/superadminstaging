@@ -2,30 +2,48 @@ import React, { useState, useEffect, useRef } from "react";
 import axios from "axios";
 import {
   Plus, RefreshCw, Megaphone, ImageIcon, Images, FileText,
-  Edit2, Eye, EyeOff, X, Upload, Trash2, ChevronLeft, ChevronRight, ExternalLink
+  Edit2, Eye, EyeOff, X, Upload, Trash2, ChevronLeft, ChevronRight, ExternalLink, Zap
 } from "lucide-react";
 
-const API_BASE_URL = import.meta.env.VITE_STAGE_API_URL
+const API_BASE_URL = import.meta.env.VITE_STAGE_API_URL;
 
 // ── Helpers ───────────────────────────────────────────────────────────────────
 const getToken = () => localStorage.getItem("token");
 const authHeaders = () => ({ Authorization: `Bearer ${getToken()}` });
 
 const PLACEMENT_OPTIONS = [
-  { value: "",                   label: "Select placement…" },
-  { value: "home_dashboard",     label: "Home Dashboard"     },
-  { value: "wallet_screen",      label: "Wallet Screen"      },
-  { value: "referral_page",      label: "Referral Page"      },
-  { value: "transaction_history",label: "Transaction History"},
-  { value: "transfer_screen",    label: "Transfer Screen"    },
-  { value: "kyc_banner",         label: "KYC Banner"         },
-  { value: "login_popup",        label: "Login Popup"        },
+  { value: "",                    label: "Select placement…"  },
+  { value: "home_dashboard",      label: "Home Dashboard"     },
+  { value: "wallet_screen",       label: "Wallet Screen"      },
+  { value: "referral_page",       label: "Referral Page"      },
+  { value: "transaction_history", label: "Transaction History"},
+  { value: "transfer_screen",     label: "Transfer Screen"    },
+  { value: "kyc_banner",          label: "KYC Banner"         },
+  { value: "login_popup",         label: "Login Popup"        },
 ];
 
+// Icons stored as render functions (NOT static JSX) to avoid stale-element bugs
 const TYPE_META = {
-  single_image: { label: "Single Image",  icon: <ImageIcon size={14} />,  color: "bg-violet-50 text-violet-600 ring-1 ring-violet-200" },
-  carousel:     { label: "Carousel",      icon: <Images size={14} />,     color: "bg-blue-50 text-blue-600 ring-1 ring-blue-200"       },
-  other:        { label: "Other",         icon: <FileText size={14} />,   color: "bg-amber-50 text-amber-600 ring-1 ring-amber-200"    },
+  single_image: {
+    label: "Single Image",
+    Icon: () => <ImageIcon size={14} />,
+    color: "bg-violet-50 text-violet-600 ring-1 ring-violet-200",
+  },
+  carousel: {
+    label: "Carousel",
+    Icon: () => <Images size={14} />,
+    color: "bg-blue-50 text-blue-600 ring-1 ring-blue-200",
+  },
+  major: {
+    label: "Major",
+    Icon: () => <Zap size={14} />,
+    color: "bg-rose-50 text-rose-600 ring-1 ring-rose-200",
+  },
+  other: {
+    label: "Other",
+    Icon: () => <FileText size={14} />,
+    color: "bg-amber-50 text-amber-600 ring-1 ring-amber-200",
+  },
 };
 
 const STATUS_META = {
@@ -35,16 +53,20 @@ const STATUS_META = {
 
 // ── Sub-components ────────────────────────────────────────────────────────────
 const TypeBadge = ({ type }) => {
-  const m = TYPE_META[type] || TYPE_META.other;
+  const normalized = (type || "").toLowerCase();
+  const m = TYPE_META[normalized] ?? TYPE_META.other;
+  const { Icon } = m;
+
   return (
     <span className={`inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-xs font-semibold ${m.color}`}>
-      {m.icon}{m.label}
+      <Icon />{m.label}
     </span>
   );
 };
 
+
 const StatusBadge = ({ status }) => {
-  const m = STATUS_META[status?.toLowerCase()] || STATUS_META.inactive;
+  const m = STATUS_META[status?.toLowerCase()] ?? STATUS_META.inactive;
   return (
     <span className={`inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-xs font-semibold capitalize ${m.cls}`}>
       <span className={`w-1.5 h-1.5 rounded-full ${m.dot}`} />
@@ -53,7 +75,7 @@ const StatusBadge = ({ status }) => {
   );
 };
 
-// Image preview carousel inside table cell
+// ── Image preview carousel ────────────────────────────────────────────────────
 const MediaPreview = ({ media = [], type }) => {
   const [idx, setIdx] = useState(0);
   if (!media.length) return <span className="text-gray-300 text-xs">No media</span>;
@@ -72,6 +94,7 @@ const MediaPreview = ({ media = [], type }) => {
   return (
     <div className="flex items-center gap-1">
       <button
+        type="button"
         onClick={() => setIdx((i) => Math.max(0, i - 1))}
         disabled={idx === 0}
         className="text-gray-400 hover:text-gray-600 disabled:opacity-30"
@@ -85,6 +108,7 @@ const MediaPreview = ({ media = [], type }) => {
         onError={(e) => { e.target.style.display = "none"; }}
       />
       <button
+        type="button"
         onClick={() => setIdx((i) => Math.min(media.length - 1, i + 1))}
         disabled={idx === media.length - 1}
         className="text-gray-400 hover:text-gray-600 disabled:opacity-30"
@@ -105,6 +129,7 @@ const FileDropZone = ({ label, multiple, files, onChange, onRemove }) => {
     e.preventDefault();
     setDragging(false);
     const dropped = Array.from(e.dataTransfer.files).filter((f) => f.type.startsWith("image/"));
+    if (!dropped.length) return;
     onChange(multiple ? dropped : [dropped[0]]);
   };
 
@@ -132,7 +157,6 @@ const FileDropZone = ({ label, multiple, files, onChange, onRemove }) => {
         />
       </div>
 
-      {/* Previews */}
       {files.length > 0 && (
         <div className="flex flex-wrap gap-2">
           {files.map((f, i) => (
@@ -161,89 +185,152 @@ const FileDropZone = ({ label, multiple, files, onChange, onRemove }) => {
 // ── Announcement Form Modal ───────────────────────────────────────────────────
 const AnnouncementModal = ({ open, onClose, onSaved, editData }) => {
   const isEdit = !!editData;
-  const [form, setForm] = useState({
-    name: "", type: "single_image", placement: "", actionUrl: "", status: "active",
-  });
-  const [files, setFiles] = useState([]);
+
+  const blankForm = {
+    name: "", type: "single_image", placement: "", actionUrl: "",
+    status: "active", subject: "", htmlContent: "",
+  };
+
+  const [form, setForm]     = useState(blankForm);
+  const [files, setFiles]   = useState([]);
   const [saving, setSaving] = useState(false);
-  const [error, setError] = useState("");
+  const [error, setError]   = useState("");
 
   useEffect(() => {
+    if (!open) return;
     if (editData) {
       setForm({
-        name:      editData.name      || "",
-        type:      editData.type      || "single_image",
-        placement: editData.placement || "",
-        actionUrl: editData.actionUrl || "",
-        status:    editData.status    || "active",
+        name:        editData.name        || "",
+        type:        editData.type        || "single_image",
+        placement:   editData.placement   || "",
+        actionUrl:   editData.actionUrl   || "",
+        status:      editData.status      || "active",
+        subject:     editData.subject     || "",
+        htmlContent: editData.htmlContent || "",
       });
     } else {
-      setForm({ name: "", type: "single_image", placement: "", actionUrl: "", status: "active" });
+      setForm(blankForm);
     }
     setFiles([]);
     setError("");
-  }, [editData, open]);
+  }, [editData, open]); // eslint-disable-line react-hooks/exhaustive-deps
 
   const set = (k, v) => setForm((p) => ({ ...p, [k]: v }));
+  const isMajor = form.type === "major";
 
-  const handleSubmit = async (e) => {
-    e.preventDefault();
-    if (!form.name.trim()) return setError("Name is required");
+ const handleSubmit = async (e) => {
+  e.preventDefault();
+  setError("");
+
+  if (!form.name.trim()) return setError("Name is required");
+
+  if (isMajor) {
+    if (!form.subject.trim()) return setError("Subject is required");
+    if (!form.htmlContent.trim()) return setError("HTML content is required");
+  } else {
     if (!isEdit && form.type !== "other" && files.length === 0)
       return setError("Please upload at least one image");
+
     if (form.type === "single_image" && files.length > 1)
       return setError("Single image type allows only one image");
+  }
 
-    setSaving(true);
-    setError("");
-    try {
-      const fd = new FormData();
-      fd.append("name",      form.name);
-      fd.append("type",      form.type);
-      fd.append("placement", form.placement);
-      fd.append("actionUrl", form.actionUrl);
-      fd.append("status",    form.status);
-      files.forEach((f) => fd.append("media", f));
+  setSaving(true);
+
+  try {
+    let res;
+
+    // ✅ MAJOR → send JSON
+    if (isMajor) {
+      const payload = {
+        name: form.name.trim(),
+        type: "major",
+        status: "active",
+        placement: "app_launch", // ensure backend supports this
+        subject: form.subject,
+        htmlContent: form.htmlContent,
+      };
+
+      console.log("SENDING MAJOR:", payload);
 
       if (isEdit) {
-        await axios.put(`${API_BASE_URL}/superadmin/announcements/${editData.id}`, fd, {
-          headers: { ...authHeaders(), "Content-Type": "multipart/form-data" },
-        });
+        res = await axios.put(
+          `${API_BASE_URL}/superadmin/announcements/${editData.id}`,
+          payload,
+          { headers: authHeaders() }
+        );
       } else {
-        await axios.post(`${API_BASE_URL}/superadmin/announcements`, fd, {
-          headers: { ...authHeaders(), "Content-Type": "multipart/form-data" },
-        });
+        res = await axios.post(
+          `${API_BASE_URL}/superadmin/announcements`,
+          payload,
+          { headers: authHeaders() }
+        );
       }
-      onSaved();
-      onClose();
-    } catch (err) {
-      console.error(err);
-      setError(err?.response?.data?.message || `Failed to ${isEdit ? "update" : "create"} announcement`);
-    } finally {
-      setSaving(false);
+
+    } else {
+      // ✅ NON-MAJOR → FormData
+      const fd = new FormData();
+      fd.append("name", form.name.trim());
+      fd.append("type", form.type.toLowerCase());
+      fd.append("status", form.status);
+      fd.append("placement", form.placement);
+      fd.append("actionUrl", form.actionUrl);
+
+      files.forEach((f) => fd.append("media", f));
+
+      console.log("SENDING NON-MAJOR:", form.type);
+
+      if (isEdit) {
+        res = await axios.put(
+          `${API_BASE_URL}/superadmin/announcements/${editData.id}`,
+          fd,
+          { headers: authHeaders() }
+        );
+      } else {
+        res = await axios.post(
+          `${API_BASE_URL}/superadmin/announcements`,
+          fd,
+          { headers: authHeaders() }
+        );
+      }
     }
-  };
+
+    console.log("RESPONSE:", res?.data);
+
+    onSaved();
+    onClose();
+
+  } catch (err) {
+    console.error(err);
+    setError(
+      err?.response?.data?.message ||
+      `Failed to ${isEdit ? "update" : "create"} announcement`
+    );
+  } finally {
+    setSaving(false);
+  }
+};
 
   if (!open) return null;
 
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
-      {/* Backdrop */}
       <div className="absolute inset-0 bg-black/40 backdrop-blur-sm" onClick={onClose} />
 
-      {/* Panel */}
       <div className="relative bg-white rounded-2xl shadow-2xl w-full max-w-lg max-h-[90vh] overflow-y-auto">
         {/* Header */}
         <div className="sticky top-0 bg-white border-b border-gray-100 px-6 py-4 flex items-center justify-between rounded-t-2xl z-10">
           <div className="flex items-center gap-2.5">
-            <div className="w-8 h-8 bg-blue-600 rounded-xl flex items-center justify-center">
-              <Megaphone size={15} className="text-white" />
+            <div className={`w-8 h-8 rounded-xl flex items-center justify-center ${isMajor ? "bg-rose-500" : "bg-blue-600"}`}>
+              {isMajor
+                ? <Zap size={15} className="text-white" />
+                : <Megaphone size={15} className="text-white" />}
             </div>
             <h2 className="text-base font-bold text-gray-900">
               {isEdit ? "Edit Announcement" : "New Announcement"}
             </h2>
           </div>
-          <button onClick={onClose} className="text-gray-400 hover:text-gray-600 transition">
+          <button type="button" onClick={onClose} className="text-gray-400 hover:text-gray-600 transition">
             <X size={18} />
           </button>
         </div>
@@ -269,25 +356,27 @@ const AnnouncementModal = ({ open, onClose, onSaved, editData }) => {
             />
           </div>
 
-          {/* Type */}
+          {/* Type selector */}
           <div>
             <label className="block text-xs font-semibold text-gray-500 uppercase tracking-wide mb-1.5">
               Type *
             </label>
-            <div className="grid grid-cols-3 gap-2">
+            <div className="grid grid-cols-4 gap-2">
               {Object.entries(TYPE_META).map(([val, meta]) => (
                 <button
                   key={val}
                   type="button"
-                  onClick={() => { set("type", val); setFiles([]); }}
+                  onClick={() => { set("type", val); setFiles([]); setError(""); }}
                   className={`flex flex-col items-center gap-1.5 py-3 px-2 rounded-xl border-2 text-xs font-semibold transition-all ${
                     form.type === val
-                      ? "border-blue-500 bg-blue-50 text-blue-600"
+                      ? val === "major"
+                        ? "border-rose-500 bg-rose-50 text-rose-600"
+                        : "border-blue-500 bg-blue-50 text-blue-600"
                       : "border-gray-200 text-gray-500 hover:border-gray-300"
                   }`}
                 >
                   <span className="text-lg">
-                    {val === "single_image" ? "🖼️" : val === "carousel" ? "🎠" : "📄"}
+                    {val === "single_image" ? "🖼️" : val === "carousel" ? "🎠" : val === "major" ? "⚡" : "📄"}
                   </span>
                   {meta.label}
                 </button>
@@ -295,110 +384,166 @@ const AnnouncementModal = ({ open, onClose, onSaved, editData }) => {
             </div>
           </div>
 
-          {/* Media upload — conditional on type */}
-          {form.type === "single_image" && (
-            <div>
-              <label className="block text-xs font-semibold text-gray-500 uppercase tracking-wide mb-1.5">
-                Image {!isEdit && "*"}
-              </label>
-              <FileDropZone
-                label="Drop or click to upload one image"
-                multiple={false}
-                files={files}
-                onChange={(f) => setFiles([f[0]])}
-                onRemove={() => setFiles([])}
-              />
-              {isEdit && editData?.media?.length > 0 && files.length === 0 && (
-                <p className="text-xs text-gray-400 mt-1.5">
-                  Current image kept unless you upload a new one.
+          {/* ── MAJOR FIELDS ── */}
+          {isMajor && (
+            <>
+              <div className="bg-rose-50 border border-rose-100 rounded-xl px-4 py-3 space-y-0.5">
+                <p className="text-sm font-semibold text-rose-700 flex items-center gap-1.5">
+                  <Zap size={13} /> Major Announcement
                 </p>
-              )}
-            </div>
-          )}
-
-          {form.type === "carousel" && (
-            <div>
-              <label className="block text-xs font-semibold text-gray-500 uppercase tracking-wide mb-1.5">
-                Carousel Images {!isEdit && "*"}{" "}
-                <span className="text-gray-400 normal-case font-normal">(2 or more recommended)</span>
-              </label>
-              <FileDropZone
-                label="Drop or click to upload multiple images"
-                multiple={true}
-                files={files}
-                onChange={(f) => setFiles((prev) => [...prev, ...f])}
-                onRemove={(i) => setFiles((prev) => prev.filter((_, idx) => idx !== i))}
-              />
-              {isEdit && editData?.media?.length > 0 && files.length === 0 && (
-                <p className="text-xs text-gray-400 mt-1.5">
-                  Current {editData.media.length} image(s) kept unless you upload new ones.
+                <p className="text-xs text-rose-500">
+                  Placement is fixed to <strong>App Launch</strong> · Status is always <strong>Active</strong>
                 </p>
+              </div>
+
+              {/* Subject */}
+              <div>
+                <label className="block text-xs font-semibold text-gray-500 uppercase tracking-wide mb-1.5">
+                  Subject *{" "}
+                  <span className="text-gray-400 normal-case font-normal">(HTML allowed)</span>
+                </label>
+                <input
+                  type="text"
+                  value={form.subject}
+                  onChange={(e) => set("subject", e.target.value)}
+                  placeholder='e.g. <strong>Important Update</strong> — Please Read'
+                  className="w-full border border-gray-200 rounded-xl px-4 py-2.5 text-sm text-gray-800 focus:outline-none focus:ring-2 focus:ring-rose-400 placeholder-gray-300 font-mono"
+                />
+              </div>
+
+              {/* HTML Content */}
+              <div>
+                <label className="block text-xs font-semibold text-gray-500 uppercase tracking-wide mb-1.5">
+                  HTML Content *
+                </label>
+                <textarea
+                  value={form.htmlContent}
+                  onChange={(e) => set("htmlContent", e.target.value)}
+                  placeholder={"<p>Enter your announcement content here...</p>"}
+                  rows={7}
+                  className="w-full border border-gray-200 rounded-xl px-4 py-2.5 text-sm text-gray-800 focus:outline-none focus:ring-2 focus:ring-rose-400 placeholder-gray-300 font-mono resize-y"
+                />
+                {form.htmlContent.trim() && (
+                  <details className="mt-2">
+                    <summary className="text-xs text-gray-400 cursor-pointer select-none hover:text-gray-600">
+                      Preview rendered HTML
+                    </summary>
+                    <div
+                      className="mt-2 p-3 border border-gray-100 rounded-xl bg-gray-50 text-sm text-gray-700"
+                      dangerouslySetInnerHTML={{ __html: form.htmlContent }}
+                    />
+                  </details>
+                )}
+              </div>
+            </>
+          )}
+
+          {/* ── NON-MAJOR FIELDS ── */}
+          {!isMajor && (
+            <>
+              {form.type === "single_image" && (
+                <div>
+                  <label className="block text-xs font-semibold text-gray-500 uppercase tracking-wide mb-1.5">
+                    Image {!isEdit && "*"}
+                  </label>
+                  <FileDropZone
+                    label="Drop or click to upload one image"
+                    multiple={false}
+                    files={files}
+                    onChange={(f) => setFiles([f[0]])}
+                    onRemove={() => setFiles([])}
+                  />
+                  {isEdit && editData?.media?.length > 0 && files.length === 0 && (
+                    <p className="text-xs text-gray-400 mt-1.5">Current image kept unless you upload a new one.</p>
+                  )}
+                </div>
               )}
-            </div>
-          )}
 
-          {form.type === "other" && (
-            <div className="bg-amber-50 border border-amber-100 rounded-xl px-4 py-3 text-sm text-amber-700">
-              📄 No media required for "Other" type — uses action URL and placement only.
-            </div>
-          )}
+              {form.type === "carousel" && (
+                <div>
+                  <label className="block text-xs font-semibold text-gray-500 uppercase tracking-wide mb-1.5">
+                    Carousel Images {!isEdit && "*"}{" "}
+                    <span className="text-gray-400 normal-case font-normal">(2 or more recommended)</span>
+                  </label>
+                  <FileDropZone
+                    label="Drop or click to upload multiple images"
+                    multiple={true}
+                    files={files}
+                    onChange={(f) => setFiles((prev) => [...prev, ...f])}
+                    onRemove={(i) => setFiles((prev) => prev.filter((_, idx) => idx !== i))}
+                  />
+                  {isEdit && editData?.media?.length > 0 && files.length === 0 && (
+                    <p className="text-xs text-gray-400 mt-1.5">
+                      Current {editData.media.length} image(s) kept unless you upload new ones.
+                    </p>
+                  )}
+                </div>
+              )}
 
-          {/* Placement */}
-          <div>
-            <label className="block text-xs font-semibold text-gray-500 uppercase tracking-wide mb-1.5">
-              Placement
-            </label>
-            <select
-              value={form.placement}
-              onChange={(e) => set("placement", e.target.value)}
-              className="w-full border border-gray-200 rounded-xl px-4 py-2.5 text-sm text-gray-800 bg-white focus:outline-none focus:ring-2 focus:ring-blue-400 transition"
-            >
-              {PLACEMENT_OPTIONS.map(({ value, label }) => (
-                <option key={value} value={value} disabled={value === ""}>
-                  {label}
-                </option>
-              ))}
-            </select>
-          </div>
+              {form.type === "other" && (
+                <div className="bg-amber-50 border border-amber-100 rounded-xl px-4 py-3 text-sm text-amber-700">
+                  📄 No media required for "Other" type — uses action URL and placement only.
+                </div>
+              )}
 
-          {/* Action URL */}
-          <div>
-            <label className="block text-xs font-semibold text-gray-500 uppercase tracking-wide mb-1.5">
-              Action URL
-            </label>
-            <input
-              type="text"
-              value={form.actionUrl}
-              onChange={(e) => set("actionUrl", e.target.value)}
-              placeholder="https://..."
-              className="w-full border border-gray-200 rounded-xl px-4 py-2.5 text-sm text-gray-800 focus:outline-none focus:ring-2 focus:ring-blue-400 placeholder-gray-300"
-            />
-          </div>
-
-          {/* Status */}
-          <div>
-            <label className="block text-xs font-semibold text-gray-500 uppercase tracking-wide mb-1.5">
-              Status
-            </label>
-            <div className="flex gap-3">
-              {["active", "inactive"].map((s) => (
-                <button
-                  key={s}
-                  type="button"
-                  onClick={() => set("status", s)}
-                  className={`flex-1 py-2.5 rounded-xl border-2 text-sm font-semibold capitalize transition-all ${
-                    form.status === s
-                      ? s === "active"
-                        ? "border-emerald-500 bg-emerald-50 text-emerald-600"
-                        : "border-gray-400 bg-gray-100 text-gray-600"
-                      : "border-gray-200 text-gray-400 hover:border-gray-300"
-                  }`}
+              {/* Placement */}
+              <div>
+                <label className="block text-xs font-semibold text-gray-500 uppercase tracking-wide mb-1.5">
+                  Placement
+                </label>
+                <select
+                  value={form.placement}
+                  onChange={(e) => set("placement", e.target.value)}
+                  className="w-full border border-gray-200 rounded-xl px-4 py-2.5 text-sm text-gray-800 bg-white focus:outline-none focus:ring-2 focus:ring-blue-400 transition"
                 >
-                  {s === "active" ? "✅ Active" : "⏸ Inactive"}
-                </button>
-              ))}
-            </div>
-          </div>
+                  {PLACEMENT_OPTIONS.map(({ value, label }) => (
+                    <option key={value} value={value} disabled={value === ""}>
+                      {label}
+                    </option>
+                  ))}
+                </select>
+              </div>
+
+              {/* Action URL */}
+              <div>
+                <label className="block text-xs font-semibold text-gray-500 uppercase tracking-wide mb-1.5">
+                  Action URL
+                </label>
+                <input
+                  type="text"
+                  value={form.actionUrl}
+                  onChange={(e) => set("actionUrl", e.target.value)}
+                  placeholder="https://..."
+                  className="w-full border border-gray-200 rounded-xl px-4 py-2.5 text-sm text-gray-800 focus:outline-none focus:ring-2 focus:ring-blue-400 placeholder-gray-300"
+                />
+              </div>
+
+              {/* Status */}
+              <div>
+                <label className="block text-xs font-semibold text-gray-500 uppercase tracking-wide mb-1.5">
+                  Status
+                </label>
+                <div className="flex gap-3">
+                  {["active", "inactive"].map((s) => (
+                    <button
+                      key={s}
+                      type="button"
+                      onClick={() => set("status", s)}
+                      className={`flex-1 py-2.5 rounded-xl border-2 text-sm font-semibold capitalize transition-all ${
+                        form.status === s
+                          ? s === "active"
+                            ? "border-emerald-500 bg-emerald-50 text-emerald-600"
+                            : "border-gray-400 bg-gray-100 text-gray-600"
+                          : "border-gray-200 text-gray-400 hover:border-gray-300"
+                      }`}
+                    >
+                      {s === "active" ? "✅ Active" : "⏸ Inactive"}
+                    </button>
+                  ))}
+                </div>
+              </div>
+            </>
+          )}
 
           {/* Submit */}
           <div className="flex gap-3 pt-2">
@@ -412,7 +557,9 @@ const AnnouncementModal = ({ open, onClose, onSaved, editData }) => {
             <button
               type="submit"
               disabled={saving}
-              className="flex-1 py-2.5 bg-blue-600 text-white rounded-xl text-sm font-semibold hover:bg-blue-700 disabled:opacity-60 transition flex items-center justify-center gap-2"
+              className={`flex-1 py-2.5 text-white rounded-xl text-sm font-semibold disabled:opacity-60 transition flex items-center justify-center gap-2 ${
+                isMajor ? "bg-rose-500 hover:bg-rose-600" : "bg-blue-600 hover:bg-blue-700"
+              }`}
             >
               {saving ? (
                 <>
@@ -449,7 +596,7 @@ export default function Announcements() {
       const res = await axios.get(`${API_BASE_URL}/superadmin/announcements`, {
         headers: authHeaders(),
       });
-      const raw = res.data?.data || res.data;
+      const raw = res.data?.data ?? res.data;
       setAnnouncements(Array.isArray(raw) ? raw : []);
     } catch (err) {
       console.error(err);
@@ -463,13 +610,14 @@ export default function Announcements() {
   useEffect(() => { fetchAnnouncements(); }, []);
 
   const handleToggleStatus = async (item) => {
+    if (item.type === "major") return;
     const newStatus = item.status === "active" ? "inactive" : "active";
     setTogglingId(item.id);
     try {
       const fd = new FormData();
       fd.append("status", newStatus);
       await axios.put(`${API_BASE_URL}/superadmin/announcements/${item.id}`, fd, {
-        headers: { ...authHeaders(), "Content-Type": "multipart/form-data" },
+        headers: authHeaders(),
       });
       setAnnouncements((prev) =>
         prev.map((a) => (a.id === item.id ? { ...a, status: newStatus } : a))
@@ -502,7 +650,7 @@ export default function Announcements() {
   const openEdit   = (item) => { setEditData(item); setModalOpen(true); };
 
   const filtered = announcements.filter((a) => {
-    if (filterType && a.type !== filterType) return false;
+    if (filterType   && a.type   !== filterType)   return false;
     if (filterStatus && a.status !== filterStatus) return false;
     return true;
   });
@@ -513,9 +661,10 @@ export default function Announcements() {
     inactive: announcements.filter((a) => a.status === "inactive").length,
   };
 
-  // Resolve a placement value to its readable label
-  const placementLabel = (value) =>
-    PLACEMENT_OPTIONS.find((o) => o.value === value)?.label || value || "—";
+  const placementLabel = (value) => {
+    if (value === "app_launch") return "App Launch";
+    return PLACEMENT_OPTIONS.find((o) => o.value === value)?.label || value || "—";
+  };
 
   return (
     <div className="p-4 md:p-6 bg-gray-50 min-h-screen space-y-6">
@@ -531,7 +680,6 @@ export default function Announcements() {
         </div>
 
         <div className="flex items-center gap-2 flex-wrap">
-          {/* Type filter */}
           <select
             value={filterType}
             onChange={(e) => setFilterType(e.target.value)}
@@ -540,10 +688,10 @@ export default function Announcements() {
             <option value="">All Types</option>
             <option value="single_image">Single Image</option>
             <option value="carousel">Carousel</option>
+            <option value="major">Major</option>
             <option value="other">Other</option>
           </select>
 
-          {/* Status filter */}
           <select
             value={filterStatus}
             onChange={(e) => setFilterStatus(e.target.value)}
@@ -554,8 +702,8 @@ export default function Announcements() {
             <option value="inactive">Inactive</option>
           </select>
 
-          {/* Refresh */}
           <button
+            type="button"
             onClick={() => fetchAnnouncements(true)}
             disabled={refreshing}
             className={`flex items-center gap-1.5 px-3.5 py-2 rounded-xl text-sm font-semibold border shadow-sm transition ${
@@ -568,8 +716,8 @@ export default function Announcements() {
             Refresh
           </button>
 
-          {/* Create */}
           <button
+            type="button"
             onClick={openCreate}
             className="flex items-center gap-1.5 px-4 py-2 rounded-xl text-sm font-semibold bg-blue-600 text-white hover:bg-blue-700 transition shadow-sm"
           >
@@ -579,7 +727,7 @@ export default function Announcements() {
         </div>
       </div>
 
-      {/* ── Summary row ── */}
+      {/* ── Summary cards ── */}
       <div className="grid grid-cols-3 gap-4">
         {[
           { label: "Total",    value: summary.total,    bg: "bg-indigo-50",  text: "text-indigo-700"  },
@@ -605,6 +753,7 @@ export default function Announcements() {
             <p className="text-2xl">⚠️</p>
             <p className="text-sm font-medium text-red-500">{error}</p>
             <button
+              type="button"
               onClick={() => fetchAnnouncements()}
               className="mt-2 px-4 py-1.5 text-xs bg-red-50 text-red-600 rounded-lg hover:bg-red-100 transition"
             >
@@ -620,6 +769,7 @@ export default function Announcements() {
             </p>
             {!filterType && !filterStatus && (
               <button
+                type="button"
                 onClick={openCreate}
                 className="mt-3 px-4 py-2 text-sm bg-blue-600 text-white rounded-xl hover:bg-blue-700 transition"
               >
@@ -629,10 +779,10 @@ export default function Announcements() {
           </div>
         ) : (
           <div className="overflow-x-auto">
-            <table className="min-w-[900px] w-full text-sm">
+            <table className="min-w-[960px] w-full text-sm">
               <thead>
                 <tr className="bg-gray-50 border-b border-gray-100">
-                  {["Preview", "Name", "Type", "Placement", "Action URL", "Status", "Created", "Actions"].map((h) => (
+                  {["Preview", "Name", "Type", "Placement", "Subject / Action URL", "Status", "Created", "Actions"].map((h) => (
                     <th
                       key={h}
                       className="px-4 py-3.5 text-left text-xs font-bold text-gray-400 uppercase tracking-wider whitespace-nowrap"
@@ -644,11 +794,17 @@ export default function Announcements() {
               </thead>
               <tbody className="divide-y divide-gray-50">
                 {filtered.map((item) => (
-                  <tr key={item.id} className="hover:bg-blue-50/20 transition-colors group">
+                  <tr key={item.id} className="hover:bg-blue-50/20 transition-colors">
 
                     {/* Preview */}
                     <td className="px-4 py-3.5">
-                      <MediaPreview media={item.media || []} type={item.type} />
+                      {item.type === "major" ? (
+                        <div className="w-14 h-10 bg-rose-50 rounded-lg border border-rose-100 flex items-center justify-center">
+                          <Zap size={16} className="text-rose-400" />
+                        </div>
+                      ) : (
+                        <MediaPreview media={item.media || []} type={item.type} />
+                      )}
                     </td>
 
                     {/* Name */}
@@ -662,15 +818,33 @@ export default function Announcements() {
                     </td>
 
                     {/* Placement */}
-                    <td className="px-4 py-3.5 text-gray-500 text-xs">
-                      {item.placement
-                        ? <span className="inline-flex items-center px-2 py-0.5 rounded-md bg-gray-100 text-gray-600 font-medium">{placementLabel(item.placement)}</span>
-                        : <span className="text-gray-300">—</span>}
+                    <td className="px-4 py-3.5">
+                      {item.placement ? (
+                        <span className={`inline-flex items-center px-2 py-0.5 rounded-md text-xs font-medium ${
+                          item.placement === "app_launch"
+                            ? "bg-rose-50 text-rose-600"
+                            : "bg-gray-100 text-gray-600"
+                        }`}>
+                          {placementLabel(item.placement)}
+                        </span>
+                      ) : (
+                        <span className="text-gray-300 text-xs">—</span>
+                      )}
                     </td>
 
-                    {/* Action URL */}
-                    <td className="px-4 py-3.5">
-                      {item.actionUrl ? (
+                    {/* Subject (major) / Action URL (others) */}
+                    <td className="px-4 py-3.5 max-w-[180px]">
+                      {item.type === "major" ? (
+                        item.subject ? (
+                          <span
+                            className="text-xs text-gray-700 block truncate max-w-[160px]"
+                            title={item.subject.replace(/<[^>]*>/g, "")}
+                            dangerouslySetInnerHTML={{ __html: item.subject }}
+                          />
+                        ) : (
+                          <span className="text-gray-300 text-xs">—</span>
+                        )
+                      ) : item.actionUrl ? (
                         <a
                           href={item.actionUrl}
                           target="_blank"
@@ -681,7 +855,7 @@ export default function Announcements() {
                           {item.actionUrl}
                         </a>
                       ) : (
-                        <span className="text-gray-300">—</span>
+                        <span className="text-gray-300 text-xs">—</span>
                       )}
                     </td>
 
@@ -703,13 +877,20 @@ export default function Announcements() {
                     <td className="px-4 py-3.5">
                       <div className="flex items-center gap-2">
 
-                        {/* Toggle status */}
+                        {/* Toggle — locked for major */}
                         <button
+                          type="button"
                           onClick={() => handleToggleStatus(item)}
-                          disabled={togglingId === item.id}
-                          title={item.status === "active" ? "Deactivate" : "Activate"}
+                          disabled={togglingId === item.id || item.type === "major"}
+                          title={
+                            item.type === "major"
+                              ? "Major announcements are always active"
+                              : item.status === "active" ? "Deactivate" : "Activate"
+                          }
                           className={`p-1.5 rounded-lg transition ${
-                            item.status === "active"
+                            item.type === "major"
+                              ? "text-gray-300 cursor-not-allowed"
+                              : item.status === "active"
                               ? "text-emerald-600 hover:bg-emerald-50"
                               : "text-gray-400 hover:bg-gray-100"
                           } disabled:opacity-40`}
@@ -725,6 +906,7 @@ export default function Announcements() {
 
                         {/* Edit */}
                         <button
+                          type="button"
                           onClick={() => openEdit(item)}
                           title="Edit"
                           className="p-1.5 rounded-lg text-blue-500 hover:bg-blue-50 transition"
@@ -734,6 +916,7 @@ export default function Announcements() {
 
                         {/* Delete */}
                         <button
+                          type="button"
                           onClick={() => handleDelete(item)}
                           disabled={deletingId === item.id}
                           title="Delete"
