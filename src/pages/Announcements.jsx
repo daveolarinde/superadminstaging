@@ -240,13 +240,13 @@ const AnnouncementModal = ({ open, onClose, onSaved, editData }) => {
   try {
     let res;
 
-    // ✅ MAJOR → send JSON
+   
     if (isMajor) {
       const payload = {
         name: form.name.trim(),
         type: "major",
         status: "active",
-        placement: "app_launch", // ensure backend supports this
+        placement: "app_launch", 
         subject: form.subject,
         htmlContent: form.htmlContent,
       };
