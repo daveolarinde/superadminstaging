@@ -1,13 +1,21 @@
 // components/UsersTable.jsx
-import { useState } from "react";
+import { useState, useCallback } from "react";
 import { useNavigate } from "react-router-dom";
 import { formatDistanceToNow } from "date-fns";
 import {
   MoreVertical, ExternalLink, ChevronLeft, ChevronRight,
   Mail, X, Send, ChevronDown, Users,
+  Bold, Italic, Underline, Link, List, ListOrdered,
+  AlignLeft, AlignCenter, AlignRight, Minus, Undo, Redo,
+  Type,
 } from "lucide-react";
+import { useEditor, EditorContent } from "@tiptap/react";
+import StarterKit from "@tiptap/starter-kit";
+import UnderlineExt from "@tiptap/extension-underline";
+import LinkExt from "@tiptap/extension-link";
+import TextAlign from "@tiptap/extension-text-align";
 
-const API_URL = import.meta.env.VITE_STAGE_API_URL
+const API_URL = import.meta.env.VITE_STAGE_API_URL;
 
 // ── Status badge ──────────────────────────────────────────────────────────────
 const StatusBadge = ({ status }) => {
@@ -36,16 +44,204 @@ const getPageNumbers = (current, total) => {
   return [1, "...", current - 1, current, current + 1, "...", total];
 };
 
-// ── Audience options (broadcast only) ────────────────────────────────────────
+// ── Audience options ──────────────────────────────────────────────────────────
 const AUDIENCE_OPTIONS = [
   { value: "all",      label: "All Users",      description: "Every registered user",       dot: "bg-blue-500"    },
   { value: "active",   label: "Active Users",   description: "Currently active accounts",   dot: "bg-emerald-500" },
   { value: "inactive", label: "Inactive Users", description: "Dormant or unverified users", dot: "bg-amber-400"   },
 ];
 
+// ── Toolbar button helper ─────────────────────────────────────────────────────
+const ToolbarBtn = ({ onClick, active, disabled, title, children }) => (
+  <button
+    type="button"
+    onMouseDown={(e) => { e.preventDefault(); onClick(); }}
+    disabled={disabled}
+    title={title}
+    className={`w-7 h-7 flex items-center justify-center rounded-md text-xs transition
+      ${active
+        ? "bg-blue-100 text-blue-700"
+        : "text-gray-500 hover:bg-gray-100 hover:text-gray-700"}
+      disabled:opacity-30 disabled:cursor-not-allowed`}
+  >
+    {children}
+  </button>
+);
+
+const ToolbarDivider = () => (
+  <div className="w-px h-4 bg-gray-200 mx-0.5 self-center" />
+);
+
+// ── Rich Text Editor ──────────────────────────────────────────────────────────
+const RichEditor = ({ onChange }) => {
+  const [linkUrl,    setLinkUrl]    = useState("");
+  const [showLink,   setShowLink]   = useState(false);
+
+  const editor = useEditor({
+    extensions: [
+      StarterKit.configure({ heading: { levels: [1, 2, 3] } }),
+      UnderlineExt,
+      LinkExt.configure({ openOnClick: false, HTMLAttributes: { class: "text-blue-600 underline" } }),
+      TextAlign.configure({ types: ["heading", "paragraph"] }),
+    ],
+    content: "",
+    editorProps: {
+      attributes: {
+        class: "min-h-[180px] max-h-[280px] overflow-y-auto outline-none px-3.5 py-3 text-sm text-gray-800 leading-relaxed prose prose-sm max-w-none",
+      },
+    },
+    onUpdate: ({ editor }) => {
+      onChange(editor.getHTML());
+    },
+  });
+
+  const applyLink = useCallback(() => {
+    if (!editor) return;
+    if (linkUrl.trim()) {
+      const href = linkUrl.startsWith("http") ? linkUrl : `https://${linkUrl}`;
+      editor.chain().focus().setLink({ href }).run();
+    } else {
+      editor.chain().focus().unsetLink().run();
+    }
+    setLinkUrl("");
+    setShowLink(false);
+  }, [editor, linkUrl]);
+
+  if (!editor) return null;
+
+  return (
+    <div className="rounded-xl border border-gray-200 focus-within:border-blue-400 focus-within:ring-2 focus-within:ring-blue-50 transition overflow-hidden bg-white">
+
+      {/* Toolbar */}
+      <div className="flex flex-wrap items-center gap-0.5 px-2 py-1.5 border-b border-gray-100 bg-gray-50/80">
+
+        {/* Undo / Redo */}
+        <ToolbarBtn onClick={() => editor.chain().focus().undo().run()} disabled={!editor.can().undo()} title="Undo">
+          <Undo size={13} />
+        </ToolbarBtn>
+        <ToolbarBtn onClick={() => editor.chain().focus().redo().run()} disabled={!editor.can().redo()} title="Redo">
+          <Redo size={13} />
+        </ToolbarBtn>
+        <ToolbarDivider />
+
+        {/* Heading */}
+        <select
+          title="Text style"
+          onMouseDown={(e) => e.stopPropagation()}
+          onChange={(e) => {
+            const val = e.target.value;
+            if (val === "p")   editor.chain().focus().setParagraph().run();
+            else               editor.chain().focus().setHeading({ level: Number(val) }).run();
+          }}
+          value={
+            editor.isActive("heading", { level: 1 }) ? "1" :
+            editor.isActive("heading", { level: 2 }) ? "2" :
+            editor.isActive("heading", { level: 3 }) ? "3" : "p"
+          }
+          className="text-xs text-gray-600 border border-gray-200 rounded-md px-1.5 py-1 bg-white focus:outline-none focus:border-blue-400 cursor-pointer h-7"
+        >
+          <option value="p">Paragraph</option>
+          <option value="1">Heading 1</option>
+          <option value="2">Heading 2</option>
+          <option value="3">Heading 3</option>
+        </select>
+        <ToolbarDivider />
+
+        {/* Inline marks */}
+        <ToolbarBtn onClick={() => editor.chain().focus().toggleBold().run()}      active={editor.isActive("bold")}      title="Bold (Ctrl+B)">
+          <Bold size={13} />
+        </ToolbarBtn>
+        <ToolbarBtn onClick={() => editor.chain().focus().toggleItalic().run()}    active={editor.isActive("italic")}    title="Italic (Ctrl+I)">
+          <Italic size={13} />
+        </ToolbarBtn>
+        <ToolbarBtn onClick={() => editor.chain().focus().toggleUnderline().run()} active={editor.isActive("underline")} title="Underline (Ctrl+U)">
+          <Underline size={13} />
+        </ToolbarBtn>
+        <ToolbarDivider />
+
+        {/* Lists */}
+        <ToolbarBtn onClick={() => editor.chain().focus().toggleBulletList().run()}  active={editor.isActive("bulletList")}  title="Bullet list">
+          <List size={13} />
+        </ToolbarBtn>
+        <ToolbarBtn onClick={() => editor.chain().focus().toggleOrderedList().run()} active={editor.isActive("orderedList")} title="Numbered list">
+          <ListOrdered size={13} />
+        </ToolbarBtn>
+        <ToolbarDivider />
+
+        {/* Alignment */}
+        <ToolbarBtn onClick={() => editor.chain().focus().setTextAlign("left").run()}   active={editor.isActive({ textAlign: "left" })}   title="Align left">
+          <AlignLeft size={13} />
+        </ToolbarBtn>
+        <ToolbarBtn onClick={() => editor.chain().focus().setTextAlign("center").run()} active={editor.isActive({ textAlign: "center" })} title="Align center">
+          <AlignCenter size={13} />
+        </ToolbarBtn>
+        <ToolbarBtn onClick={() => editor.chain().focus().setTextAlign("right").run()}  active={editor.isActive({ textAlign: "right" })}  title="Align right">
+          <AlignRight size={13} />
+        </ToolbarBtn>
+        <ToolbarDivider />
+
+        {/* Horizontal rule */}
+        <ToolbarBtn onClick={() => editor.chain().focus().setHorizontalRule().run()} title="Horizontal rule">
+          <Minus size={13} />
+        </ToolbarBtn>
+        <ToolbarDivider />
+
+        {/* Link */}
+        <ToolbarBtn onClick={() => setShowLink(v => !v)} active={editor.isActive("link") || showLink} title="Insert link">
+          <Link size={13} />
+        </ToolbarBtn>
+        {editor.isActive("link") && (
+          <ToolbarBtn onClick={() => editor.chain().focus().unsetLink().run()} title="Remove link">
+            <X size={11} />
+          </ToolbarBtn>
+        )}
+      </div>
+
+      {/* Link input */}
+      {showLink && (
+        <div className="flex items-center gap-2 px-3 py-2 bg-blue-50 border-b border-blue-100">
+          <input
+            autoFocus
+            type="url"
+            value={linkUrl}
+            onChange={(e) => setLinkUrl(e.target.value)}
+            onKeyDown={(e) => { if (e.key === "Enter") applyLink(); if (e.key === "Escape") setShowLink(false); }}
+            placeholder="https://example.com"
+            className="flex-1 text-xs px-2.5 py-1.5 rounded-lg border border-blue-200 bg-white focus:outline-none focus:border-blue-400 text-gray-700 placeholder-gray-400"
+          />
+          <button
+            type="button"
+            onClick={applyLink}
+            className="px-3 py-1.5 text-xs font-semibold bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition"
+          >
+            Apply
+          </button>
+          <button
+            type="button"
+            onClick={() => setShowLink(false)}
+            className="text-gray-400 hover:text-gray-600 transition"
+          >
+            <X size={13} />
+          </button>
+        </div>
+      )}
+
+      {/* Editor area */}
+      <EditorContent editor={editor} />
+
+      {/* Footer hint */}
+      <div className="px-3.5 py-1.5 border-t border-gray-100 bg-gray-50/60">
+        <p className="text-[10px] text-gray-400">
+          Rich text — outputs clean HTML · <kbd className="px-1 py-0.5 bg-gray-100 rounded text-[10px]">Ctrl+B</kbd> bold ·
+          <kbd className="px-1 py-0.5 bg-gray-100 rounded text-[10px] ml-1">Ctrl+I</kbd> italic ·
+          <kbd className="px-1 py-0.5 bg-gray-100 rounded text-[10px] ml-1">Ctrl+U</kbd> underline
+        </p>
+      </div>
+    </div>
+  );
+};
+
 // ── Email Modal ───────────────────────────────────────────────────────────────
-// preselectedUsers=null  → broadcast mode (audience picker shown)
-// preselectedUsers=[...] → targeted mode  (recipient chips shown)
 const EmailModal = ({ onClose, totalUsers, preselectedUsers }) => {
   const isTargeted = preselectedUsers !== null;
 
@@ -61,8 +257,8 @@ const EmailModal = ({ onClose, totalUsers, preselectedUsers }) => {
   const recipients       = preselectedUsers ?? [];
 
   const handleSend = async () => {
-    if (!subject.trim()) return setError("Subject is required.");
-    if (!body.trim())    return setError("Message body is required.");
+    if (!subject.trim())                    return setError("Subject is required.");
+    if (!body.trim() || body === "<p></p>") return setError("Message body is required.");
     setError(null);
     setSending(true);
     try {
@@ -73,10 +269,7 @@ const EmailModal = ({ onClose, totalUsers, preselectedUsers }) => {
       const token = localStorage.getItem("token");
       const res   = await fetch(`${API_URL}/superAdmin/broadcast-email`, {
         method:  "POST",
-        headers: {
-          "Content-Type":  "application/json",
-          "Authorization": `Bearer ${token}`,
-        },
+        headers: { "Content-Type": "application/json", "Authorization": `Bearer ${token}` },
         body: JSON.stringify(payload),
       });
       const data = await res.json();
@@ -230,24 +423,14 @@ const EmailModal = ({ onClose, totalUsers, preselectedUsers }) => {
             />
           </div>
 
-          {/* Body */}
+          {/* Rich Text Body */}
           <div>
             <div className="flex items-center justify-between mb-1.5">
               <label className="text-xs font-semibold text-gray-500 uppercase tracking-wide">
                 Message <span className="text-red-400">*</span>
               </label>
-              <span className="text-xs text-gray-400">HTML supported</span>
             </div>
-            <textarea
-              value={body}
-              onChange={e => setBody(e.target.value)}
-              rows={10}
-              placeholder={"<p>Dear user,</p>\n<p>We wanted to let you know...</p>"}
-              className="w-full px-3.5 py-3 rounded-xl border border-gray-200 text-sm text-gray-800 placeholder-gray-400 focus:outline-none focus:border-blue-400 focus:ring-2 focus:ring-blue-50 transition font-mono resize-none leading-relaxed"
-            />
-            <p className="mt-1 text-xs text-gray-400">
-              You can use full HTML markup for rich formatting (bold, links, headings, etc.)
-            </p>
+            <RichEditor onChange={setBody} />
           </div>
 
           {/* Error */}
@@ -281,7 +464,7 @@ const EmailModal = ({ onClose, totalUsers, preselectedUsers }) => {
             </button>
             <button
               onClick={handleSend}
-              disabled={sending || !subject.trim() || !body.trim()}
+              disabled={sending || !subject.trim() || !body.trim() || body === "<p></p>"}
               className={`flex items-center gap-2 px-5 py-2 rounded-lg text-sm font-semibold text-white disabled:opacity-50 disabled:cursor-not-allowed transition ${
                 isTargeted ? "bg-purple-600 hover:bg-purple-700" : "bg-blue-600 hover:bg-blue-700"
               }`}
@@ -330,7 +513,6 @@ const UsersTable = ({
 
   const statusOptions = ["active", "inactive", "blocked", "deactivated"];
 
-  // ── Selection helpers ────────────────────────────────────────────────────
   const allSelected   = users.length > 0 && users.every(u => selectedIds.has(u.id));
   const someSelected  = users.some(u => selectedIds.has(u.id));
   const selectedUsers = users.filter(u => selectedIds.has(u.id));
@@ -350,7 +532,6 @@ const UsersTable = ({
     }
   };
 
-  // ── Modal helpers ────────────────────────────────────────────────────────
   const openBroadcast          = ()     => { setTargetedUsers(null); setModalOpen(true); };
   const openTargeted           = (list) => { setTargetedUsers(list); setModalOpen(true); };
   const openTargetedFromSelect = ()     => openTargeted(selectedUsers);
@@ -371,7 +552,7 @@ const UsersTable = ({
 
       <div className="bg-white rounded-2xl border border-gray-100 shadow-sm overflow-hidden">
 
-        {/* ── Toolbar ── */}
+        {/* Toolbar */}
         <div className="flex items-center justify-between px-5 py-3.5 border-b border-gray-100">
           <p className="text-xs text-gray-400">
             <span className="font-semibold text-gray-600">{totalUsers.toLocaleString()}</span> total users
@@ -385,7 +566,7 @@ const UsersTable = ({
           </button>
         </div>
 
-        {/* ── Selection action bar ── */}
+        {/* Selection action bar */}
         {someSelected && (
           <div className="flex items-center justify-between px-5 py-2.5 bg-purple-50 border-b border-purple-100">
             <div className="flex items-center gap-2">
@@ -413,7 +594,7 @@ const UsersTable = ({
           </div>
         )}
 
-        {/* ── Table ── */}
+        {/* Table */}
         <div className="overflow-x-auto">
           {users.length === 0 ? (
             <div className="flex flex-col items-center justify-center py-20 gap-2">
@@ -450,7 +631,6 @@ const UsersTable = ({
                       key={user.id}
                       className={`hover:bg-gray-50/70 transition-colors group ${isChecked ? "bg-purple-50/40" : ""}`}
                     >
-                      {/* Checkbox */}
                       <td className="px-4 py-4 w-10">
                         <input
                           type="checkbox"
@@ -460,7 +640,6 @@ const UsersTable = ({
                         />
                       </td>
 
-                      {/* User */}
                       <td className={tdCls}>
                         <div
                           className="flex items-center gap-3 cursor-pointer"
@@ -480,33 +659,25 @@ const UsersTable = ({
                         </div>
                       </td>
 
-                      {/* Email / Phone */}
                       <td className={tdCls}>
                         <p className="text-gray-700 text-sm">{user.email}</p>
                         <p className="text-xs text-gray-400 mt-0.5">{user.phoneNumber || "—"}</p>
                       </td>
 
-                      {/* Country */}
-                      <td className={`${tdCls} text-gray-600 text-sm`}>
-                        {user.country || "—"}
-                      </td>
+                      <td className={`${tdCls} text-gray-600 text-sm`}>{user.country || "—"}</td>
 
-                      {/* Status */}
                       <td className={tdCls}>
                         <StatusBadge status={user.status} />
                       </td>
 
-                      {/* Last Login */}
                       <td className={`${tdCls} text-xs text-gray-400 whitespace-nowrap`}>
                         {user.lastLogin
                           ? formatDistanceToNow(new Date(user.lastLogin), { addSuffix: true })
                           : "Never"}
                       </td>
 
-                      {/* Actions */}
                       <td className={tdCls}>
                         <div className="flex items-center gap-2">
-                          {/* View */}
                           <button
                             onClick={() => navigate(`/admin/all-users/${user.id}`)}
                             className="flex items-center gap-1.5 px-3 py-1.5 text-xs font-semibold bg-blue-50 text-blue-600 rounded-lg hover:bg-blue-100 transition"
@@ -514,7 +685,6 @@ const UsersTable = ({
                             <ExternalLink size={11} /> View
                           </button>
 
-                          {/* Send mail to this specific user */}
                           <button
                             onClick={() => openTargeted([user])}
                             title={`Send email to ${user.firstname}`}
@@ -523,7 +693,6 @@ const UsersTable = ({
                             <Mail size={13} />
                           </button>
 
-                          {/* Status dropdown */}
                           <div className="relative">
                             <button
                               onClick={() => setOpenMenu(openMenu === user.id ? null : user.id)}
@@ -575,7 +744,7 @@ const UsersTable = ({
           )}
         </div>
 
-        {/* ── Pagination ── */}
+        {/* Pagination */}
         {totalUsers > limit && (
           <div className="flex flex-col sm:flex-row items-center justify-between gap-4 px-5 py-4 border-t border-gray-100 bg-gray-50/60">
             <p className="text-xs text-gray-400 shrink-0">
@@ -624,5 +793,5 @@ const UsersTable = ({
     </>
   );
 };
- 
+
 export default UsersTable;
