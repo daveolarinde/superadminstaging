@@ -47,8 +47,8 @@ const KycTable = ({
 }) => {
   const navigate = useNavigate();
   const [selectedUser, setSelectedUser] = useState(null);
-  const [wewireLoading, setWewireLoading] = useState(null); // tracks userId being submitted
-  const [wewireToast, setWewireToast] = useState(null);     // { type: "success"|"error", message }
+  const [wewireLoading, setWewireLoading] = useState(null);
+  const [wewireToast, setWewireToast] = useState(null);
 
   const totalPages = Math.ceil(totalCount / rowsPerPage);
   const pageNumbers = getPageNumbers(currentPage, totalPages);
@@ -81,7 +81,6 @@ const KycTable = ({
       setWewireToast({ type: "error", message: err.message || "Failed to submit KYC to WeWire." });
     } finally {
       setWewireLoading(null);
-      // Auto-dismiss toast after 4 s
       setTimeout(() => setWewireToast(null), 4000);
     }
   };
@@ -156,7 +155,6 @@ const KycTable = ({
                           className="w-9 h-9 rounded-full border-2 border-white shadow-sm object-cover"
                           alt="avatar"
                         />
-                        {/* online dot placeholder */}
                       </div>
                       <div>
                         <p className="font-semibold text-gray-800 text-sm leading-tight">
@@ -193,9 +191,14 @@ const KycTable = ({
                         {/* Backdrop to close */}
                         <div className="fixed inset-0 z-10" onClick={() => setActionOpenId(null)} />
                         <div className="absolute right-4 mt-1 w-52 bg-white border border-gray-100 rounded-xl shadow-xl z-20 overflow-hidden py-1">
-                          <button onClick={() => onStatusChange(record, "approved")} className="flex items-center gap-2 w-full px-4 py-2.5 text-left text-xs font-medium hover:bg-emerald-50 text-emerald-700 transition">
-                            <span className="w-2 h-2 rounded-full bg-emerald-500" /> Approve
-                          </button>
+
+                          {/* ── Approve: hidden for utility_bill type ── */}
+                          {record.type !== "utility_bill" && (
+                            <button onClick={() => onStatusChange(record, "approved")} className="flex items-center gap-2 w-full px-4 py-2.5 text-left text-xs font-medium hover:bg-emerald-50 text-emerald-700 transition">
+                              <span className="w-2 h-2 rounded-full bg-emerald-500" /> Approve
+                            </button>
+                          )}
+
                           <button onClick={() => onStatusChange(record, "pending")} className="flex items-center gap-2 w-full px-4 py-2.5 text-left text-xs font-medium hover:bg-amber-50 text-amber-700 transition">
                             <span className="w-2 h-2 rounded-full bg-amber-400" /> Set Pending
                           </button>
