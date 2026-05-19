@@ -7,7 +7,7 @@ import {
   Mail, X, Send, ChevronDown, Users,
   Bold, Italic, Underline, Link, List, ListOrdered,
   AlignLeft, AlignCenter, AlignRight, Minus, Undo, Redo,
-  Type,
+  ShieldAlert,
 } from "lucide-react";
 import { useEditor, EditorContent } from "@tiptap/react";
 import StarterKit from "@tiptap/starter-kit";
@@ -51,6 +51,12 @@ const AUDIENCE_OPTIONS = [
   { value: "inactive", label: "Inactive Users", description: "Dormant or unverified users", dot: "bg-amber-400"   },
 ];
 
+// ── KYC type options ──────────────────────────────────────────────────────────
+const KYC_TYPE_OPTIONS = [
+  { value: "identity", label: "Identity Document",  description: "e.g. Passport, National ID, Driver's license" },
+  { value: "utility",  label: "Utility Document",   description: "e.g. Utility bill, Bank statement"            },
+];
+
 // ── Toolbar button helper ─────────────────────────────────────────────────────
 const ToolbarBtn = ({ onClick, active, disabled, title, children }) => (
   <button
@@ -74,8 +80,8 @@ const ToolbarDivider = () => (
 
 // ── Rich Text Editor ──────────────────────────────────────────────────────────
 const RichEditor = ({ onChange }) => {
-  const [linkUrl,    setLinkUrl]    = useState("");
-  const [showLink,   setShowLink]   = useState(false);
+  const [linkUrl,  setLinkUrl]  = useState("");
+  const [showLink, setShowLink] = useState(false);
 
   const editor = useEditor({
     extensions: [
@@ -90,9 +96,7 @@ const RichEditor = ({ onChange }) => {
         class: "min-h-[180px] max-h-[280px] overflow-y-auto outline-none px-3.5 py-3 text-sm text-gray-800 leading-relaxed prose prose-sm max-w-none",
       },
     },
-    onUpdate: ({ editor }) => {
-      onChange(editor.getHTML());
-    },
+    onUpdate: ({ editor }) => { onChange(editor.getHTML()); },
   });
 
   const applyLink = useCallback(() => {
@@ -111,27 +115,17 @@ const RichEditor = ({ onChange }) => {
 
   return (
     <div className="rounded-xl border border-gray-200 focus-within:border-blue-400 focus-within:ring-2 focus-within:ring-blue-50 transition overflow-hidden bg-white">
-
-      {/* Toolbar */}
       <div className="flex flex-wrap items-center gap-0.5 px-2 py-1.5 border-b border-gray-100 bg-gray-50/80">
-
-        {/* Undo / Redo */}
-        <ToolbarBtn onClick={() => editor.chain().focus().undo().run()} disabled={!editor.can().undo()} title="Undo">
-          <Undo size={13} />
-        </ToolbarBtn>
-        <ToolbarBtn onClick={() => editor.chain().focus().redo().run()} disabled={!editor.can().redo()} title="Redo">
-          <Redo size={13} />
-        </ToolbarBtn>
+        <ToolbarBtn onClick={() => editor.chain().focus().undo().run()} disabled={!editor.can().undo()} title="Undo"><Undo size={13} /></ToolbarBtn>
+        <ToolbarBtn onClick={() => editor.chain().focus().redo().run()} disabled={!editor.can().redo()} title="Redo"><Redo size={13} /></ToolbarBtn>
         <ToolbarDivider />
-
-        {/* Heading */}
         <select
           title="Text style"
           onMouseDown={(e) => e.stopPropagation()}
           onChange={(e) => {
             const val = e.target.value;
-            if (val === "p")   editor.chain().focus().setParagraph().run();
-            else               editor.chain().focus().setHeading({ level: Number(val) }).run();
+            if (val === "p") editor.chain().focus().setParagraph().run();
+            else editor.chain().focus().setHeading({ level: Number(val) }).run();
           }}
           value={
             editor.isActive("heading", { level: 1 }) ? "1" :
@@ -146,58 +140,25 @@ const RichEditor = ({ onChange }) => {
           <option value="3">Heading 3</option>
         </select>
         <ToolbarDivider />
-
-        {/* Inline marks */}
-        <ToolbarBtn onClick={() => editor.chain().focus().toggleBold().run()}      active={editor.isActive("bold")}      title="Bold (Ctrl+B)">
-          <Bold size={13} />
-        </ToolbarBtn>
-        <ToolbarBtn onClick={() => editor.chain().focus().toggleItalic().run()}    active={editor.isActive("italic")}    title="Italic (Ctrl+I)">
-          <Italic size={13} />
-        </ToolbarBtn>
-        <ToolbarBtn onClick={() => editor.chain().focus().toggleUnderline().run()} active={editor.isActive("underline")} title="Underline (Ctrl+U)">
-          <Underline size={13} />
-        </ToolbarBtn>
+        <ToolbarBtn onClick={() => editor.chain().focus().toggleBold().run()}      active={editor.isActive("bold")}      title="Bold"><Bold size={13} /></ToolbarBtn>
+        <ToolbarBtn onClick={() => editor.chain().focus().toggleItalic().run()}    active={editor.isActive("italic")}    title="Italic"><Italic size={13} /></ToolbarBtn>
+        <ToolbarBtn onClick={() => editor.chain().focus().toggleUnderline().run()} active={editor.isActive("underline")} title="Underline"><Underline size={13} /></ToolbarBtn>
         <ToolbarDivider />
-
-        {/* Lists */}
-        <ToolbarBtn onClick={() => editor.chain().focus().toggleBulletList().run()}  active={editor.isActive("bulletList")}  title="Bullet list">
-          <List size={13} />
-        </ToolbarBtn>
-        <ToolbarBtn onClick={() => editor.chain().focus().toggleOrderedList().run()} active={editor.isActive("orderedList")} title="Numbered list">
-          <ListOrdered size={13} />
-        </ToolbarBtn>
+        <ToolbarBtn onClick={() => editor.chain().focus().toggleBulletList().run()}  active={editor.isActive("bulletList")}  title="Bullet list"><List size={13} /></ToolbarBtn>
+        <ToolbarBtn onClick={() => editor.chain().focus().toggleOrderedList().run()} active={editor.isActive("orderedList")} title="Numbered list"><ListOrdered size={13} /></ToolbarBtn>
         <ToolbarDivider />
-
-        {/* Alignment */}
-        <ToolbarBtn onClick={() => editor.chain().focus().setTextAlign("left").run()}   active={editor.isActive({ textAlign: "left" })}   title="Align left">
-          <AlignLeft size={13} />
-        </ToolbarBtn>
-        <ToolbarBtn onClick={() => editor.chain().focus().setTextAlign("center").run()} active={editor.isActive({ textAlign: "center" })} title="Align center">
-          <AlignCenter size={13} />
-        </ToolbarBtn>
-        <ToolbarBtn onClick={() => editor.chain().focus().setTextAlign("right").run()}  active={editor.isActive({ textAlign: "right" })}  title="Align right">
-          <AlignRight size={13} />
-        </ToolbarBtn>
+        <ToolbarBtn onClick={() => editor.chain().focus().setTextAlign("left").run()}   active={editor.isActive({ textAlign: "left" })}   title="Align left"><AlignLeft size={13} /></ToolbarBtn>
+        <ToolbarBtn onClick={() => editor.chain().focus().setTextAlign("center").run()} active={editor.isActive({ textAlign: "center" })} title="Align center"><AlignCenter size={13} /></ToolbarBtn>
+        <ToolbarBtn onClick={() => editor.chain().focus().setTextAlign("right").run()}  active={editor.isActive({ textAlign: "right" })}  title="Align right"><AlignRight size={13} /></ToolbarBtn>
         <ToolbarDivider />
-
-        {/* Horizontal rule */}
-        <ToolbarBtn onClick={() => editor.chain().focus().setHorizontalRule().run()} title="Horizontal rule">
-          <Minus size={13} />
-        </ToolbarBtn>
+        <ToolbarBtn onClick={() => editor.chain().focus().setHorizontalRule().run()} title="Horizontal rule"><Minus size={13} /></ToolbarBtn>
         <ToolbarDivider />
-
-        {/* Link */}
-        <ToolbarBtn onClick={() => setShowLink(v => !v)} active={editor.isActive("link") || showLink} title="Insert link">
-          <Link size={13} />
-        </ToolbarBtn>
+        <ToolbarBtn onClick={() => setShowLink(v => !v)} active={editor.isActive("link") || showLink} title="Insert link"><Link size={13} /></ToolbarBtn>
         {editor.isActive("link") && (
-          <ToolbarBtn onClick={() => editor.chain().focus().unsetLink().run()} title="Remove link">
-            <X size={11} />
-          </ToolbarBtn>
+          <ToolbarBtn onClick={() => editor.chain().focus().unsetLink().run()} title="Remove link"><X size={11} /></ToolbarBtn>
         )}
       </div>
 
-      {/* Link input */}
       {showLink && (
         <div className="flex items-center gap-2 px-3 py-2 bg-blue-50 border-b border-blue-100">
           <input
@@ -209,33 +170,200 @@ const RichEditor = ({ onChange }) => {
             placeholder="https://example.com"
             className="flex-1 text-xs px-2.5 py-1.5 rounded-lg border border-blue-200 bg-white focus:outline-none focus:border-blue-400 text-gray-700 placeholder-gray-400"
           />
-          <button
-            type="button"
-            onClick={applyLink}
-            className="px-3 py-1.5 text-xs font-semibold bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition"
-          >
-            Apply
-          </button>
-          <button
-            type="button"
-            onClick={() => setShowLink(false)}
-            className="text-gray-400 hover:text-gray-600 transition"
-          >
-            <X size={13} />
-          </button>
+          <button type="button" onClick={applyLink} className="px-3 py-1.5 text-xs font-semibold bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition">Apply</button>
+          <button type="button" onClick={() => setShowLink(false)} className="text-gray-400 hover:text-gray-600 transition"><X size={13} /></button>
         </div>
       )}
 
-      {/* Editor area */}
       <EditorContent editor={editor} />
 
-      {/* Footer hint */}
       <div className="px-3.5 py-1.5 border-t border-gray-100 bg-gray-50/60">
         <p className="text-[10px] text-gray-400">
           Rich text — outputs clean HTML · <kbd className="px-1 py-0.5 bg-gray-100 rounded text-[10px]">Ctrl+B</kbd> bold ·
           <kbd className="px-1 py-0.5 bg-gray-100 rounded text-[10px] ml-1">Ctrl+I</kbd> italic ·
           <kbd className="px-1 py-0.5 bg-gray-100 rounded text-[10px] ml-1">Ctrl+U</kbd> underline
         </p>
+      </div>
+    </div>
+  );
+};
+
+// ── Reset KYC Modal ───────────────────────────────────────────────────────────
+const ResetKycModal = ({ user, onClose }) => {
+  const [kycType,  setKycType]  = useState("identity");
+  const [reason,   setReason]   = useState("");
+  const [resetting, setResetting] = useState(false);
+  const [result,   setResult]   = useState(null);
+  const [error,    setError]    = useState(null);
+
+  const handleReset = async () => {
+    if (!reason.trim()) return setError("Please provide a reason for the KYC reset.");
+    setError(null);
+    setResetting(true);
+    try {
+      const token = localStorage.getItem("token");
+      const res   = await fetch(`${API_URL}/superAdmin/users/${user.id}/reset-kyc`, {
+        method:  "POST",
+        headers: { "Content-Type": "application/json", "Authorization": `Bearer ${token}` },
+        body:    JSON.stringify({ kycType, reason: reason.trim() }),
+      });
+      const data = await res.json();
+      if (!res.ok) {
+        setError(data?.details?.join(", ") || data?.message || "Something went wrong.");
+      } else {
+        setResult(data);
+      }
+    } catch {
+      setError("Network error — please try again.");
+    } finally {
+      setResetting(false);
+    }
+  };
+
+  // ── Success state ─────────────────────────────────────────────────────────
+  if (result) {
+    return (
+      <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/40 backdrop-blur-sm">
+        <div className="bg-white rounded-2xl shadow-2xl w-full max-w-md p-8 flex flex-col items-center text-center gap-4">
+          <div className="w-14 h-14 rounded-full bg-orange-100 flex items-center justify-center">
+            <ShieldAlert size={24} className="text-orange-500" />
+          </div>
+          <h2 className="text-lg font-bold text-gray-800">KYC Reset Successful</h2>
+          <p className="text-sm text-gray-500 leading-relaxed">
+            {user.firstname} {user.lastname}'s <span className="font-semibold capitalize">{kycType}</span> KYC has been reset.
+            They will be required to re-submit their documents.
+          </p>
+          <div className="bg-orange-50 text-orange-700 font-semibold text-sm px-5 py-2 rounded-full ring-1 ring-orange-200">
+            Status reset to <span className="capitalize">none</span>
+          </div>
+          <button
+            onClick={onClose}
+            className="mt-2 w-full py-2.5 rounded-xl bg-gray-900 text-white text-sm font-semibold hover:bg-gray-800 transition"
+          >
+            Done
+          </button>
+        </div>
+      </div>
+    );
+  }
+
+  // ── Form ──────────────────────────────────────────────────────────────────
+  return (
+    <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/40 backdrop-blur-sm">
+      <div className="bg-white rounded-2xl shadow-2xl w-full max-w-lg flex flex-col">
+
+        {/* Header */}
+        <div className="flex items-center justify-between px-6 py-4 border-b border-gray-100">
+          <div className="flex items-center gap-2.5">
+            <div className="w-8 h-8 rounded-lg bg-orange-50 flex items-center justify-center">
+              <ShieldAlert size={16} className="text-orange-500" />
+            </div>
+            <div>
+              <h2 className="text-sm font-bold text-gray-800 leading-tight">Reset KYC</h2>
+              <p className="text-xs text-gray-400">
+                {user.firstname} {user.lastname}
+              </p>
+            </div>
+          </div>
+          <button
+            onClick={onClose}
+            className="w-8 h-8 flex items-center justify-center rounded-lg text-gray-400 hover:bg-gray-100 hover:text-gray-600 transition"
+          >
+            <X size={16} />
+          </button>
+        </div>
+
+        {/* Body */}
+        <div className="px-6 py-5 space-y-5">
+
+          {/* Info banner */}
+          <div className="flex items-start gap-3 px-4 py-3 rounded-xl bg-amber-50 border border-amber-100">
+            <ShieldAlert size={15} className="text-amber-500 mt-0.5 shrink-0" />
+            <p className="text-xs text-amber-700 leading-relaxed">
+              This will reset the user's KYC status to <span className="font-semibold">none</span> and archive or reject their
+              existing documents. They will be prompted to re-submit.
+            </p>
+          </div>
+
+          {/* KYC type */}
+          <div>
+            <label className="block text-xs font-semibold text-gray-500 uppercase tracking-wide mb-2">
+              KYC Type <span className="text-red-400">*</span>
+            </label>
+            <div className="grid grid-cols-2 gap-2">
+              {KYC_TYPE_OPTIONS.map((opt) => (
+                <button
+                  key={opt.value}
+                  type="button"
+                  onClick={() => setKycType(opt.value)}
+                  className={`flex flex-col items-start gap-0.5 px-4 py-3 rounded-xl border text-left transition ${
+                    kycType === opt.value
+                      ? "border-orange-400 bg-orange-50 ring-2 ring-orange-100"
+                      : "border-gray-200 bg-white hover:border-gray-300 hover:bg-gray-50"
+                  }`}
+                >
+                  <span className={`text-xs font-semibold ${kycType === opt.value ? "text-orange-700" : "text-gray-700"}`}>
+                    {opt.label}
+                  </span>
+                  <span className="text-[10px] text-gray-400 leading-snug">{opt.description}</span>
+                </button>
+              ))}
+            </div>
+          </div>
+
+          {/* Reason */}
+          <div>
+            <label className="block text-xs font-semibold text-gray-500 uppercase tracking-wide mb-1.5">
+              Reason <span className="text-red-400">*</span>
+            </label>
+            <textarea
+              rows={3}
+              value={reason}
+              onChange={(e) => setReason(e.target.value)}
+              placeholder="e.g. Document blurry, please re-upload."
+              className="w-full px-3.5 py-2.5 rounded-xl border border-gray-200 text-sm text-gray-800 placeholder-gray-400 focus:outline-none focus:border-orange-400 focus:ring-2 focus:ring-orange-50 transition resize-none"
+            />
+            <p className="text-[10px] text-gray-400 mt-1">
+              This reason may be shown to the user as guidance for re-submission.
+            </p>
+          </div>
+
+          {/* Error */}
+          {error && (
+            <div className="flex items-start gap-2.5 px-4 py-3 rounded-xl bg-red-50 border border-red-100">
+              <span className="w-1.5 h-1.5 rounded-full bg-red-500 mt-1.5 shrink-0" />
+              <p className="text-sm text-red-600">{error}</p>
+            </div>
+          )}
+        </div>
+
+        {/* Footer */}
+        <div className="flex items-center justify-end gap-2 px-6 py-4 border-t border-gray-100 bg-gray-50/60 rounded-b-2xl">
+          <button
+            onClick={onClose}
+            disabled={resetting}
+            className="px-4 py-2 rounded-lg text-sm font-semibold text-gray-600 border border-gray-200 hover:bg-gray-100 disabled:opacity-50 transition"
+          >
+            Cancel
+          </button>
+          <button
+            onClick={handleReset}
+            disabled={resetting || !reason.trim()}
+            className="flex items-center gap-2 px-5 py-2 rounded-lg text-sm font-semibold text-white bg-orange-500 hover:bg-orange-600 disabled:opacity-50 disabled:cursor-not-allowed transition"
+          >
+            {resetting ? (
+              <>
+                <span className="w-3.5 h-3.5 border-2 border-white/40 border-t-white rounded-full animate-spin" />
+                Resetting…
+              </>
+            ) : (
+              <>
+                <ShieldAlert size={13} />
+                Reset KYC
+              </>
+            )}
+          </button>
+        </div>
       </div>
     </div>
   );
@@ -270,7 +398,7 @@ const EmailModal = ({ onClose, totalUsers, preselectedUsers }) => {
       const res   = await fetch(`${API_URL}/superAdmin/broadcast-email`, {
         method:  "POST",
         headers: { "Content-Type": "application/json", "Authorization": `Bearer ${token}` },
-        body: JSON.stringify(payload),
+        body:    JSON.stringify(payload),
       });
       const data = await res.json();
       if (!res.ok) {
@@ -285,7 +413,6 @@ const EmailModal = ({ onClose, totalUsers, preselectedUsers }) => {
     }
   };
 
-  // ── Success ──────────────────────────────────────────────────────────────
   if (result) {
     return (
       <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/40 backdrop-blur-sm">
@@ -294,71 +421,42 @@ const EmailModal = ({ onClose, totalUsers, preselectedUsers }) => {
             <Send size={24} className="text-emerald-600" />
           </div>
           <h2 className="text-lg font-bold text-gray-800">Email Dispatched!</h2>
-          <p className="text-sm text-gray-500 leading-relaxed">
-            {result.message || "Email dispatched successfully."}
-          </p>
+          <p className="text-sm text-gray-500 leading-relaxed">{result.message || "Email dispatched successfully."}</p>
           <div className="bg-emerald-50 text-emerald-700 font-semibold text-sm px-5 py-2 rounded-full ring-1 ring-emerald-200">
             {result.dispatchedCount?.toLocaleString() ?? "—"} recipient{result.dispatchedCount !== 1 ? "s" : ""} reached
           </div>
-          <button
-            onClick={onClose}
-            className="mt-2 w-full py-2.5 rounded-xl bg-gray-900 text-white text-sm font-semibold hover:bg-gray-800 transition"
-          >
-            Done
-          </button>
+          <button onClick={onClose} className="mt-2 w-full py-2.5 rounded-xl bg-gray-900 text-white text-sm font-semibold hover:bg-gray-800 transition">Done</button>
         </div>
       </div>
     );
   }
 
-  // ── Compose ──────────────────────────────────────────────────────────────
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/40 backdrop-blur-sm">
       <div className="bg-white rounded-2xl shadow-2xl w-full max-w-2xl flex flex-col max-h-[90vh]">
-
-        {/* Header */}
         <div className="flex items-center justify-between px-6 py-4 border-b border-gray-100">
           <div className="flex items-center gap-2.5">
             <div className={`w-8 h-8 rounded-lg flex items-center justify-center ${isTargeted ? "bg-purple-50" : "bg-blue-50"}`}>
               <Mail size={16} className={isTargeted ? "text-purple-600" : "text-blue-600"} />
             </div>
             <div>
-              <h2 className="text-sm font-bold text-gray-800 leading-tight">
-                {isTargeted ? "Send Email" : "Broadcast Email"}
-              </h2>
+              <h2 className="text-sm font-bold text-gray-800 leading-tight">{isTargeted ? "Send Email" : "Broadcast Email"}</h2>
               <p className="text-xs text-gray-400">
-                {isTargeted
-                  ? `To ${recipients.length} selected user${recipients.length !== 1 ? "s" : ""}`
-                  : "Send a message to users"}
+                {isTargeted ? `To ${recipients.length} selected user${recipients.length !== 1 ? "s" : ""}` : "Send a message to users"}
               </p>
             </div>
           </div>
-          <button
-            onClick={onClose}
-            className="w-8 h-8 flex items-center justify-center rounded-lg text-gray-400 hover:bg-gray-100 hover:text-gray-600 transition"
-          >
-            <X size={16} />
-          </button>
+          <button onClick={onClose} className="w-8 h-8 flex items-center justify-center rounded-lg text-gray-400 hover:bg-gray-100 hover:text-gray-600 transition"><X size={16} /></button>
         </div>
 
-        {/* Body */}
         <div className="flex-1 overflow-y-auto px-6 py-5 space-y-5">
-
-          {/* Targeted: recipient chips */}
           {isTargeted && (
             <div>
-              <label className="block text-xs font-semibold text-gray-500 uppercase tracking-wide mb-1.5">
-                Recipients
-              </label>
+              <label className="block text-xs font-semibold text-gray-500 uppercase tracking-wide mb-1.5">Recipients</label>
               <div className="flex flex-wrap gap-1.5 p-3 rounded-xl bg-gray-50 border border-gray-200 max-h-28 overflow-y-auto">
                 {recipients.map(u => (
-                  <span
-                    key={u.id}
-                    className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full bg-white border border-gray-200 text-xs font-medium text-gray-700 shadow-sm"
-                  >
-                    <span className="w-4 h-4 rounded-full bg-indigo-100 text-indigo-600 flex items-center justify-center text-[9px] font-bold uppercase shrink-0">
-                      {u.firstname?.[0] || "?"}
-                    </span>
+                  <span key={u.id} className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full bg-white border border-gray-200 text-xs font-medium text-gray-700 shadow-sm">
+                    <span className="w-4 h-4 rounded-full bg-indigo-100 text-indigo-600 flex items-center justify-center text-[9px] font-bold uppercase shrink-0">{u.firstname?.[0] || "?"}</span>
                     {u.firstname} {u.lastname}
                   </span>
                 ))}
@@ -366,12 +464,9 @@ const EmailModal = ({ onClose, totalUsers, preselectedUsers }) => {
             </div>
           )}
 
-          {/* Broadcast: audience selector */}
           {!isTargeted && (
             <div>
-              <label className="block text-xs font-semibold text-gray-500 uppercase tracking-wide mb-1.5">
-                Audience
-              </label>
+              <label className="block text-xs font-semibold text-gray-500 uppercase tracking-wide mb-1.5">Audience</label>
               <div className="relative">
                 <button
                   onClick={() => setAudienceOpen(v => !v)}
@@ -389,11 +484,7 @@ const EmailModal = ({ onClose, totalUsers, preselectedUsers }) => {
                     <div className="fixed inset-0 z-10" onClick={() => setAudienceOpen(false)} />
                     <div className="absolute top-full left-0 right-0 mt-1.5 bg-white border border-gray-100 rounded-xl shadow-xl z-20 overflow-hidden py-1">
                       {AUDIENCE_OPTIONS.map(opt => (
-                        <button
-                          key={opt.value}
-                          onClick={() => { setAudience(opt.value); setAudienceOpen(false); }}
-                          className={`flex items-center gap-3 w-full px-4 py-2.5 text-sm transition hover:bg-gray-50 ${audience === opt.value ? "bg-blue-50/60" : ""}`}
-                        >
+                        <button key={opt.value} onClick={() => { setAudience(opt.value); setAudienceOpen(false); }} className={`flex items-center gap-3 w-full px-4 py-2.5 text-sm transition hover:bg-gray-50 ${audience === opt.value ? "bg-blue-50/60" : ""}`}>
                           <span className={`w-2 h-2 rounded-full shrink-0 ${opt.dot}`} />
                           <div className="text-left">
                             <p className="font-medium text-gray-800">{opt.label}</p>
@@ -409,11 +500,8 @@ const EmailModal = ({ onClose, totalUsers, preselectedUsers }) => {
             </div>
           )}
 
-          {/* Subject */}
           <div>
-            <label className="block text-xs font-semibold text-gray-500 uppercase tracking-wide mb-1.5">
-              Subject <span className="text-red-400">*</span>
-            </label>
+            <label className="block text-xs font-semibold text-gray-500 uppercase tracking-wide mb-1.5">Subject <span className="text-red-400">*</span></label>
             <input
               type="text"
               value={subject}
@@ -423,17 +511,13 @@ const EmailModal = ({ onClose, totalUsers, preselectedUsers }) => {
             />
           </div>
 
-          {/* Rich Text Body */}
           <div>
             <div className="flex items-center justify-between mb-1.5">
-              <label className="text-xs font-semibold text-gray-500 uppercase tracking-wide">
-                Message <span className="text-red-400">*</span>
-              </label>
+              <label className="text-xs font-semibold text-gray-500 uppercase tracking-wide">Message <span className="text-red-400">*</span></label>
             </div>
             <RichEditor onChange={setBody} />
           </div>
 
-          {/* Error */}
           {error && (
             <div className="flex items-start gap-2.5 px-4 py-3 rounded-xl bg-red-50 border border-red-100">
               <span className="w-1.5 h-1.5 rounded-full bg-red-500 mt-1.5 shrink-0" />
@@ -442,43 +526,24 @@ const EmailModal = ({ onClose, totalUsers, preselectedUsers }) => {
           )}
         </div>
 
-        {/* Footer */}
         <div className="flex items-center justify-between gap-3 px-6 py-4 border-t border-gray-100 bg-gray-50/60 rounded-b-2xl">
           <p className="text-xs text-gray-400">
             Sending to:{" "}
             <span className="font-semibold text-gray-600">
-              {isTargeted
-                ? `${recipients.length} user${recipients.length !== 1 ? "s" : ""}`
-                : audience === "all"
-                  ? `all ${totalUsers.toLocaleString()} users`
-                  : `${audience} users`}
+              {isTargeted ? `${recipients.length} user${recipients.length !== 1 ? "s" : ""}` : audience === "all" ? `all ${totalUsers.toLocaleString()} users` : `${audience} users`}
             </span>
           </p>
           <div className="flex items-center gap-2">
-            <button
-              onClick={onClose}
-              disabled={sending}
-              className="px-4 py-2 rounded-lg text-sm font-semibold text-gray-600 border border-gray-200 hover:bg-gray-100 disabled:opacity-50 transition"
-            >
-              Cancel
-            </button>
+            <button onClick={onClose} disabled={sending} className="px-4 py-2 rounded-lg text-sm font-semibold text-gray-600 border border-gray-200 hover:bg-gray-100 disabled:opacity-50 transition">Cancel</button>
             <button
               onClick={handleSend}
               disabled={sending || !subject.trim() || !body.trim() || body === "<p></p>"}
-              className={`flex items-center gap-2 px-5 py-2 rounded-lg text-sm font-semibold text-white disabled:opacity-50 disabled:cursor-not-allowed transition ${
-                isTargeted ? "bg-purple-600 hover:bg-purple-700" : "bg-blue-600 hover:bg-blue-700"
-              }`}
+              className={`flex items-center gap-2 px-5 py-2 rounded-lg text-sm font-semibold text-white disabled:opacity-50 disabled:cursor-not-allowed transition ${isTargeted ? "bg-purple-600 hover:bg-purple-700" : "bg-blue-600 hover:bg-blue-700"}`}
             >
               {sending ? (
-                <>
-                  <span className="w-3.5 h-3.5 border-2 border-white/40 border-t-white rounded-full animate-spin" />
-                  Sending…
-                </>
+                <><span className="w-3.5 h-3.5 border-2 border-white/40 border-t-white rounded-full animate-spin" />Sending…</>
               ) : (
-                <>
-                  <Send size={13} />
-                  {isTargeted ? `Send to ${recipients.length}` : "Send Broadcast"}
-                </>
+                <><Send size={13} />{isTargeted ? `Send to ${recipients.length}` : "Send Broadcast"}</>
               )}
             </button>
           </div>
@@ -504,6 +569,7 @@ const UsersTable = ({
   const [selectedIds,   setSelectedIds]   = useState(new Set());
   const [modalOpen,     setModalOpen]     = useState(false);
   const [targetedUsers, setTargetedUsers] = useState(null);
+  const [kycResetUser,  setKycResetUser]  = useState(null); // user to reset KYC for
 
   const totalPages  = Math.ceil(totalUsers / limit);
   const currentPage = Math.floor(offset / limit) + 1;
@@ -537,17 +603,20 @@ const UsersTable = ({
   const openTargetedFromSelect = ()     => openTargeted(selectedUsers);
   const closeModal             = ()     => { setModalOpen(false); setTargetedUsers(null); };
 
+  const openKycReset  = (user) => { setKycResetUser(user); setOpenMenu(null); };
+  const closeKycReset = ()     => setKycResetUser(null);
+
   const thCls = "px-5 py-3.5 text-left text-xs font-bold text-gray-400 uppercase tracking-wider";
   const tdCls = "px-5 py-4";
 
   return (
     <>
       {modalOpen && (
-        <EmailModal
-          onClose={closeModal}
-          totalUsers={totalUsers}
-          preselectedUsers={targetedUsers}
-        />
+        <EmailModal onClose={closeModal} totalUsers={totalUsers} preselectedUsers={targetedUsers} />
+      )}
+
+      {kycResetUser && (
+        <ResetKycModal user={kycResetUser} onClose={closeKycReset} />
       )}
 
       <div className="bg-white rounded-2xl border border-gray-100 shadow-sm overflow-hidden">
@@ -641,10 +710,7 @@ const UsersTable = ({
                       </td>
 
                       <td className={tdCls}>
-                        <div
-                          className="flex items-center gap-3 cursor-pointer"
-                          onClick={() => navigate(`/admin/all-users/${user.id}`)}
-                        >
+                        <div className="flex items-center gap-3 cursor-pointer" onClick={() => navigate(`/admin/all-users/${user.id}`)}>
                           <div className="w-9 h-9 rounded-full bg-indigo-100 flex items-center justify-center text-indigo-600 text-sm font-bold shrink-0 uppercase">
                             {user.firstname?.[0] || "?"}
                           </div>
@@ -652,9 +718,7 @@ const UsersTable = ({
                             <p className="font-semibold text-gray-800 group-hover:text-blue-600 transition text-sm leading-tight">
                               {user.firstname} {user.lastname}
                             </p>
-                            <p className="text-xs text-gray-400 mt-0.5">
-                              @{user.tag || user.firstname?.toLowerCase() || "user"}
-                            </p>
+                            <p className="text-xs text-gray-400 mt-0.5">@{user.tag || user.firstname?.toLowerCase() || "user"}</p>
                           </div>
                         </div>
                       </td>
@@ -666,14 +730,10 @@ const UsersTable = ({
 
                       <td className={`${tdCls} text-gray-600 text-sm`}>{user.country || "—"}</td>
 
-                      <td className={tdCls}>
-                        <StatusBadge status={user.status} />
-                      </td>
+                      <td className={tdCls}><StatusBadge status={user.status} /></td>
 
                       <td className={`${tdCls} text-xs text-gray-400 whitespace-nowrap`}>
-                        {user.lastLogin
-                          ? formatDistanceToNow(new Date(user.lastLogin), { addSuffix: true })
-                          : "Never"}
+                        {user.lastLogin ? formatDistanceToNow(new Date(user.lastLogin), { addSuffix: true }) : "Never"}
                       </td>
 
                       <td className={tdCls}>
@@ -704,7 +764,9 @@ const UsersTable = ({
                             {openMenu === user.id && (
                               <>
                                 <div className="fixed inset-0 z-10" onClick={() => setOpenMenu(null)} />
-                                <div className="absolute right-0 mt-1 w-40 bg-white border border-gray-100 rounded-xl shadow-xl z-20 overflow-hidden py-1">
+                                <div className="absolute right-0 mt-1 w-44 bg-white border border-gray-100 rounded-xl shadow-xl z-20 overflow-hidden py-1">
+
+                                  {/* Status section */}
                                   <p className="px-3 py-1.5 text-[10px] font-bold text-gray-400 uppercase tracking-wider">Set Status</p>
                                   {statusOptions.map((s) => {
                                     const colorMap = {
@@ -730,6 +792,19 @@ const UsersTable = ({
                                       </button>
                                     );
                                   })}
+
+                                  {/* Divider */}
+                                  <div className="my-1 border-t border-gray-100" />
+
+                                  {/* KYC section */}
+                                  <p className="px-3 py-1.5 text-[10px] font-bold text-gray-400 uppercase tracking-wider">KYC</p>
+                                  <button
+                                    onClick={() => openKycReset(user)}
+                                    className="flex items-center gap-2 w-full px-3 py-2 text-xs font-medium text-orange-600 hover:bg-orange-50 transition"
+                                  >
+                                    <ShieldAlert size={12} />
+                                    Reset KYC
+                                  </button>
                                 </div>
                               </>
                             )}
@@ -751,7 +826,6 @@ const UsersTable = ({
               Showing <span className="font-semibold text-gray-600">{startItem}–{endItem}</span> of{" "}
               <span className="font-semibold text-gray-600">{totalUsers}</span> users
             </p>
-
             <div className="flex items-center gap-1">
               <button
                 onClick={() => onPageChange(offset - limit)}
@@ -760,7 +834,6 @@ const UsersTable = ({
               >
                 <ChevronLeft size={15} />
               </button>
-
               {pageNumbers.map((p, idx) =>
                 p === "..." ? (
                   <span key={`e${idx}`} className="w-8 h-8 flex items-center justify-center text-gray-400 text-sm">…</span>
@@ -778,7 +851,6 @@ const UsersTable = ({
                   </button>
                 )
               )}
-
               <button
                 onClick={() => onPageChange(offset + limit)}
                 disabled={offset + limit >= totalUsers}

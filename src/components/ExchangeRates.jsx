@@ -43,6 +43,28 @@ const Input = ({ label, ...props }) => (
   </div>
 );
 
+// ── Select ────────────────────────────────────────────────────────────────────
+const Select = ({ label, options, ...props }) => (
+  <div>
+    {label && <label className="block text-xs font-semibold text-gray-500 uppercase tracking-wide mb-1.5">{label}</label>}
+    <select
+      className="w-full border border-gray-200 rounded-xl px-3.5 py-2.5 text-sm text-gray-800 focus:outline-none focus:ring-2 focus:ring-blue-400 focus:border-transparent bg-white transition appearance-none"
+      {...props}
+    >
+      {options.map((opt) => (
+        <option key={opt.value} value={opt.value}>
+          {opt.label}
+        </option>
+      ))}
+    </select>
+  </div>
+);
+
+const MARGIN_OPERATION_OPTIONS = [
+  { value: "add", label: "Addition" },
+  { value: "subtract", label: "Subtract" },
+];
+
 // ── Main ──────────────────────────────────────────────────────────────────────
 export default function ExchangeRates() {
   const [tab, setTab] = useState("list");
@@ -59,16 +81,20 @@ export default function ExchangeRates() {
   const [baseCurrency, setBaseCurrency] = useState("");
   const [targetCurrency, setTargetCurrency] = useState("");
   const [rate, setRate] = useState("");
+  const [margin, setMargin] = useState("");
+  const [marginOperation, setMarginOperation] = useState("add");
 
   // Edit
   const [editRate, setEditRate] = useState("");
+  const [editMargin, setEditMargin] = useState("");
+  const [editMarginOperation, setEditMarginOperation] = useState("add");
 
   // ── Converter state ────────────────────────────────────────────────────────
   const [fromCur, setFromCur] = useState("NGN");
   const [toCur, setToCur] = useState("USD");
   const [fromAmount, setFromAmount] = useState("1000");
   const [toAmount, setToAmount] = useState("");
-  const [lastEdited, setLastEdited] = useState("from"); // "from" | "to"
+  const [lastEdited, setLastEdited] = useState("from");
 
   // ── Fetch ───────────────────────────────────────────────────────────────────
   const fetchRates = useCallback(async () => {
@@ -111,8 +137,11 @@ export default function ExchangeRates() {
       const res = await axios.get(`${API_URL}/superAdmin/exchange-rates/${id}`, {
         headers: { Authorization: `Bearer ${getToken()}` },
       });
-      setSelected(res.data.data);
-      setEditRate(String(res.data.data.rate));
+      const data = res.data.data;
+      setSelected(data);
+      setEditRate(String(data.rate));
+      setEditMargin(String(data.margin ?? ""));
+      setEditMarginOperation(data.marginOperation || "add");
       setTab("view");
     } catch (err) {
       console.error("Error loading rate:", err);
@@ -123,10 +152,17 @@ export default function ExchangeRates() {
 
   const createRate = async () => {
     if (!baseCurrency || !targetCurrency || !rate) return alert("All fields are required");
+    if (!margin) return alert("Margin is required");
     try {
       const res = await axios.post(
         `${API_URL}/superAdmin/exchange-rates`,
-        { baseCurrency, targetCurrency, rate: rate.trim() },
+        {
+          baseCurrency,
+          targetCurrency,
+          rate: rate.trim(),
+          margin: Number(margin),
+          marginOperation,
+        },
         { headers: { Authorization: `Bearer ${getToken()}` } }
       );
       setRates((prev) => [res.data.data, ...prev]);
@@ -134,6 +170,8 @@ export default function ExchangeRates() {
       setBaseCurrency("");
       setTargetCurrency("");
       setRate("");
+      setMargin("");
+      setMarginOperation("add");
       setTab("list");
     } catch (err) {
       console.error("Create failed:", err);
@@ -143,11 +181,16 @@ export default function ExchangeRates() {
 
   const updateRate = async () => {
     if (!selected || saving) return;
+    if (!editMargin) return alert("Margin is required");
     try {
       setSaving(true);
       const res = await axios.put(
         `${API_URL}/superAdmin/exchange-rates/${selected.id}`,
-        { rate: editRate.trim() },
+        {
+          rate: editRate.trim(),
+          margin: Number(editMargin),
+          marginOperation: editMarginOperation,
+        },
         { headers: { Authorization: `Bearer ${getToken()}` } }
       );
       const updated = res.data.data;
@@ -202,7 +245,6 @@ export default function ExchangeRates() {
     return null;
   }, [fromCur, toCur, normalized]);
 
-  // ── Sync the "other" input whenever activeRate, fromAmount, or toAmount changes ──
   useEffect(() => {
     if (!activeRate) return;
 
@@ -262,7 +304,6 @@ export default function ExchangeRates() {
   const swap = () => {
     setFromCur((prev) => (prev === "NGN" ? "USD" : "NGN"));
     setToCur((prev) => (prev === "USD" ? "NGN" : "USD"));
-    // Also swap the displayed amounts
     setFromAmount(toAmount);
     setToAmount(fromAmount);
     setLastEdited("from");
@@ -311,14 +352,13 @@ export default function ExchangeRates() {
             )}
           </div>
 
-          {/* ── Converter block (bi-directional) ── */}
+          {/* ── Converter block ── */}
           <div className="bg-white rounded-2xl border border-gray-100 shadow-sm p-5">
             <div className="flex items-center justify-between mb-4">
               <div>
                 <p className="text-sm font-bold text-gray-900">Quick Convert</p>
                 <p className="text-xs text-gray-400">Calculated from your rate table</p>
               </div>
-
               <button
                 onClick={swap}
                 className="px-3 py-2 rounded-xl border border-gray-200 bg-white text-gray-600 hover:bg-gray-50 transition flex items-center gap-2 text-xs font-semibold"
@@ -328,7 +368,6 @@ export default function ExchangeRates() {
             </div>
 
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-              {/* FROM input */}
               <div>
                 <label className="block text-xs font-semibold text-gray-500 uppercase tracking-wide mb-1.5">
                   Amount ({fromCur})
@@ -342,7 +381,6 @@ export default function ExchangeRates() {
                 />
               </div>
 
-              {/* TO input — now editable */}
               <div>
                 <label className="block text-xs font-semibold text-gray-500 uppercase tracking-wide mb-1.5">
                   Amount ({toCur})
@@ -360,7 +398,6 @@ export default function ExchangeRates() {
               </div>
             </div>
 
-            {/* Currency toggles */}
             <div className="flex items-center gap-2 mt-4">
               <button
                 onClick={() => {
@@ -452,6 +489,8 @@ export default function ExchangeRates() {
                     <th className={thCls}>Base</th>
                     <th className={thCls}>Target</th>
                     <th className={thCls}>Rate</th>
+                    <th className={thCls}>Margin</th>
+                    <th className={thCls}>Operation</th>
                     <th className={thCls}>Last Updated</th>
                     <th className={thCls}>Action</th>
                   </tr>
@@ -470,6 +509,24 @@ export default function ExchangeRates() {
                         </span>
                       </td>
                       <td className={`${tdCls} font-mono font-semibold text-gray-900`}>{r.rate}</td>
+                      <td className={`${tdCls} font-mono text-gray-700`}>
+                        {r.margin != null ? r.margin : "—"}
+                      </td>
+                      <td className={tdCls}>
+                        {r.marginOperation ? (
+                          <span
+                            className={`px-2.5 py-1 rounded-lg text-xs font-semibold ${
+                              r.marginOperation === "add"
+                                ? "bg-emerald-50 text-emerald-700"
+                                : "bg-rose-50 text-rose-700"
+                            }`}
+                          >
+                            {r.marginOperation === "add" ? "Addition" : "Subtract"}
+                          </span>
+                        ) : (
+                          <span className="text-gray-400">—</span>
+                        )}
+                      </td>
                       <td className={`${tdCls} text-gray-400 text-xs`}>{r.updatedAt?.split("T")[0]}</td>
                       <td className={tdCls}>
                         <button
@@ -514,11 +571,32 @@ export default function ExchangeRates() {
             onChange={(e) => setRate(e.target.value)}
           />
 
+          <div className="grid grid-cols-2 gap-3">
+            <Input
+              label="Margin *"
+              type="number"
+              placeholder="e.g. 5"
+              value={margin}
+              onChange={(e) => setMargin(e.target.value)}
+            />
+            <Select
+              label="Margin Operation *"
+              options={MARGIN_OPERATION_OPTIONS}
+              value={marginOperation}
+              onChange={(e) => setMarginOperation(e.target.value)}
+            />
+          </div>
+
           {baseCurrency && targetCurrency && rate && (
             <div className="flex items-center gap-2 px-4 py-3 bg-blue-50 rounded-xl text-sm text-blue-700">
               <ArrowLeftRight size={14} />
               <span>
                 1 <strong>{baseCurrency}</strong> = <strong>{rate}</strong> {targetCurrency}
+                {margin && (
+                  <span className="ml-1 text-blue-500">
+                    ({marginOperation === "add" ? "+" : "−"}{margin}% margin)
+                  </span>
+                )}
               </span>
             </div>
           )}
@@ -564,13 +642,39 @@ export default function ExchangeRates() {
               </span>
             </div>
 
-            <Input label="Rate" type="number" value={editRate} onChange={(e) => setEditRate(e.target.value)} />
+            <Input
+              label="Rate"
+              type="number"
+              value={editRate}
+              onChange={(e) => setEditRate(e.target.value)}
+            />
+
+            <div className="grid grid-cols-2 gap-3">
+              <Input
+                label="Margin *"
+                type="number"
+                placeholder="e.g. 5"
+                value={editMargin}
+                onChange={(e) => setEditMargin(e.target.value)}
+              />
+              <Select
+                label="Margin Operation *"
+                options={MARGIN_OPERATION_OPTIONS}
+                value={editMarginOperation}
+                onChange={(e) => setEditMarginOperation(e.target.value)}
+              />
+            </div>
 
             {editRate && (
               <div className="flex items-center gap-2 px-4 py-3 bg-blue-50 rounded-xl text-sm text-blue-700">
                 <ArrowLeftRight size={14} />
                 <span>
                   1 <strong>{selected.baseCurrency}</strong> = <strong>{editRate}</strong> {selected.targetCurrency}
+                  {editMargin && (
+                    <span className="ml-1 text-blue-500">
+                      ({editMarginOperation === "add" ? "+" : "−"}{editMargin}% margin)
+                    </span>
+                  )}
                 </span>
               </div>
             )}
