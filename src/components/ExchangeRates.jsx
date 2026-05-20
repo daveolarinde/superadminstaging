@@ -6,9 +6,8 @@ const API_URL = import.meta.env.VITE_STAGE_API_URL;
 const getToken = () => localStorage.getItem("token");
 
 // ── Overview rate card ────────────────────────────────────────────────────────
-const RateOverviewCard = ({ pair, value }) => {
-  const [base, target] = pair.split("-");
-  const formatted = Number(value).toLocaleString(undefined, {
+const RateOverviewCard = ({ from, to, ask }) => {
+  const formatted = Number(ask).toLocaleString(undefined, {
     minimumFractionDigits: 2,
     maximumFractionDigits: 6,
   });
@@ -17,17 +16,17 @@ const RateOverviewCard = ({ pair, value }) => {
     <div className="bg-white rounded-2xl border border-gray-100 shadow-sm p-5">
       <div className="flex items-center justify-between mb-3">
         <div className="flex items-center gap-2">
-          <span className="px-2 py-1 rounded-lg bg-blue-50 text-blue-700 text-xs font-bold">{base}</span>
+          <span className="px-2 py-1 rounded-lg bg-blue-50 text-blue-700 text-xs font-bold">{from}</span>
           <ArrowLeftRight size={12} className="text-gray-400" />
-          <span className="px-2 py-1 rounded-lg bg-emerald-50 text-emerald-700 text-xs font-bold">{target}</span>
+          <span className="px-2 py-1 rounded-lg bg-emerald-50 text-emerald-700 text-xs font-bold">{to}</span>
         </div>
         <div className="w-8 h-8 rounded-xl bg-indigo-50 flex items-center justify-center">
           <ArrowLeftRight size={14} className="text-indigo-600" />
         </div>
       </div>
-      <p className="text-xs text-gray-400 mb-1"> {base} equals</p>
+      <p className="text-xs text-gray-400 mb-1">1 {from} equals</p>
       <p className="text-2xl font-bold text-gray-900 leading-tight">{formatted}</p>
-      <p className="text-xs text-gray-400 mt-0.5">{target}</p>
+      <p className="text-xs text-gray-400 mt-0.5">{to}</p>
     </div>
   );
 };
@@ -71,8 +70,14 @@ export default function ExchangeRates() {
 
   const [rates, setRates] = useState([]);
   const [loading, setLoading] = useState(true);
-  const [overviewRates, setOverviewRates] = useState({});
-  const [overviewLoading, setOverviewLoading] = useState(true);
+
+  // Live rates state
+  const [liveRates, setLiveRates] = useState([]);           // array of fetched { from, to, ask }
+  const [overviewLoading, setOverviewLoading] = useState(false);
+  const [liveFrom, setLiveFrom] = useState("");
+  const [liveTo, setLiveTo] = useState("");
+  const [liveFetching, setLiveFetching] = useState(false);
+  const [liveError, setLiveError] = useState("");
 
   const [saving, setSaving] = useState(false);
   const [selected, setSelected] = useState(null);
@@ -96,7 +101,7 @@ export default function ExchangeRates() {
   const [toAmount, setToAmount] = useState("");
   const [lastEdited, setLastEdited] = useState("from");
 
-  // ── Fetch ───────────────────────────────────────────────────────────────────
+  // ── Fetch rates list ────────────────────────────────────────────────────────
   const fetchRates = useCallback(async () => {
     try {
       setLoading(true);
@@ -111,24 +116,110 @@ export default function ExchangeRates() {
     }
   }, []);
 
-  const fetchOverviewRates = useCallback(async () => {
+  useEffect(() => {
+    fetchRates();
+  }, [fetchRates]);
+
+  // ── Derive unique currency options from existing rates ─────────────────────
+  const currencyOptions = useMemo(() => {
+    const codes = new Set();
+    rates.forEach((r) => {
+      codes.add(r.baseCurrency);
+      codes.add(r.targetCurrency);
+    });
+    return [
+      { value: "", label: "Select currency..." },
+      ...[...codes].sort().map((c) => ({ value: c, label: c })),
+    ];
+  }, [rates]);
+
+  // ── Fetch a single WeWire live rate ────────────────────────────────────────
+  const fetchWeWireRate = useCallback(async (from, to) => {
+    if (!from || !to) return;
+    if (from === to) { setLiveError("From and To currencies must be different"); return; }
     try {
-      setOverviewLoading(true);
-      const res = await axios.get(`${API_URL}/superAdmin/rates`, {
+      setLiveFetching(true);
+      setLiveError("");
+      const res = await axios.get(`${API_URL}/users/wewire/rates`, {
+        params: { from, to },
         headers: { Authorization: `Bearer ${getToken()}` },
       });
-      setOverviewRates(res.data?.data?.rates || {});
+      const data = res.data?.data;
+      if (data) {
+        setLiveRates((prev) => {
+          // Replace existing entry for same pair or append
+          const exists = prev.findIndex((r) => r.from === data.from && r.to === data.to);
+          if (exists >= 0) {
+            const updated = [...prev];
+            updated[exists] = data;
+            return updated;
+          }
+          return [data, ...prev];
+        });
+      }
     } catch (err) {
-      console.error("Error fetching overview rates:", err);
+      console.error(`Error fetching WeWire rate ${from}-${to}:`, err);
+      setLiveError("Failed to fetch rate. Please try again.");
     } finally {
-      setOverviewLoading(false);
+      setLiveFetching(false);
     }
   }, []);
 
+  // ── Converter active rate (looks up in liveRates array) ───────────────────
+  const activeRate = useMemo(() => {
+    const entry = liveRates.find((r) => r.from === fromCur && r.to === toCur);
+    const n = Number(entry?.ask);
+    return Number.isFinite(n) ? n : null;
+  }, [fromCur, toCur, liveRates]);
+
   useEffect(() => {
-    fetchRates();
-    fetchOverviewRates();
-  }, [fetchRates, fetchOverviewRates]);
+    if (!activeRate) return;
+    if (lastEdited === "from") {
+      const amt = Number(String(fromAmount).replace(/,/g, ""));
+      if (Number.isFinite(amt) && amt >= 0) setToAmount((amt * activeRate).toFixed(2));
+      else setToAmount("");
+    } else {
+      const amt = Number(String(toAmount).replace(/,/g, ""));
+      if (Number.isFinite(amt) && amt >= 0) setFromAmount((amt / activeRate).toFixed(2));
+      else setFromAmount("");
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [activeRate, fromCur, toCur]);
+
+  const handleFromAmountChange = (e) => {
+    const val = e.target.value;
+    setLastEdited("from");
+    setFromAmount(val);
+    if (!activeRate) return;
+    const amt = Number(String(val).replace(/,/g, ""));
+    if (Number.isFinite(amt) && amt >= 0) setToAmount((amt * activeRate).toFixed(2));
+    else setToAmount("");
+  };
+
+  const handleToAmountChange = (e) => {
+    const val = e.target.value;
+    setLastEdited("to");
+    setToAmount(val);
+    if (!activeRate) return;
+    const amt = Number(String(val).replace(/,/g, ""));
+    if (Number.isFinite(amt) && amt >= 0) setFromAmount((amt / activeRate).toFixed(2));
+    else setFromAmount("");
+  };
+
+  const formatRate = (rateVal) => {
+    const n = Number(rateVal);
+    if (!Number.isFinite(n)) return "—";
+    if (n >= 1) return n.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+    return n.toLocaleString(undefined, { minimumFractionDigits: 6, maximumFractionDigits: 6 });
+  };
+
+  const swap = () => {
+    setFromCur((prev) => (prev === "NGN" ? "USD" : "NGN"));
+    setToCur((prev) => (prev === "USD" ? "NGN" : "USD"));
+    setFromAmount(toAmount);
+    setToAmount(fromAmount);
+    setLastEdited("from");
+  };
 
   // ── Actions ─────────────────────────────────────────────────────────────────
   const viewRate = async (id) => {
@@ -151,7 +242,7 @@ export default function ExchangeRates() {
   };
 
   const createRate = async () => {
-    if (!baseCurrency || !targetCurrency || !rate) return alert("All fields are required");
+    if (!baseCurrency || !targetCurrency) return alert("Base and target currencies are required");
     if (!margin) return alert("Margin is required");
     try {
       const res = await axios.post(
@@ -159,14 +250,13 @@ export default function ExchangeRates() {
         {
           baseCurrency,
           targetCurrency,
-          rate: rate.trim(),
+          ...(rate ? { rate: rate.trim() } : {}),
           margin: Number(margin),
           marginOperation,
         },
         { headers: { Authorization: `Bearer ${getToken()}` } }
       );
       setRates((prev) => [res.data.data, ...prev]);
-      fetchOverviewRates();
       setBaseCurrency("");
       setTargetCurrency("");
       setRate("");
@@ -196,7 +286,6 @@ export default function ExchangeRates() {
       const updated = res.data.data;
       setRates((prev) => prev.map((r) => (r.id === updated.id ? updated : r)));
       setSelected(updated);
-      fetchOverviewRates();
     } catch (err) {
       console.error("Update failed:", err);
       alert("Error updating rate");
@@ -212,7 +301,6 @@ export default function ExchangeRates() {
         headers: { Authorization: `Bearer ${getToken()}` },
       });
       setRates((prev) => prev.filter((r) => r.id !== selected.id));
-      fetchOverviewRates();
       setSelected(null);
       setTab("list");
     } catch (err) {
@@ -224,91 +312,6 @@ export default function ExchangeRates() {
   const thCls = "px-5 py-3.5 text-left text-xs font-bold text-gray-400 uppercase tracking-wider";
   const tdCls = "px-5 py-4 text-sm text-gray-700";
 
-  const overviewPairs = Object.entries(overviewRates).filter(([pair]) =>
-    ["USD-NGN", "NGN-USD"].includes(pair.toUpperCase())
-  );
-
-  // ── Normalize swapped backend rates ───────────────────────────────────────
-  const normalized = useMemo(() => {
-    const usdToNgn = Number(overviewRates?.["NGN-USD"]);
-    const ngnToUsd = Number(overviewRates?.["USD-NGN"]);
-
-    return {
-      usdToNgn: Number.isFinite(usdToNgn) ? usdToNgn : null,
-      ngnToUsd: Number.isFinite(ngnToUsd) ? ngnToUsd : null,
-    };
-  }, [overviewRates]);
-
-  const activeRate = useMemo(() => {
-    if (fromCur === "USD" && toCur === "NGN") return normalized.usdToNgn;
-    if (fromCur === "NGN" && toCur === "USD") return normalized.ngnToUsd;
-    return null;
-  }, [fromCur, toCur, normalized]);
-
-  useEffect(() => {
-    if (!activeRate) return;
-
-    if (lastEdited === "from") {
-      const amt = Number(String(fromAmount).replace(/,/g, ""));
-      if (Number.isFinite(amt) && amt >= 0) {
-        setToAmount((amt * activeRate).toFixed(2));
-      } else {
-        setToAmount("");
-      }
-    } else {
-      const amt = Number(String(toAmount).replace(/,/g, ""));
-      if (Number.isFinite(amt) && amt >= 0) {
-        setFromAmount((amt / activeRate).toFixed(2));
-      } else {
-        setFromAmount("");
-      }
-    }
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [activeRate, fromCur, toCur]);
-
-  const handleFromAmountChange = (e) => {
-    const val = e.target.value;
-    setLastEdited("from");
-    setFromAmount(val);
-    if (!activeRate) return;
-    const amt = Number(String(val).replace(/,/g, ""));
-    if (Number.isFinite(amt) && amt >= 0) {
-      setToAmount((amt * activeRate).toFixed(2));
-    } else {
-      setToAmount("");
-    }
-  };
-
-  const handleToAmountChange = (e) => {
-    const val = e.target.value;
-    setLastEdited("to");
-    setToAmount(val);
-    if (!activeRate) return;
-    const amt = Number(String(val).replace(/,/g, ""));
-    if (Number.isFinite(amt) && amt >= 0) {
-      setFromAmount((amt / activeRate).toFixed(2));
-    } else {
-      setFromAmount("");
-    }
-  };
-
-  const formatRate = (rateVal) => {
-    const n = Number(rateVal);
-    if (!Number.isFinite(n)) return "—";
-    if (n >= 1) {
-      return n.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 });
-    }
-    return n.toLocaleString(undefined, { minimumFractionDigits: 6, maximumFractionDigits: 6 });
-  };
-
-  const swap = () => {
-    setFromCur((prev) => (prev === "NGN" ? "USD" : "NGN"));
-    setToCur((prev) => (prev === "USD" ? "NGN" : "USD"));
-    setFromAmount(toAmount);
-    setToAmount(fromAmount);
-    setLastEdited("from");
-  };
-
   return (
     <div className="p-4 md:p-6 bg-gray-50 min-h-screen space-y-6">
       {/* ── Page header ── */}
@@ -318,36 +321,63 @@ export default function ExchangeRates() {
           <p className="text-xs text-gray-400 mt-0.5">Manage currency exchange rates</p>
         </div>
         <button
-          onClick={() => {
-            fetchRates();
-            fetchOverviewRates();
-          }}
+          onClick={fetchRates}
           className="flex items-center gap-2 px-3.5 py-2 rounded-xl text-xs font-semibold border border-gray-200 bg-white text-gray-600 hover:bg-gray-50 shadow-sm transition"
         >
           <RefreshCw size={13} /> Refresh
         </button>
       </div>
 
-      {/* ── Overview cards (list tab only) ── */}
+      {/* ── Live Rates section (list tab only) ── */}
       {tab === "list" && (
         <div className="space-y-4">
-          <div>
-            <p className="text-xs font-bold text-gray-400 uppercase tracking-widest mb-3">Live Rates</p>
-            {overviewLoading ? (
-              <div className="grid grid-cols-2 gap-4">
-                {[1, 2].map((i) => (
-                  <div key={i} className="bg-white rounded-2xl border border-gray-100 h-28 animate-pulse" />
+          {/* Live rate lookup */}
+          <div className="bg-white rounded-2xl border border-gray-100 shadow-sm p-5 space-y-4">
+            <div>
+              <p className="text-sm font-bold text-gray-900">Live Rates</p>
+              <p className="text-xs text-gray-400">Fetch real-time WeWire rates for any currency pair</p>
+            </div>
+
+            <div className="grid grid-cols-2 gap-3">
+              <Select
+                label="From"
+                options={currencyOptions}
+                value={liveFrom}
+                onChange={(e) => setLiveFrom(e.target.value)}
+              />
+              <Select
+                label="To"
+                options={currencyOptions}
+                value={liveTo}
+                onChange={(e) => setLiveTo(e.target.value)}
+              />
+            </div>
+
+            {liveError && (
+              <p className="text-xs text-red-500">{liveError}</p>
+            )}
+
+            <button
+              onClick={() => fetchWeWireRate(liveFrom, liveTo)}
+              disabled={!liveFrom || !liveTo || liveFetching}
+              className="flex items-center gap-2 px-4 py-2.5 rounded-xl text-sm font-semibold bg-blue-600 text-white hover:bg-blue-700 disabled:opacity-50 transition shadow-sm"
+            >
+              {liveFetching ? (
+                <>
+                  <div className="w-3.5 h-3.5 rounded-full border-2 border-white/40 border-t-white animate-spin" />
+                  Fetching…
+                </>
+              ) : (
+                <><RefreshCw size={13} /> Get Rate</>
+              )}
+            </button>
+
+            {/* Fetched rate cards */}
+            {liveRates.length > 0 && (
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 pt-1">
+                {liveRates.map((r) => (
+                  <RateOverviewCard key={`${r.from}-${r.to}`} from={r.from} to={r.to} ask={r.ask} />
                 ))}
-              </div>
-            ) : overviewPairs.length > 0 ? (
-              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                {overviewPairs.map(([pair, value]) => (
-                  <RateOverviewCard key={pair} pair={pair} value={value} />
-                ))}
-              </div>
-            ) : (
-              <div className="bg-white rounded-2xl border border-gray-100 p-8 text-center">
-                <p className="text-sm text-gray-400">No exchange rate data available</p>
               </div>
             )}
           </div>
@@ -357,7 +387,7 @@ export default function ExchangeRates() {
             <div className="flex items-center justify-between mb-4">
               <div>
                 <p className="text-sm font-bold text-gray-900">Quick Convert</p>
-                <p className="text-xs text-gray-400">Calculated from your rate table</p>
+                <p className="text-xs text-gray-400">Calculated from fetched WeWire rates</p>
               </div>
               <button
                 onClick={swap}
@@ -380,7 +410,6 @@ export default function ExchangeRates() {
                   className="w-full border border-gray-200 rounded-xl px-3.5 py-3 text-sm text-gray-800 placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-blue-400 focus:border-transparent bg-white transition"
                 />
               </div>
-
               <div>
                 <label className="block text-xs font-semibold text-gray-500 uppercase tracking-wide mb-1.5">
                   Amount ({toCur})
@@ -393,46 +422,31 @@ export default function ExchangeRates() {
                   className="w-full border border-gray-200 rounded-xl px-3.5 py-3 text-sm text-gray-800 placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-blue-400 focus:border-transparent bg-white transition"
                 />
                 <p className="text-[11px] text-gray-400 mt-2">
-                  Rate: 1 {fromCur} = <span className="font-semibold text-gray-700">{formatRate(activeRate)}</span> {toCur}
+                  Rate: 1 {fromCur} ={" "}
+                  <span className="font-semibold text-gray-700">{formatRate(activeRate)}</span> {toCur}
+                  {!activeRate && (
+                    <span className="ml-1 text-amber-500">— fetch this pair above first</span>
+                  )}
                 </p>
               </div>
             </div>
 
             <div className="flex items-center gap-2 mt-4">
               <button
-                onClick={() => {
-                  setFromCur("NGN");
-                  setToCur("USD");
-                  setLastEdited("from");
-                }}
+                onClick={() => { setFromCur("NGN"); setToCur("USD"); setLastEdited("from"); }}
                 className={`px-3 py-2 rounded-xl text-xs font-semibold border transition ${
-                  fromCur === "NGN"
-                    ? "bg-blue-600 text-white border-blue-600"
-                    : "bg-white text-gray-600 border-gray-200 hover:bg-gray-50"
+                  fromCur === "NGN" ? "bg-blue-600 text-white border-blue-600" : "bg-white text-gray-600 border-gray-200 hover:bg-gray-50"
                 }`}
               >
                 NGN → USD
               </button>
               <button
-                onClick={() => {
-                  setFromCur("USD");
-                  setToCur("NGN");
-                  setLastEdited("from");
-                }}
+                onClick={() => { setFromCur("USD"); setToCur("NGN"); setLastEdited("from"); }}
                 className={`px-3 py-2 rounded-xl text-xs font-semibold border transition ${
-                  fromCur === "USD"
-                    ? "bg-blue-600 text-white border-blue-600"
-                    : "bg-white text-gray-600 border-gray-200 hover:bg-gray-50"
+                  fromCur === "USD" ? "bg-blue-600 text-white border-blue-600" : "bg-white text-gray-600 border-gray-200 hover:bg-gray-50"
                 }`}
               >
                 USD → NGN
-              </button>
-
-              <button
-                onClick={fetchOverviewRates}
-                className="ml-auto px-3 py-2 rounded-xl text-xs font-semibold border border-gray-200 bg-white text-gray-600 hover:bg-gray-50 transition flex items-center gap-2"
-              >
-                <RefreshCw size={13} /> Update rate
               </button>
             </div>
           </div>
@@ -445,9 +459,7 @@ export default function ExchangeRates() {
           <button
             onClick={() => setTab("list")}
             className={`flex items-center gap-2 px-4 py-2.5 rounded-xl text-sm font-semibold border transition shadow-sm ${
-              tab === "list"
-                ? "bg-blue-600 text-white border-blue-600"
-                : "bg-white text-gray-600 border-gray-200 hover:bg-gray-50"
+              tab === "list" ? "bg-blue-600 text-white border-blue-600" : "bg-white text-gray-600 border-gray-200 hover:bg-gray-50"
             }`}
           >
             <ArrowLeftRight size={14} /> All Rates
@@ -455,9 +467,7 @@ export default function ExchangeRates() {
           <button
             onClick={() => setTab("create")}
             className={`flex items-center gap-2 px-4 py-2.5 rounded-xl text-sm font-semibold border transition shadow-sm ${
-              tab === "create"
-                ? "bg-blue-600 text-white border-blue-600"
-                : "bg-white text-gray-600 border-gray-200 hover:bg-gray-50"
+              tab === "create" ? "bg-blue-600 text-white border-blue-600" : "bg-white text-gray-600 border-gray-200 hover:bg-gray-50"
             }`}
           >
             <Plus size={14} /> Create New
@@ -499,28 +509,18 @@ export default function ExchangeRates() {
                   {rates.map((r) => (
                     <tr key={r.id} className="hover:bg-gray-50/80 transition-colors">
                       <td className={tdCls}>
-                        <span className="px-2.5 py-1 rounded-lg bg-blue-50 text-blue-700 text-xs font-bold">
-                          {r.baseCurrency}
-                        </span>
+                        <span className="px-2.5 py-1 rounded-lg bg-blue-50 text-blue-700 text-xs font-bold">{r.baseCurrency}</span>
                       </td>
                       <td className={tdCls}>
-                        <span className="px-2.5 py-1 rounded-lg bg-emerald-50 text-emerald-700 text-xs font-bold">
-                          {r.targetCurrency}
-                        </span>
+                        <span className="px-2.5 py-1 rounded-lg bg-emerald-50 text-emerald-700 text-xs font-bold">{r.targetCurrency}</span>
                       </td>
                       <td className={`${tdCls} font-mono font-semibold text-gray-900`}>{r.rate}</td>
-                      <td className={`${tdCls} font-mono text-gray-700`}>
-                        {r.margin != null ? r.margin : "—"}
-                      </td>
+                      <td className={`${tdCls} font-mono text-gray-700`}>{r.margin != null ? r.margin : "—"}</td>
                       <td className={tdCls}>
                         {r.marginOperation ? (
-                          <span
-                            className={`px-2.5 py-1 rounded-lg text-xs font-semibold ${
-                              r.marginOperation === "add"
-                                ? "bg-emerald-50 text-emerald-700"
-                                : "bg-rose-50 text-rose-700"
-                            }`}
-                          >
+                          <span className={`px-2.5 py-1 rounded-lg text-xs font-semibold ${
+                            r.marginOperation === "add" ? "bg-emerald-50 text-emerald-700" : "bg-rose-50 text-rose-700"
+                          }`}>
                             {r.marginOperation === "add" ? "Addition" : "Subtract"}
                           </span>
                         ) : (
@@ -549,22 +549,24 @@ export default function ExchangeRates() {
       {tab === "create" && (
         <div className="bg-white rounded-2xl border border-gray-100 shadow-sm p-6 max-w-md space-y-4">
           <p className="text-sm font-bold text-gray-800 mb-1">New Exchange Rate</p>
+
           <div className="grid grid-cols-2 gap-3">
-            <Input
+            <Select
               label="Base Currency"
-              placeholder="USD"
+              options={currencyOptions}
               value={baseCurrency}
-              onChange={(e) => setBaseCurrency(e.target.value.toUpperCase())}
+              onChange={(e) => setBaseCurrency(e.target.value)}
             />
-            <Input
+            <Select
               label="Target Currency"
-              placeholder="NGN"
+              options={currencyOptions}
               value={targetCurrency}
-              onChange={(e) => setTargetCurrency(e.target.value.toUpperCase())}
+              onChange={(e) => setTargetCurrency(e.target.value)}
             />
           </div>
+
           <Input
-            label="Rate"
+            label="Rate (optional)"
             type="number"
             placeholder="e.g. 1580.00"
             value={rate}
@@ -587,11 +589,12 @@ export default function ExchangeRates() {
             />
           </div>
 
-          {baseCurrency && targetCurrency && rate && (
+          {baseCurrency && targetCurrency && (
             <div className="flex items-center gap-2 px-4 py-3 bg-blue-50 rounded-xl text-sm text-blue-700">
               <ArrowLeftRight size={14} />
               <span>
-                1 <strong>{baseCurrency}</strong> = <strong>{rate}</strong> {targetCurrency}
+                <strong>{baseCurrency}</strong> → <strong>{targetCurrency}</strong>
+                {rate && <span className="mx-1">@ {rate}</span>}
                 {margin && (
                   <span className="ml-1 text-blue-500">
                     ({marginOperation === "add" ? "+" : "−"}{margin}% margin)
@@ -631,15 +634,10 @@ export default function ExchangeRates() {
           <div className="bg-white rounded-2xl border border-gray-100 shadow-sm p-6 space-y-5">
             <p className="text-sm font-bold text-gray-800">Edit Rate</p>
 
-            {/* Pair display */}
             <div className="flex items-center gap-3 p-4 bg-gray-50 rounded-xl">
-              <span className="px-3 py-1.5 rounded-xl bg-blue-100 text-blue-700 text-sm font-bold">
-                {selected.baseCurrency}
-              </span>
+              <span className="px-3 py-1.5 rounded-xl bg-blue-100 text-blue-700 text-sm font-bold">{selected.baseCurrency}</span>
               <ArrowLeftRight size={16} className="text-gray-400" />
-              <span className="px-3 py-1.5 rounded-xl bg-emerald-100 text-emerald-700 text-sm font-bold">
-                {selected.targetCurrency}
-              </span>
+              <span className="px-3 py-1.5 rounded-xl bg-emerald-100 text-emerald-700 text-sm font-bold">{selected.targetCurrency}</span>
             </div>
 
             <Input
@@ -690,9 +688,7 @@ export default function ExchangeRates() {
                     <div className="w-3.5 h-3.5 rounded-full border-2 border-white/40 border-t-white animate-spin" /> Saving…
                   </>
                 ) : (
-                  <>
-                    <Pencil size={13} /> Save Changes
-                  </>
+                  <><Pencil size={13} /> Save Changes</>
                 )}
               </button>
               <button
