@@ -30,7 +30,7 @@ import ReferralSettings from "./pages/Referralsettings";
 import Currencies from "./pages/Currencies";
 import Pricing from "./pages/Pricing";
 import WewireBeneficiaries from "./pages/Wewirebeneficiaries";
-import WalletTools from "./pages/WalletTools";
+import WalletTools from "./pages/Wallettools";
 function ProtectedRoute({ children, isAuthenticated }) {
   return isAuthenticated ? children : <Navigate to="/login" replace />;
 }
