@@ -27,6 +27,10 @@ import ExchangeRates from "./components/ExchangeRates";
 import Announcements from "./pages/Announcements";
 import KycLimit from "./pages/Kyc/KycLimit";
 import ReferralSettings from "./pages/Referralsettings";
+import Currencies from "./pages/Currencies";
+import Pricing from "./pages/Pricing";
+import WewireBeneficiaries from "./pages/Wewirebeneficiaries";
+import WalletTools from "./pages/WalletTools";
 function ProtectedRoute({ children, isAuthenticated }) {
   return isAuthenticated ? children : <Navigate to="/login" replace />;
 }
@@ -86,6 +90,10 @@ export default function App() {
         <Route path="Announcements" element={<Announcements/>} />
         <Route path="kyc-limit" element={<KycLimit/>}/>
         <Route path="referral-settings" element={<ReferralSettings/>}/>
+        <Route path="currencies" element={<Currencies/>}/>
+        <Route path="pricing" element={<Pricing/>}/>
+        <Route path="wewire-beneficiaries" element={<WewireBeneficiaries/>}/>
+        <Route path="admin-tools" element={<WalletTools />} />
       </Route>
 
       {/* Catch all */}

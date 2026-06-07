@@ -6,7 +6,7 @@ import {
   MoreVertical, ExternalLink, ChevronLeft, ChevronRight,
   Mail, X, Send, ChevronDown, Users,
   Bold, Italic, Underline, Link, List, ListOrdered,
-  AlignLeft, AlignCenter, AlignRight, Minus, Undo, Redo,
+  AlignLeft, AlignCenter, AlignRight, Minus, Undo, Redo,Wallet,Bell,
   ShieldAlert,
 } from "lucide-react";
 import { useEditor, EditorContent } from "@tiptap/react";
@@ -626,13 +626,29 @@ const UsersTable = ({
           <p className="text-xs text-gray-400">
             <span className="font-semibold text-gray-600">{totalUsers.toLocaleString()}</span> total users
           </p>
-          <button
-            onClick={openBroadcast}
-            className="flex items-center gap-2 px-4 py-2 rounded-lg text-xs font-semibold bg-blue-600 text-white hover:bg-blue-700 transition shadow-sm"
-          >
-            <Mail size={13} />
-            Broadcast Email
-          </button>
+         <div className="flex items-center gap-2">
+  <button
+    onClick={() => navigate("/admin/admin-tools?tab=wallet")}
+    className="flex items-center gap-2 px-4 py-2 rounded-lg text-xs font-semibold bg-emerald-600 text-white hover:bg-emerald-700 transition shadow-sm"
+  >
+    <Wallet size={13} />
+    Adjust Wallet
+  </button>
+  <button
+    onClick={() => navigate("/admin/admin-tools?tab=push")}
+    className="flex items-center gap-2 px-4 py-2 rounded-lg text-xs font-semibold bg-indigo-600 text-white hover:bg-indigo-700 transition shadow-sm"
+  >
+    <Bell size={13} />
+    Send Push
+  </button>
+  <button
+    onClick={openBroadcast}
+    className="flex items-center gap-2 px-4 py-2 rounded-lg text-xs font-semibold bg-blue-600 text-white hover:bg-blue-700 transition shadow-sm"
+  >
+    <Mail size={13} />
+    Broadcast Email
+  </button>
+</div>
         </div>
 
         {/* Selection action bar */}
