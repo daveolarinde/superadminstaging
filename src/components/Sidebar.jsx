@@ -114,7 +114,7 @@ const SidebarContent = ({ onClose }) => {
   ];
 
   const integrationItems = [
-    { to: "/admin/wewire/beneficiaries", label: "WeWire Beneficiaries", icon: <Users2 size={15} /> },
+    { to: "/admin/wewire-beneficiaries", label: "WeWire Beneficiaries", icon: <Users2 size={15} /> },
     { to: "/admin/admin-tools",          label: "User Tools",          icon: <Wrench size={15} /> },
   ];
 
