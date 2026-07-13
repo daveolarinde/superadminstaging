@@ -6,7 +6,7 @@ import {
   MapPin, ExternalLink, CheckCircle2, XCircle,
 } from "lucide-react";
 
-const API_BASE_URL = import.meta.env.VITE_STAGE_API_URL;
+const API_BASE_URL = import.meta.env.VITE_API_URL;
 
 // ── helpers ───────────────────────────────────────────────────────────────────
 const CURRENCY_SYMBOLS = { NGN: "₦", USD: "$", EUR: "€", GBP: "£", GHS: "₵" };

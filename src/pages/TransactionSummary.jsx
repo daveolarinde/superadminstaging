@@ -1,7 +1,7 @@
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import axios from "axios";
 import { Line } from "react-chartjs-2";
-import { ChevronLeft, ChevronRight, TrendingUp } from "lucide-react";
+import { ChevronLeft, ChevronRight, TrendingUp, X, ArrowUpCircle, ArrowDownCircle, XCircle } from "lucide-react";
 import {
   Chart as ChartJS,
   CategoryScale,
@@ -65,15 +65,51 @@ function Pagination({ currentPage, totalPages, setPage }) {
 }
 
 // ── Summary card ──────────────────────────────────────────────────────────────
-function SummaryCard({ title, value, sub }) {
+function SummaryCard({ title, value, sub, icon, tone = "text-gray-900" }) {
   return (
     <div className="bg-white rounded-2xl border border-gray-100 shadow-sm p-5">
-      <p className="text-xs font-bold text-gray-400 uppercase tracking-widest mb-3">{title}</p>
-      <p className="text-2xl font-bold text-gray-900">{value}</p>
+      <div className="flex items-start justify-between">
+        <p className="text-xs font-bold text-gray-400 uppercase tracking-widest mb-3">{title}</p>
+        {icon}
+      </div>
+      <p className={`text-2xl font-bold ${tone}`}>{value}</p>
       {sub && <p className="text-xs text-gray-400 mt-1">{sub}</p>}
     </div>
   );
 }
+
+const currencySymbols = {
+  NGN: "₦",
+  USD: "$",
+  EUR: "€",
+  GBP: "£",
+  JPY: "¥",
+};
+
+const getCurrencySymbol = (currency) => currencySymbols[currency] || currency || "";
+
+const formatCurrencyAmount = (value, currency) => {
+  if (value === null || value === undefined || value === "") return "-";
+  const amount = Number(value);
+  if (Number.isNaN(amount)) return String(value);
+  const formatted = amount.toLocaleString();
+  const symbol = getCurrencySymbol(currency);
+  return symbol === currency ? `${symbol} ${formatted}` : `${symbol}${formatted}`;
+};
+
+const formatSummaryValue = (amount, currencies) => {
+  const formatted = Number(amount || 0).toLocaleString();
+  if (currencies.length === 1) {
+    const symbol = getCurrencySymbol(currencies[0]);
+    return symbol === currencies[0] ? `${symbol} ${formatted}` : `${symbol}${formatted}`;
+  }
+  return formatted;
+};
+
+const formatSummarySub = (count, currencies) => {
+  const currencyLabel = currencies.length > 1 ? ` · ${currencies.join(", ")}` : "";
+  return `${count.toLocaleString()} transactions${currencyLabel}`;
+};
 
 // ── Breakdown table ───────────────────────────────────────────────────────────
 function BreakdownTable({ title, rows, page, setPage, showDate = false }) {
@@ -124,7 +160,7 @@ function BreakdownTable({ title, rows, page, setPage, showDate = false }) {
                     {row.type}
                   </span>
                 </td>
-                <td className={`${tdCls} font-semibold`}>₦{Number(row.totalAmount).toLocaleString()}</td>
+                <td className={`${tdCls} font-semibold`}>{formatCurrencyAmount(row.totalAmount, row.currency)}</td>
                 <td className={`${tdCls} font-mono text-gray-500`}>{row.count}</td>
               </tr>
             ))}
@@ -136,13 +172,138 @@ function BreakdownTable({ title, rows, page, setPage, showDate = false }) {
   );
 }
 
+// ── Summary filter bar ───────────────────────────────────────────────────────
+function SummaryFilterBar({ period, setPeriod, dateRange, setDateRange }) {
+  const [showCustom, setShowCustom] = useState(false);
+  const [draftStart, setDraftStart] = useState(dateRange.startDate || "");
+  const [draftEnd, setDraftEnd]     = useState(dateRange.endDate || "");
+
+  const periods = [
+    { value: "",        label: "All time" },
+    { value: "daily",   label: "Today" },
+    { value: "weekly",  label: "Last 7 Days" },
+    { value: "monthly", label: "This Month" },
+    { value: "yearly",  label: "This Year" },
+  ];
+
+  const isCustomActive = !!dateRange.startDate && !!dateRange.endDate;
+
+  const applyCustomRange = () => {
+    if (!draftStart || !draftEnd) return;
+    setDateRange({ startDate: draftStart, endDate: draftEnd });
+    setPeriod(""); // mutually exclusive
+    setShowCustom(false);
+  };
+
+  const clearCustomRange = () => {
+    setDateRange({ startDate: "", endDate: "" });
+    setDraftStart("");
+    setDraftEnd("");
+  };
+
+  return (
+    <div className="flex flex-col sm:flex-row sm:items-center gap-3">
+      <div className="flex flex-wrap gap-1.5 bg-gray-100 rounded-xl p-1 w-fit">
+        {periods.map((p) => (
+          <button
+            key={p.value}
+            onClick={() => {
+              setPeriod(p.value);
+              clearCustomRange(); // mutually exclusive
+            }}
+            className={`px-3.5 py-1.5 rounded-lg text-xs font-semibold transition ${
+              period === p.value && !isCustomActive
+                ? "bg-white text-gray-900 shadow-sm"
+                : "text-gray-500 hover:text-gray-700"
+            }`}
+          >
+            {p.label}
+          </button>
+        ))}
+      </div>
+
+      <div className="relative">
+        {isCustomActive ? (
+          <button
+            onClick={clearCustomRange}
+            className="flex items-center gap-2 px-3.5 py-1.5 rounded-lg text-xs font-semibold bg-blue-600 text-white shadow-sm"
+          >
+            {dateRange.startDate} → {dateRange.endDate}
+            <X size={12} />
+          </button>
+        ) : (
+          <button
+            onClick={() => setShowCustom((s) => !s)}
+            className="px-3.5 py-1.5 rounded-lg text-xs font-semibold border border-gray-200 text-gray-600 hover:bg-gray-50 bg-white transition"
+          >
+            Custom range
+          </button>
+        )}
+
+        {showCustom && !isCustomActive && (
+          <div className="absolute z-10 top-full mt-2 left-0 bg-white border border-gray-100 shadow-lg rounded-xl p-4 flex flex-col gap-3 w-64">
+            <div className="flex flex-col gap-1">
+              <label className="text-xs font-semibold text-gray-500">Start date</label>
+              <input
+                type="date"
+                value={draftStart}
+                max={draftEnd || undefined}
+                onChange={(e) => setDraftStart(e.target.value)}
+                className="border border-gray-200 rounded-lg px-2.5 py-1.5 text-sm text-gray-700"
+              />
+            </div>
+            <div className="flex flex-col gap-1">
+              <label className="text-xs font-semibold text-gray-500">End date</label>
+              <input
+                type="date"
+                value={draftEnd}
+                min={draftStart || undefined}
+                onChange={(e) => setDraftEnd(e.target.value)}
+                className="border border-gray-200 rounded-lg px-2.5 py-1.5 text-sm text-gray-700"
+              />
+            </div>
+            <div className="flex justify-end gap-2 mt-1">
+              <button
+                onClick={() => setShowCustom(false)}
+                className="px-3 py-1.5 rounded-lg text-xs font-semibold text-gray-500 hover:bg-gray-50"
+              >
+                Cancel
+              </button>
+              <button
+                onClick={applyCustomRange}
+                disabled={!draftStart || !draftEnd}
+                className="px-3 py-1.5 rounded-lg text-xs font-semibold bg-blue-600 text-white disabled:opacity-40 disabled:cursor-not-allowed"
+              >
+                Apply
+              </button>
+            </div>
+          </div>
+        )}
+      </div>
+    </div>
+  );
+}
+
 // ── Main component ────────────────────────────────────────────────────────────
 export default function TransactionSummary() {
   const [graphData, setGraphData] = useState({});
   const [summary, setSummary]     = useState({});
   const [activeTab, setActiveTab] = useState("currentMonth");
   const [type, setType]           = useState("");
-  const [loading, setLoading]     = useState(true);
+
+  // Currency is a display filter only — the backend has no currency param,
+  // so we never send it to either endpoint. We fetch everything, unfiltered,
+  // and narrow it down here.
+  const [currency, setCurrency]   = useState("");
+
+  // Full-page spinner only on the very first load; subsequent filter/tab
+  // changes swap data in place with no loading flash.
+  const [initialLoading, setInitialLoading] = useState(true);
+  const hasLoadedOnce = useRef(false);
+
+  // Summary filters — mutually exclusive: period OR (startDate & endDate)
+  const [period, setPeriod]       = useState("");
+  const [dateRange, setDateRange] = useState({ startDate: "", endDate: "" });
 
   const [overallPage, setOverallPage] = useState(1);
   const [monthPage, setMonthPage]     = useState(1);
@@ -151,37 +312,121 @@ export default function TransactionSummary() {
   useEffect(() => {
     const fetchData = async () => {
       try {
-        setLoading(true);
+        if (!hasLoadedOnce.current) setInitialLoading(true);
         const token = localStorage.getItem("token");
+
+        // Only date-range/period and type are real backend filters.
+        // Currency stays out of the request entirely — it's applied
+        // client-side below against the full, unfiltered response.
+        const summaryParams = {};
+        if (dateRange.startDate && dateRange.endDate) {
+          summaryParams.startDate = dateRange.startDate;
+          summaryParams.endDate = dateRange.endDate;
+        } else if (period) {
+          summaryParams.period = period;
+        }
+
         const [graphRes, summaryRes] = await Promise.all([
           axios.get(
-            `${import.meta.env.VITE_STAGE_API_URL}/superAdmin/get-transaction-graph${type ? `?type=${type}` : ""}`,
+            `${import.meta.env.VITE_API_URL}/superAdmin/get-transaction-graph${type ? `?type=${type}` : ""}`,
             { headers: { Authorization: `Bearer ${token}` } }
           ),
           axios.get(
-            `${import.meta.env.VITE_STAGE_API_URL}/superAdmin/get-transaction-summary`,
-            { headers: { Authorization: `Bearer ${token}` } }
+            `${import.meta.env.VITE_API_URL}/superAdmin/get-transaction-summary`,
+            { headers: { Authorization: `Bearer ${token}` }, params: summaryParams }
           ),
         ]);
         setGraphData(graphRes.data?.data || {});
         setSummary(summaryRes.data?.summary || {});
+
+        // Reset table pagination whenever the underlying data changes
+        setOverallPage(1);
+        setMonthPage(1);
+        setDailyPage(1);
       } catch (err) {
         console.error("❌ Error fetching data:", err);
       } finally {
-        setLoading(false);
+        setInitialLoading(false);
+        hasLoadedOnce.current = true;
       }
     };
     fetchData();
-  }, [type]);
+  }, [type, period, dateRange.startDate, dateRange.endDate]);
 
-  if (loading) return (
+  if (initialLoading) return (
     <div className="flex flex-col items-center justify-center min-h-[60vh] gap-3">
       <div className="w-9 h-9 rounded-full border-2 border-blue-200 border-t-blue-600 animate-spin" />
       <p className="text-sm text-gray-400">Loading dashboard…</p>
     </div>
   );
 
-  const selectedGraph = graphData[activeTab] || [];
+  const summaryData = summary?.summary || {};
+  const thisMonth   = summary?.thisMonth || {};
+  const daily       = summary?.daily || [];
+
+  const summaryBreakdown = Array.isArray(summaryData.breakdown) && summaryData.breakdown.length
+    ? summaryData.breakdown
+    : Array.isArray(thisMonth.breakdown)
+      ? thisMonth.breakdown
+      : [];
+
+  // Every currency that has ever shown up in the summary breakdown — this is
+  // what drives the filter pills, and it comes from the unfiltered response
+  // so pills don't disappear once a currency is selected.
+  const availableCurrencies = Array.from(
+    new Set(summaryBreakdown.map((b) => b.currency).filter(Boolean))
+  );
+
+  // Single client-side filter used everywhere: summary cards, both
+  // breakdown tables, and daily rows all run through this.
+  const filterRow = (row) => {
+    if (currency && row.currency !== currency) return false;
+    if (type && row.type !== type) return false;
+    return true;
+  };
+
+  const filteredSummaryBreakdown = summaryBreakdown.filter(filterRow);
+  const thisMonthBreakdown = Array.isArray(thisMonth.breakdown) ? thisMonth.breakdown : [];
+  const filteredThisMonthBreakdown = thisMonthBreakdown.filter(filterRow);
+
+  const creditCurrencies = Array.from(
+    new Set(filteredSummaryBreakdown.filter((b) => b.type === "credit").map((b) => b.currency).filter(Boolean))
+  );
+  const debitCurrencies = Array.from(
+    new Set(filteredSummaryBreakdown.filter((b) => b.type === "debit").map((b) => b.currency).filter(Boolean))
+  );
+
+  // Flatten daily for table rows, then apply the same filter
+  const dailyRows = daily.flatMap((d) =>
+    (d.breakdown || []).map((b) => ({ ...b, date: d.date }))
+  );
+  const filteredDailyRows = dailyRows.filter(filterRow);
+
+  // ── Chart data ──
+  // The graph endpoint returns one totalAmount per date/month, already
+  // aggregated across currencies — it doesn't hand us a per-day currency
+  // breakdown, so a currency filter can't be applied point-by-point the way
+  // it can for the tables above. Where a datapoint *does* carry its own
+  // per-currency breakdown array (mirroring the daily-summary shape), we
+  // recompute the point from that; otherwise we fall back to the aggregate
+  // and flag it below so the discrepancy isn't silently hidden.
+  const selectedGraphRaw = graphData[activeTab] || [];
+  // const graphHasPerCurrencyBreakdown = selectedGraphRaw.some((d) => Array.isArray(d.breakdown));
+
+  const selectedGraph = selectedGraphRaw.map((d) => {
+    if (!currency || !Array.isArray(d.breakdown)) return d;
+    const matching = d.breakdown.filter((b) => b.currency === currency && (!type || b.type === type));
+    return {
+      ...d,
+      totalAmount: matching.reduce((sum, b) => sum + Number(b.totalAmount || 0), 0),
+      count: matching.reduce((sum, b) => sum + Number(b.count || 0), 0),
+      currency,
+    };
+  });
+
+  const chartCurrency = currency ? getCurrencySymbol(currency) : "₦";
+  // const chartIsApproximate = !!currency && !graphHasPerCurrencyBreakdown;
+
   const labels = activeTab === "currentYear"
     ? selectedGraph.map((d) => `Month ${d.month}`)
     : selectedGraph.map((d) => new Date(d.date).toLocaleDateString("en-US", { month: "short", day: "numeric" }));
@@ -190,7 +435,7 @@ export default function TransactionSummary() {
   const chartData = {
     labels,
     datasets: [{
-      label: "Total Amount (₦)",
+      label: `Total Amount (${chartCurrency})`,
       data: values,
       borderColor: "#3b82f6",
       backgroundColor: "rgba(59,130,246,0.08)",
@@ -217,7 +462,7 @@ export default function TransactionSummary() {
         callbacks: {
           label: (ctx) => {
             const item = selectedGraph[ctx.dataIndex];
-            return `  ₦${(item.totalAmount || 0).toLocaleString()} · ${item.count || 0} txns`;
+            return `  ${chartCurrency}${(item.totalAmount || 0).toLocaleString()} · ${item.count || 0} txns`;
           },
         },
       },
@@ -230,21 +475,12 @@ export default function TransactionSummary() {
       },
       y: {
         beginAtZero: true,
-        ticks: { color: "#9ca3af", font: { size: 11 }, callback: (v) => `₦${v.toLocaleString()}` },
+        ticks: { color: "#9ca3af", font: { size: 11 }, callback: (v) => `${chartCurrency}${v.toLocaleString()}` },
         grid: { color: "#f3f4f6" },
         border: { display: false },
       },
     },
   };
-
-  const summaryData = summary?.summary || {};
-  const thisMonth   = summary?.thisMonth || {};
-  const daily       = summary?.daily || [];
-
-  // Flatten daily for table rows
-  const dailyRows = daily.flatMap((d) =>
-    (d.breakdown || []).map((b) => ({ ...b, date: d.date }))
-  );
 
   const tabs = [
     { key: "currentMonth", label: "This Month" },
@@ -258,20 +494,140 @@ export default function TransactionSummary() {
     { value: "debit",  label: "Debit" },
   ];
 
+  const isCustomActive = !!dateRange.startDate && !!dateRange.endDate;
+  const activeFilterLabelBase = isCustomActive
+    ? `${dateRange.startDate} → ${dateRange.endDate}`
+    : period
+    ? { daily: "Today", weekly: "Last 7 Days", monthly: "This Month", yearly: "This Year" }[period]
+    : "All time";
+  const activeFilterLabel = currency ? `${activeFilterLabelBase} · ${currency}` : activeFilterLabelBase;
+
+  // ── Derive credit / debit / failed totals from the currently filtered summary ──
+  const creditTotals = filteredSummaryBreakdown
+    .filter((b) => b.type === "credit")
+    .reduce((acc, b) => ({
+      amount: acc.amount + Number(b.totalAmount || 0),
+      count:  acc.count + Number(b.count || 0),
+    }), { amount: 0, count: 0 });
+
+  const debitTotals = filteredSummaryBreakdown
+    .filter((b) => b.type === "debit")
+    .reduce((acc, b) => ({
+      amount: acc.amount + Number(b.totalAmount || 0),
+      count:  acc.count + Number(b.count || 0),
+    }), { amount: 0, count: 0 });
+
+  // NOTE: the /get-transaction-summary payload only breaks transactions down
+  // by type (credit/debit), not by status, and — same as everything else —
+  // has no currency-level split for failures either. If the backend ever
+  // adds a per-currency failed breakdown, filter it here the same way as
+  // creditTotals/debitTotals above. For now this stays currency-agnostic.
+  const failedTotals = (() => {
+    const failedBreakdown = summary?.failed?.breakdown || summaryData?.failedBreakdown;
+    if (Array.isArray(failedBreakdown)) {
+      const relevant = currency ? failedBreakdown.filter((b) => b.currency === currency) : failedBreakdown;
+      return relevant.reduce((acc, b) => ({
+        amount: acc.amount + Number(b.totalAmount || 0),
+        count:  acc.count + Number(b.count || 0),
+      }), { amount: 0, count: 0 });
+    }
+    return {
+      amount: Number(summary?.failed?.totalAmount || 0),
+      count:  Number(summary?.failed?.totalTransactions || summary?.failed?.count || 0),
+    };
+  })();
+
   return (
     <div className="p-4 sm:p-6 bg-gray-50 min-h-screen space-y-6">
 
-      {/* ── Summary Cards ── */}
-      <div className="grid grid-cols-2 gap-4">
+      {/* ── Summary Filter Bar ── */}
+      <div className="bg-white rounded-2xl shadow-sm border border-gray-100 p-5">
+        <div className="flex items-center justify-between mb-4 flex-wrap gap-2">
+          <div>
+            <h2 className="text-sm font-bold text-gray-800">Summary Filters</h2>
+            <p className="text-xs text-gray-400">Showing: {activeFilterLabel}</p>
+          </div>
+        </div>
+        <SummaryFilterBar
+          period={period}
+          setPeriod={setPeriod}
+          dateRange={dateRange}
+          setDateRange={setDateRange}
+        />
+
+        {/* ── Currency pills — always visible, one tap to filter ── */}
+        {availableCurrencies.length > 0 && (
+          <div className="flex flex-wrap items-center gap-2 mt-4 pt-4 border-t border-gray-100">
+            <span className="text-xs font-bold text-gray-400 uppercase tracking-wider mr-0.5">Currency</span>
+            <button
+              onClick={() => setCurrency("")}
+              className={`px-3 py-1.5 rounded-full text-xs font-semibold border transition ${
+                currency === ""
+                  ? "bg-blue-600 border-blue-600 text-white shadow-sm"
+                  : "border-gray-200 text-gray-600 hover:bg-gray-50 bg-white"
+              }`}
+            >
+              All
+            </button>
+            {availableCurrencies.map((code) => (
+              <button
+                key={code}
+                onClick={() => setCurrency(code)}
+                className={`px-3 py-1.5 rounded-full text-xs font-semibold border transition ${
+                  currency === code
+                    ? "bg-blue-600 border-blue-600 text-white shadow-sm"
+                    : "border-gray-200 text-gray-600 hover:bg-gray-50 bg-white"
+                }`}
+              >
+                {code}
+              </button>
+            ))}
+            {currency && (
+              <button
+                onClick={() => setCurrency("")}
+                className="flex items-center gap-1 px-2.5 py-1.5 rounded-full text-xs font-semibold text-red-500 hover:bg-red-50 transition"
+              >
+                <X size={12} /> Clear
+              </button>
+            )}
+          </div>
+        )}
+      </div>
+
+      {/* ── Summary Cards (filter-aware: credit / debit / failed) ── */}
+      <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
         <SummaryCard
-          title="This Month Transactions"
-          value={(thisMonth.totalTransactions || 0).toLocaleString()}
-          sub="Total transaction count"
+          title={`Credit · ${activeFilterLabel}`}
+          value={formatSummaryValue(creditTotals.amount, creditCurrencies)}
+          sub={formatSummarySub(creditTotals.count, creditCurrencies)}
+          tone="text-emerald-600"
+          icon={
+            <div className="w-8 h-8 rounded-lg bg-emerald-50 flex items-center justify-center">
+              <ArrowUpCircle size={16} className="text-emerald-600" />
+            </div>
+          }
         />
         <SummaryCard
-          title="This Month Value"
-          value={`₦${Number(thisMonth.totalValue || 0).toLocaleString()}`}
-          sub="Total volume"
+          title={`Debit · ${activeFilterLabel}`}
+          value={formatSummaryValue(debitTotals.amount, debitCurrencies)}
+          sub={formatSummarySub(debitTotals.count, debitCurrencies)}
+          tone="text-red-600"
+          icon={
+            <div className="w-8 h-8 rounded-lg bg-red-50 flex items-center justify-center">
+              <ArrowDownCircle size={16} className="text-red-600" />
+            </div>
+          }
+        />
+        <SummaryCard
+          title={`Failed · ${activeFilterLabel}`}
+          value={formatSummaryValue(failedTotals.amount, [])}
+          sub={`${failedTotals.count.toLocaleString()} transactions`}
+          tone="text-amber-600"
+          icon={
+            <div className="w-8 h-8 rounded-lg bg-amber-50 flex items-center justify-center">
+              <XCircle size={16} className="text-amber-600" />
+            </div>
+          }
         />
       </div>
 
@@ -286,6 +642,7 @@ export default function TransactionSummary() {
             <p className="text-xs text-gray-400">
               {tabs.find((t) => t.key === activeTab)?.label}
               {type && ` · ${type.charAt(0).toUpperCase() + type.slice(1)} only`}
+              {currency && ` · ${currency}`}
             </p>
           </div>
         </div>
@@ -330,6 +687,13 @@ export default function TransactionSummary() {
             ))}
           </div>
         </div>
+{/* 
+        {chartIsApproximate && (
+          // <p className="text-xs text-amber-600 bg-amber-50 rounded-lg px-3 py-2 mb-4">
+          //   The trend graph isn't split by currency on the backend yet, so it's still showing all currencies combined.
+          //   Cards and tables below are correctly filtered to {currency}.
+          // </p>
+        )} */}
 
         <div className="overflow-x-auto">
           <div className="h-64 sm:h-80 min-w-[500px]">
@@ -342,14 +706,14 @@ export default function TransactionSummary() {
       <div className="bg-white rounded-2xl shadow-sm border border-gray-100 p-5 space-y-10">
         <BreakdownTable
           title="Total Breakdown"
-          rows={summaryData.breakdown}
+          rows={filteredSummaryBreakdown}
           page={overallPage}
           setPage={setOverallPage}
         />
         <div className="h-px bg-gray-100" />
         <BreakdownTable
           title="This Month Breakdown"
-          rows={thisMonth.breakdown}
+          rows={filteredThisMonthBreakdown}
           page={monthPage}
           setPage={setMonthPage}
         />
@@ -359,7 +723,7 @@ export default function TransactionSummary() {
       <div className="bg-white rounded-2xl shadow-sm border border-gray-100 p-5">
         <BreakdownTable
           title="Overall Daily Breakdown"
-          rows={dailyRows}
+          rows={filteredDailyRows}
           page={dailyPage}
           setPage={setDailyPage}
           showDate

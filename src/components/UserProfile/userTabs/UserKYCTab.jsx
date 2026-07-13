@@ -10,9 +10,16 @@ import {
   Clock3,
   XCircle,
   Pencil,
+  Rocket,
+  User as UserIcon,
 } from "lucide-react";
 import axios from "axios";
 import KycUpdateModal from "../../KycUpdateModal";
+
+// Types for which Approve should never be shown (case/whitespace-insensitive)
+const NO_APPROVE_TYPES = new Set(["bvn", "nin"]);
+const isNoApproveType = (type) =>
+  NO_APPROVE_TYPES.has(String(type || "").trim().toLowerCase());
 
 // ── Status Badge ──────────────────────────────────────────────────────────────
 const StatusBadge = ({ status }) => {
@@ -56,7 +63,10 @@ const ActionMenu = ({
   onPending,
   onReject,
   onUpdateKyc,
+  onSubmitWeWire,
+  wewireLoading,
   viewUrl,
+  hideApprove,
   disabled,
 }) => {
   const menuRef = useRef(null);
@@ -82,7 +92,7 @@ const ActionMenu = ({
     left = Math.max(pad, Math.min(left, vw - MENU_W - pad));
 
     // If near bottom, flip upward (once we know menu height)
-    const menuH = menuRef.current?.offsetHeight || 260;
+    const menuH = menuRef.current?.offsetHeight || 300;
     if (top + menuH > vh - pad) {
       const flippedTop = rect.top - GAP - menuH;
       if (flippedTop >= pad) top = flippedTop;
@@ -169,22 +179,25 @@ const ActionMenu = ({
       "
     >
       <div className="py-1">
-        <button
-          type="button"
-          role="menuitem"
-          data-menuitem="true"
-          disabled={disabled}
-          onClick={onApprove}
-          className="
-            w-full flex items-center gap-3 px-4 py-2.5 text-left text-xs font-semibold
-            text-emerald-700 hover:bg-emerald-50
-            focus:outline-none focus:bg-emerald-50
-            disabled:opacity-40 disabled:cursor-not-allowed
-          "
-        >
-          <CheckCircle2 size={14} className="text-emerald-600" />
-          Approve
-        </button>
+        {/* Approve: hidden only for bvn and nin types, matching KycTable behavior */}
+        {!hideApprove && (
+          <button
+            type="button"
+            role="menuitem"
+            data-menuitem="true"
+            disabled={disabled}
+            onClick={onApprove}
+            className="
+              w-full flex items-center gap-3 px-4 py-2.5 text-left text-xs font-semibold
+              text-emerald-700 hover:bg-emerald-50
+              focus:outline-none focus:bg-emerald-50
+              disabled:opacity-40 disabled:cursor-not-allowed
+            "
+          >
+            <CheckCircle2 size={14} className="text-emerald-600" />
+            Approve
+          </button>
+        )}
 
         <button
           type="button"
@@ -239,6 +252,32 @@ const ActionMenu = ({
           Update KYC
         </button>
 
+        <button
+          type="button"
+          role="menuitem"
+          data-menuitem="true"
+          disabled={wewireLoading}
+          onClick={onSubmitWeWire}
+          className="
+            w-full flex items-center gap-3 px-4 py-2.5 text-left text-xs font-semibold
+            text-purple-600 hover:bg-purple-50
+            focus:outline-none focus:bg-purple-50
+            disabled:opacity-50 disabled:cursor-not-allowed
+          "
+        >
+          {wewireLoading ? (
+            <>
+              <span className="w-2.5 h-2.5 rounded-full bg-purple-400 animate-pulse" />
+              Submitting…
+            </>
+          ) : (
+            <>
+              <Rocket size={14} className="text-purple-600" />
+              Submit KYC to WeWire
+            </>
+          )}
+        </button>
+
         {viewUrl && (
           <a
             role="menuitem"
@@ -278,12 +317,14 @@ const KycRow = ({
   k,
   isOpen,
   isBusy,
+  wewireLoading,
   onToggle,
   onClose,
   onApprove,
   onPending,
   onReject,
   onUpdateKyc,
+  onSubmitWeWire,
   viewUrl,
 }) => {
   const btnRef = useRef(null);
@@ -350,10 +391,13 @@ const KycRow = ({
           anchorRef={btnRef}
           onClose={onClose}
           disabled={isBusy}
+          hideApprove={isNoApproveType(k.type)}
+          wewireLoading={wewireLoading}
           onApprove={onApprove}
           onPending={onPending}
           onReject={onReject}
           onUpdateKyc={onUpdateKyc}
+          onSubmitWeWire={onSubmitWeWire}
           viewUrl={viewUrl}
         />
       </td>
@@ -375,8 +419,10 @@ export default function UserKYCTab({
   const [rejectReason, setRejectReason] = useState("");
   const [actionOpenId, setActionOpenId] = useState(null);
   const [selectedUser, setSelectedUser] = useState(null);
+  const [wewireLoadingId, setWewireLoadingId] = useState(null);
+  const [wewireToast, setWewireToast] = useState(null);
 
-  const safeBaseURL = baseURL || import.meta.env.VITE_STAGE_API_URL;
+  const safeBaseURL = baseURL || import.meta.env.VITE_API_URL;
 
   const authConfig = useMemo(() => {
     const t = token || localStorage.getItem("token");
@@ -444,6 +490,45 @@ export default function UserKYCTab({
     }
   };
 
+  // ── Submit KYC to WeWire ──────────────────────────────────────────────────
+  const handleSubmitToWeWire = async (record) => {
+    const userId = record?.user?.id || record?.userId;
+    if (!userId) {
+      setWewireToast({ type: "error", message: "No user associated with this KYC record." });
+      setTimeout(() => setWewireToast(null), 4000);
+      return;
+    }
+
+    setWewireLoadingId(record.id);
+    setWewireToast(null);
+    setActionOpenId(null);
+
+    try {
+      const t = token || localStorage.getItem("token");
+      const res = await fetch(`${safeBaseURL}/superAdmin/users/${userId}/submit-wewire-kyc`, {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          Authorization: `Bearer ${t}`,
+        },
+      });
+
+      const body = await res.json().catch(() => ({}));
+
+      if (!res.ok || body.success === false) {
+        throw new Error(body?.message || `Request failed (${res.status})`);
+      }
+
+      setWewireToast({ type: "success", message: body.message || "KYC submitted to WeWire successfully." });
+      await Promise.allSettled([fetchKycRecords?.(), fetchSummary?.()]);
+    } catch (err) {
+      setWewireToast({ type: "error", message: err.message || "Failed to submit KYC to WeWire." });
+    } finally {
+      setWewireLoadingId(null);
+      setTimeout(() => setWewireToast(null), 4000);
+    }
+  };
+
   if (!kycRecords.length) {
     return (
       <div className="flex flex-col items-center justify-center py-20 text-gray-400">
@@ -455,6 +540,26 @@ export default function UserKYCTab({
 
   return (
     <>
+      {/* ── WeWire toast notification ── */}
+      {wewireToast && (
+        <div
+          className={`flex items-center gap-3 mb-3 px-4 py-3 rounded-xl text-sm font-medium shadow-sm border transition-all ${
+            wewireToast.type === "success"
+              ? "bg-emerald-50 border-emerald-200 text-emerald-700"
+              : "bg-red-50 border-red-200 text-red-600"
+          }`}
+        >
+          <span>{wewireToast.type === "success" ? "✅" : "❌"}</span>
+          {wewireToast.message}
+          <button
+            onClick={() => setWewireToast(null)}
+            className="ml-auto text-xs opacity-50 hover:opacity-100"
+          >
+            ✕
+          </button>
+        </div>
+      )}
+
       <div className="bg-white rounded-2xl border border-gray-100 shadow-sm overflow-hidden">
         <div className="overflow-x-auto">
           <table className="min-w-full text-sm">
@@ -478,6 +583,7 @@ export default function UserKYCTab({
                   k={k}
                   isOpen={actionOpenId === k.id}
                   isBusy={updatingId === k.id}
+                  wewireLoading={wewireLoadingId === k.id}
                   onToggle={() =>
                     setActionOpenId((prev) => (prev === k.id ? null : k.id))
                   }
@@ -489,6 +595,7 @@ export default function UserKYCTab({
                     setSelectedUser(k.user || k);
                     setActionOpenId(null);
                   }}
+                  onSubmitWeWire={() => handleSubmitToWeWire(k)}
                   viewUrl={k.documentUrl || k.selfieUrl || null}
                 />
               ))}

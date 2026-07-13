@@ -13,7 +13,7 @@ export default function ViewTransactions() {
   const [copied, setCopied]           = useState(false);
 
   const token   = localStorage.getItem("token");
-  const baseUrl = import.meta.env.VITE_STAGE_API_URL;
+  const baseUrl = import.meta.env.VITE_API_URL;
 
   useEffect(() => {
     if (transaction || !id) return;

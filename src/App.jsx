@@ -1,4 +1,4 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, useCallback } from "react";
 import { Routes, Route, Navigate } from "react-router-dom";
 
 import Login from "./pages/Login";
@@ -11,7 +11,7 @@ import ViewTransaction from "./components/ViewTransactions";
 import Profit from "./pages/profits";
 import ActiveUsers from "./pages/users/ActiveUsers";
 import BlockedUsers from "./pages/users/BlockedUsers";
-import InactiveUsers from "./pages/users/InActiveUsers"; 
+import InactiveUsers from "./pages/users/InActiveUsers";
 import DeactivateUsers from "./pages/users/DeactivateUsers";
 import Pending from "./pages/Kyc/KycPending";
 import Approved from "./pages/Kyc/KycApproved";
@@ -22,7 +22,7 @@ import ViewCardDetails from "./components/ViewCardDetails";
 import KycAll from "./pages/Kyc/KycAll";
 import VirtualAccounts from "./pages/VirtualAccounts";
 import ViewVirtualAccount from "./components/ViewVirtualAccount";
-import FeesManagement from "./components/FeesManagement";
+
 import ExchangeRates from "./components/ExchangeRates";
 import Announcements from "./pages/Announcements";
 import KycLimit from "./pages/Kyc/KycLimit";
@@ -31,21 +31,53 @@ import Currencies from "./pages/Currencies";
 import Pricing from "./pages/Pricing";
 import WewireBeneficiaries from "./pages/Wewirebeneficiaries";
 import WalletTools from "./pages/Wallettools";
+
 function ProtectedRoute({ children, isAuthenticated }) {
   return isAuthenticated ? children : <Navigate to="/login" replace />;
+}
+
+function getTokenExpiry(token) {
+  try {
+    const payload = JSON.parse(atob(token.split(".")[1]));
+    return payload.exp ? payload.exp * 1000 : null;
+  } catch {
+    return null;
+  }
 }
 
 export default function App() {
   const [isAuthenticated, setIsAuthenticated] = useState(false);
 
+  const logout = useCallback(() => {
+    localStorage.removeItem("token");
+    setIsAuthenticated(false);
+  }, []);
+
   useEffect(() => {
     const token = localStorage.getItem("token");
-    if (token) setIsAuthenticated(true);
-  }, []);
+    if (!token) return;
+
+    const expiry = getTokenExpiry(token);
+
+    if (expiry && Date.now() >= expiry) {
+      logout();
+      return;
+    }
+
+    setIsAuthenticated(true);
+
+    if (expiry) {
+      const msUntilExpiry = expiry - Date.now();
+      const timer = setTimeout(() => {
+        logout();
+      }, msUntilExpiry);
+
+      return () => clearTimeout(timer);
+    }
+  }, [logout]);
 
   return (
     <Routes>
-      {/* Login Page */}
       <Route
         path="/login"
         element={
@@ -57,7 +89,6 @@ export default function App() {
         }
       />
 
-      {/* Protected Admin  */}
       <Route
         path="/admin/*"
         element={
@@ -67,7 +98,7 @@ export default function App() {
         }
       >
         <Route index element={<Dashboard />} />
-        <Route path="Fees-management" element={<FeesManagement/>}/>
+       
         <Route path="transaction-summary" element={<TransactionSummary />} />
         <Route path="transaction" element={<TransactionTable />} />
         <Route path="transactions/:id" element={<ViewTransaction />} />
@@ -87,16 +118,15 @@ export default function App() {
         <Route path="virtual-accounts" element={<VirtualAccounts />} />
         <Route path="virtual-accounts/:userId" element={<ViewVirtualAccount />} />
         <Route path="exchange-rates" element={<ExchangeRates />} />
-        <Route path="Announcements" element={<Announcements/>} />
-        <Route path="kyc-limit" element={<KycLimit/>}/>
-        <Route path="referral-settings" element={<ReferralSettings/>}/>
-        <Route path="currencies" element={<Currencies/>}/>
-        <Route path="pricing" element={<Pricing/>}/>
-        <Route path="wewire-beneficiaries" element={<WewireBeneficiaries/>}/>
+        <Route path="Announcements" element={<Announcements />} />
+        <Route path="kyc-limit" element={<KycLimit />} />
+        <Route path="referral-settings" element={<ReferralSettings />} />
+        <Route path="currencies" element={<Currencies />} />
+        <Route path="pricing" element={<Pricing />} />
+        <Route path="wewire-beneficiaries" element={<WewireBeneficiaries />} />
         <Route path="admin-tools" element={<WalletTools />} />
       </Route>
 
-      {/* Catch all */}
       <Route path="*" element={<Navigate to="/admin" replace />} />
     </Routes>
   );

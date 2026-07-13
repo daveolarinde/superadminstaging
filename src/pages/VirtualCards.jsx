@@ -7,7 +7,7 @@ import {
   AlertTriangle, X, CheckCircle2,
 } from "lucide-react";
 
-const baseURL = import.meta.env.VITE_STAGE_API_URL;
+const baseURL = import.meta.env.VITE_API_URL;
 
 const CURRENCY_SYMBOLS = { NGN: "₦", USD: "$", EUR: "€", GBP: "£", GHS: "₵" };
 const sym = (code) => CURRENCY_SYMBOLS[code] ?? code ?? "";
@@ -94,7 +94,7 @@ const CardBalanceModal = ({ card, onClose }) => {
         `${baseURL}/superAdmin/users/adjust-card-balance`,
         {
           userId:      card.userId,
-          cardId:      card.id,
+          cardId:      card.card_id || card.id,
           amount:      parseFloat(amount),
           actionType,
           info:        info.trim(),

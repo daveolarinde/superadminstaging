@@ -2,7 +2,7 @@ import React, { useEffect, useState, useCallback, useMemo } from "react";
 import axios from "axios";
 import { ArrowLeftRight, Plus, ChevronLeft, Pencil, Trash2, RefreshCw } from "lucide-react";
 
-const API_URL = import.meta.env.VITE_STAGE_API_URL;
+const API_URL = import.meta.env.VITE_API_URL;
 const getToken = () => localStorage.getItem("token");
 
 // ── Overview rate card ────────────────────────────────────────────────────────
@@ -71,6 +71,10 @@ export default function ExchangeRates() {
   const [rates, setRates] = useState([]);
   const [loading, setLoading] = useState(true);
 
+  // System currencies (from /superAdmin/currencies)
+  const [currencies, setCurrencies] = useState([]);
+  const [currenciesLoading, setCurrenciesLoading] = useState(true);
+
   // Live rates state
   const [liveRates, setLiveRates] = useState([]);           // array of fetched { from, to, ask }
   const [overviewLoading, setOverviewLoading] = useState(false);
@@ -94,6 +98,9 @@ export default function ExchangeRates() {
   const [editMargin, setEditMargin] = useState("");
   const [editMarginOperation, setEditMarginOperation] = useState("add");
 
+  // ── List filter state ────────────────────────────────────────────────────
+  const [filterCurrency, setFilterCurrency] = useState("");
+
   // ── Converter state ────────────────────────────────────────────────────────
   const [fromCur, setFromCur] = useState("NGN");
   const [toCur, setToCur] = useState("USD");
@@ -116,22 +123,51 @@ export default function ExchangeRates() {
     }
   }, []);
 
+  // ── Fetch system currencies ─────────────────────────────────────────────────
+  const fetchCurrencies = useCallback(async () => {
+    try {
+      setCurrenciesLoading(true);
+      const res = await axios.get(`${API_URL}/superAdmin/currencies`, {
+        headers: { Authorization: `Bearer ${getToken()}` },
+      });
+      setCurrencies(res.data?.data || []);
+    } catch (err) {
+      console.error("Error fetching currencies:", err);
+    } finally {
+      setCurrenciesLoading(false);
+    }
+  }, []);
+
   useEffect(() => {
     fetchRates();
-  }, [fetchRates]);
+    fetchCurrencies();
+  }, [fetchRates, fetchCurrencies]);
 
-  // ── Derive unique currency options from existing rates ─────────────────────
+  // ── Currency options built from /superAdmin/currencies ─────────────────────
   const currencyOptions = useMemo(() => {
-    const codes = new Set();
-    rates.forEach((r) => {
-      codes.add(r.baseCurrency);
-      codes.add(r.targetCurrency);
-    });
+    const active = currencies.filter((c) => c.isActive !== false);
     return [
       { value: "", label: "Select currency..." },
-      ...[...codes].sort().map((c) => ({ value: c, label: c })),
+      ...active
+        .slice()
+        .sort((a, b) => a.code.localeCompare(b.code))
+        .map((c) => ({ value: c.code, label: `${c.code} — ${c.name}` })),
     ];
-  }, [rates]);
+  }, [currencies]);
+
+  // Plain list of active currency codes (for filter dropdown, etc.)
+  const currencyCodes = useMemo(
+    () => currencyOptions.filter((opt) => opt.value).map((opt) => opt.value),
+    [currencyOptions]
+  );
+
+  // ── Filtered rates for the list table ───────────────────────────────────
+  const filteredRates = useMemo(() => {
+    if (!filterCurrency) return rates;
+    return rates.filter(
+      (r) => r.baseCurrency === filterCurrency || r.targetCurrency === filterCurrency
+    );
+  }, [rates, filterCurrency]);
 
   // ── Fetch a single WeWire live rate ────────────────────────────────────────
   const fetchWeWireRate = useCallback(async (from, to) => {
@@ -321,7 +357,7 @@ export default function ExchangeRates() {
           <p className="text-xs text-gray-400 mt-0.5">Manage currency exchange rates</p>
         </div>
         <button
-          onClick={fetchRates}
+          onClick={() => { fetchRates(); fetchCurrencies(); }}
           className="flex items-center gap-2 px-3.5 py-2 rounded-xl text-xs font-semibold border border-gray-200 bg-white text-gray-600 hover:bg-gray-50 shadow-sm transition"
         >
           <RefreshCw size={13} /> Refresh
@@ -344,12 +380,14 @@ export default function ExchangeRates() {
                 options={currencyOptions}
                 value={liveFrom}
                 onChange={(e) => setLiveFrom(e.target.value)}
+                disabled={currenciesLoading}
               />
               <Select
                 label="To"
                 options={currencyOptions}
                 value={liveTo}
                 onChange={(e) => setLiveTo(e.target.value)}
+                disabled={currenciesLoading}
               />
             </div>
 
@@ -478,18 +516,47 @@ export default function ExchangeRates() {
       {/* ── LIST ── */}
       {tab === "list" && (
         <div className="bg-white rounded-2xl border border-gray-100 shadow-sm overflow-hidden">
+          {/* ── Filter bar ── */}
+          <div className="flex items-center justify-between px-5 py-3.5 border-b border-gray-100 bg-gray-50/50">
+            <p className="text-xs font-semibold text-gray-500">
+              {filterCurrency ? `Showing ${filterCurrency} pairs (${filteredRates.length})` : `Showing all rates (${rates.length})`}
+            </p>
+            <div className="w-44">
+              <select
+                value={filterCurrency}
+                onChange={(e) => setFilterCurrency(e.target.value)}
+                className="w-full border border-gray-200 rounded-xl px-3 py-2 text-xs font-semibold text-gray-700 focus:outline-none focus:ring-2 focus:ring-blue-400 bg-white"
+              >
+                <option value="">All currencies</option>
+                {currencyCodes.map((code) => (
+                  <option key={code} value={code}>
+                    {code}
+                  </option>
+                ))}
+              </select>
+            </div>
+          </div>
+
           {loading ? (
             <div className="flex flex-col items-center justify-center py-20 gap-3">
               <div className="w-8 h-8 rounded-full border-2 border-blue-200 border-t-blue-600 animate-spin" />
               <p className="text-sm text-gray-400">Loading rates…</p>
             </div>
-          ) : rates.length === 0 ? (
+          ) : filteredRates.length === 0 ? (
             <div className="flex flex-col items-center justify-center py-20 gap-2">
               <p className="text-3xl">💱</p>
-              <p className="text-sm font-medium text-gray-500">No rates found</p>
-              <button onClick={() => setTab("create")} className="mt-1 text-xs text-blue-600 hover:underline">
-                Create one now
-              </button>
+              <p className="text-sm font-medium text-gray-500">
+                {filterCurrency ? `No rates found for ${filterCurrency}` : "No rates found"}
+              </p>
+              {filterCurrency ? (
+                <button onClick={() => setFilterCurrency("")} className="mt-1 text-xs text-blue-600 hover:underline">
+                  Clear filter
+                </button>
+              ) : (
+                <button onClick={() => setTab("create")} className="mt-1 text-xs text-blue-600 hover:underline">
+                  Create one now
+                </button>
+              )}
             </div>
           ) : (
             <div className="overflow-x-auto">
@@ -506,7 +573,7 @@ export default function ExchangeRates() {
                   </tr>
                 </thead>
                 <tbody className="divide-y divide-gray-50">
-                  {rates.map((r) => (
+                  {filteredRates.map((r) => (
                     <tr key={r.id} className="hover:bg-gray-50/80 transition-colors">
                       <td className={tdCls}>
                         <span className="px-2.5 py-1 rounded-lg bg-blue-50 text-blue-700 text-xs font-bold">{r.baseCurrency}</span>
@@ -556,12 +623,14 @@ export default function ExchangeRates() {
               options={currencyOptions}
               value={baseCurrency}
               onChange={(e) => setBaseCurrency(e.target.value)}
+              disabled={currenciesLoading}
             />
             <Select
               label="Target Currency"
               options={currencyOptions}
               value={targetCurrency}
               onChange={(e) => setTargetCurrency(e.target.value)}
+              disabled={currenciesLoading}
             />
           </div>
 

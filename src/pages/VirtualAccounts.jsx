@@ -4,7 +4,7 @@ import axios from "axios";
 import { Search, SlidersHorizontal, X, Landmark, DollarSign, Activity, WifiOff } from "lucide-react";
 import VirtualAccountsTable from "../components/VirtualAccountsTable";
 
-const API_BASE_URL = import.meta.env.VITE_STAGE_API_URL;
+const API_BASE_URL = import.meta.env.VITE_API_URL;
 
 const SummaryCard = ({ label, value, icon, bgColor, textColor }) => (
   <div className="bg-white rounded-2xl border border-gray-100 shadow-sm p-5">

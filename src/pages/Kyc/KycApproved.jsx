@@ -30,7 +30,7 @@ const KycApproved = () => {
   const [actionOpenId, setActionOpenId] = useState(null);
 
   const rowsPerPage = 10;
-  const baseURL     = import.meta.env.VITE_STAGE_API_URL;
+  const baseURL     = import.meta.env.VITE_API_URL;
   const token       = localStorage.getItem("token");
   const authHeader  = { headers: { Authorization: `Bearer ${token}` } };
 
@@ -91,9 +91,10 @@ const KycApproved = () => {
     return kycData.filter((r) => {
       const first = r.user?.firstname?.toLowerCase() || "";
       const last  = r.user?.lastname?.toLowerCase()  || "";
+      const fullName = `${first} ${last}`.trim();
       const tag   = r.user?.tag?.toLowerCase()       || "";
       const type  = r.type?.toLowerCase()            || "";
-      return first.includes(kw) || last.includes(kw) || tag.includes(kw) || type.includes(kw);
+      return first.includes(kw) || last.includes(kw) || fullName.includes(kw) || tag.includes(kw) || type.includes(kw);
     });
   }, [kycData, debouncedSearch]);
 

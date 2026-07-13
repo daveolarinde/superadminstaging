@@ -12,7 +12,7 @@ import UnderlineExt from "@tiptap/extension-underline";
 import LinkExt from "@tiptap/extension-link";
 import TextAlign from "@tiptap/extension-text-align";
 
-const API_BASE_URL = import.meta.env.VITE_STAGE_API_URL;
+const API_BASE_URL = import.meta.env.VITE_API_URL;
 
 // ── Helpers ───────────────────────────────────────────────────────────────────
 const getToken = () => localStorage.getItem("token");
@@ -695,7 +695,7 @@ const ItemTable = ({ items, mode, onEdit, onToggle, onDelete, togglingId, deleti
 
                 {/* Name */}
                 <td className="px-4 py-3.5">
-                  <span className="font-semibold text-gray-800">{item.name}</span>
+                  <span className="font-semibold text-black">{item.name}</span>
                 </td>
 
                 {/* Type */}
@@ -717,16 +717,16 @@ const ItemTable = ({ items, mode, onEdit, onToggle, onDelete, togglingId, deleti
                 </td>
 
                 {/* Subject / Action URL */}
-                <td className="px-4 py-3.5 max-w-[180px]">
+                <td className="px-4 py-3.5 max-w-[150px]">
                   {ann ? (
                     item.subject ? (
                       <span
-                        className="text-xs text-gray-700 block truncate max-w-[160px]"
+                        className="text-xs text-gray-900 block truncate max-w-[140px]"
                         title={item.subject.replace(/<[^>]*>/g, "")}
                         dangerouslySetInnerHTML={{ __html: item.subject }}
                       />
                     ) : (
-                      <span className="text-gray-300 text-xs">—</span>
+                      <span className="text-black text-xs">—</span>
                     )
                   ) : item.actionUrl ? (
                     <a
@@ -739,7 +739,7 @@ const ItemTable = ({ items, mode, onEdit, onToggle, onDelete, togglingId, deleti
                       {item.actionUrl}
                     </a>
                   ) : (
-                    <span className="text-gray-300 text-xs">—</span>
+                    <span className="text-black text-xs">—</span>
                   )}
                 </td>
 

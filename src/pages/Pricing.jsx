@@ -2,38 +2,83 @@ import React, { useEffect, useState, useCallback } from "react";
 import axios from "axios";
 import {
   Plus, Pencil, RefreshCw, X, CheckCircle2, XCircle,
-  ChevronDown, ChevronUp, Info,
+  ChevronDown, ChevronUp, Info, Globe,
 } from "lucide-react";
 
-const API_BASE_URL = import.meta.env.VITE_STAGE_API_URL;
+const API_BASE_URL = import.meta.env.VITE_API_URL;
 
 // ── constants ─────────────────────────────────────────────────────────────────
-const SERVICE_NAMES = ["wallet_deposit", "payout", "card_creation", "card_decline"];
+const SERVICE_NAMES = ["wallet_deposit", "payout", "card_creation", "card_decline", "conversion"];
 
 const SERVICE_META = {
   wallet_deposit: { label: "Wallet Deposit",  color: "bg-blue-50 text-blue-700 border-blue-100",    dot: "bg-blue-400"    },
   payout:         { label: "Payout",          color: "bg-violet-50 text-violet-700 border-violet-100", dot: "bg-violet-400" },
   card_creation:  { label: "Card Creation",   color: "bg-amber-50 text-amber-700 border-amber-100",  dot: "bg-amber-400"  },
   card_decline:   { label: "Card Decline",    color: "bg-red-50 text-red-600 border-red-100",        dot: "bg-red-400"    },
+  conversion:     { label: "Conversion",      color: "bg-teal-50 text-teal-700 border-teal-100",     dot: "bg-teal-400"   },
 };
 
 const CURRENCY_SYMBOLS = { NGN: "₦", USD: "$", EUR: "€", GBP: "£", GHS: "₵" };
-const sym = (code) => CURRENCY_SYMBOLS[code] ?? code;
+const sym = (code) => CURRENCY_SYMBOLS[code] ?? code ?? "";
 
-const pctDisplay  = (val) => `${(parseFloat(val || 0) * 100).toFixed(2)}%`;
-const feeDisplay  = (code, val) => `${sym(code)}${parseFloat(val || 0).toFixed(2)}`;
+const pctDisplay = (val) => `${(parseFloat(val || 0) * 100).toFixed(2)}%`;
+
+// `currency` is a single field on the record itself, and can be:
+//  - a plain code    → "NGN"
+//  - a wildcard        → "*"        (applies to all currencies for this service)
+//  - a FROM_TO pair     → "NGN_USD"  (conversion only, mirrors fromCurrency/toCurrency)
+const isWildcard = (currency) => currency === "*";
+const isPair     = (currency) => typeof currency === "string" && currency.includes("_") && currency !== "*";
+
+const pairParts = (currency) => {
+  const [from, to] = (currency || "").split("_");
+  return { from, to };
+};
+
+// Fee amounts on a pair are denominated in the FROM currency; on a wildcard
+// there's no single currency, so fall back to a neutral (no symbol) display.
+const feeCurrencyFor = (c) => {
+  if (isWildcard(c.currency)) return null;
+  if (c.fromCurrency) return c.fromCurrency;
+  if (isPair(c.currency)) return pairParts(c.currency).from;
+  return c.currency;
+};
+
+const feeDisplay = (currency, val) => {
+  const amt = parseFloat(val || 0).toFixed(2);
+  return currency ? `${sym(currency)}${amt}` : amt;
+};
+
+const currencyLabel = (c) => {
+  if (isWildcard(c.currency)) return "All currencies";
+  if (c.fromCurrency && c.toCurrency) return `${c.fromCurrency} → ${c.toCurrency}`;
+  if (isPair(c.currency)) {
+    const { from, to } = pairParts(c.currency);
+    return `${from} → ${to}`;
+  }
+  return c.currency || "—";
+};
+
+// Numeric fee/percentage fields, split so conversion (no provider side) can
+// omit provider fields entirely rather than sending them as 0.
+const PROVIDER_FIELDS = ["providerPercentage", "providerFixedFee", "providerMinCap", "providerMaxCap"];
+const CUSTOMER_FIELDS = ["customerPercentage", "customerFixedFee", "customerMinCap", "customerMaxCap"];
+const NUMERIC_FIELDS = [...PROVIDER_FIELDS, ...CUSTOMER_FIELDS];
 
 const EMPTY_FORM = {
   serviceName:            "",
+  currencyMode:           "single",   // "single" | "wildcard" | "pair" (pair = conversion only)
   currency:               "",
-  providerPercentage:     0,
-  providerFixedFee:       0,
-  providerMinCap:         0,
-  providerMaxCap:         0,
-  customerPercentage:     0,
-  customerFixedFee:       0,
-  customerMinCap:         0,
-  customerMaxCap:         0,
+  fromCurrency:           "",
+  toCurrency:              "",
+  providerPercentage:     "",
+  providerFixedFee:       "",
+  providerMinCap:         "",
+  providerMaxCap:         "",
+  customerPercentage:     "",
+  customerFixedFee:       "",
+  customerMinCap:         "",
+  customerMaxCap:         "",
   isActive:               true,
 };
 
@@ -55,7 +100,12 @@ const Toggle = ({ checked, onChange }) => (
 );
 
 // ── number input ──────────────────────────────────────────────────────────────
-const NumInput = ({ label, hint, value, onChange, step = "0.0001", min = "0", max }) => (
+// Kept fully uncontrolled-string-friendly: an empty field stays empty (no
+// forced 0), and only becomes a number when the parent actually needs one
+// (on submit). This lets users clear a field without it snapping back to 0.
+// placeholder defaults to "" so nothing is shown in the box until the user
+// types something — no ghost "0" sitting in empty fields.
+const NumInput = ({ label, hint, value, onChange, step = "0.0001", min = "0", max, placeholder = "" }) => (
   <div>
     <label className="block text-xs font-medium text-gray-500 mb-1">
       {label}
@@ -68,8 +118,9 @@ const NumInput = ({ label, hint, value, onChange, step = "0.0001", min = "0", ma
       step={step}
       min={min}
       max={max}
+      placeholder={placeholder}
       value={value}
-      onChange={(e) => onChange(parseFloat(e.target.value) || 0)}
+      onChange={(e) => onChange(e.target.value)}
       className="w-full border border-gray-200 rounded-lg px-3 py-2 text-sm outline-none focus:ring-2 focus:ring-emerald-300"
     />
   </div>
@@ -102,9 +153,52 @@ const PricingForm = ({ initial, currencies, onSubmit, submitting, isEdit }) => {
   const [form, setForm] = useState(initial);
   const set = (key, val) => setForm((p) => ({ ...p, [key]: val }));
 
+  const isConversion = form.serviceName === "conversion";
+
   const handleSubmit = (e) => {
     e.preventDefault();
-    onSubmit(form);
+
+    // Resolve the `currency` string exactly as the API expects.
+    let currency;
+    let fromCurrency = null;
+    let toCurrency = null;
+
+    if (form.currencyMode === "wildcard") {
+      currency = "*";
+    } else if (form.currencyMode === "pair") {
+      fromCurrency = form.fromCurrency || null;
+      toCurrency = form.toCurrency || null;
+      currency = fromCurrency && toCurrency ? `${fromCurrency}_${toCurrency}` : "";
+    } else {
+      currency = form.currency;
+    }
+
+    // Numeric fields: blank input → 0 only at submit time, never before.
+    // Conversion has no provider side at all, so provider keys are simply
+    // never added to the payload for it (not sent as 0, not sent as null —
+    // just absent), matching what the backend expects.
+    const numeric = {};
+    CUSTOMER_FIELDS.forEach((key) => {
+      numeric[key] = form[key] === "" || form[key] === null || form[key] === undefined
+        ? 0
+        : Number(form[key]);
+    });
+    if (!isConversion) {
+      PROVIDER_FIELDS.forEach((key) => {
+        numeric[key] = form[key] === "" || form[key] === null || form[key] === undefined
+          ? 0
+          : Number(form[key]);
+      });
+    }
+
+    onSubmit({
+      serviceName: form.serviceName,
+      currency,
+      fromCurrency,
+      toCurrency,
+      ...numeric,
+      isActive: form.isActive,
+    });
   };
 
   return (
@@ -124,7 +218,12 @@ const PricingForm = ({ initial, currencies, onSubmit, submitting, isEdit }) => {
           ) : (
             <select
               value={form.serviceName}
-              onChange={(e) => set("serviceName", e.target.value)}
+              onChange={(e) => {
+                const serviceName = e.target.value;
+                // conversion defaults to "pair" mode, everything else to "single"
+                set("serviceName", serviceName);
+                set("currencyMode", serviceName === "conversion" ? "pair" : "single");
+              }}
               required
               className="w-full border border-gray-200 rounded-lg px-3 py-2 text-sm outline-none focus:ring-2 focus:ring-emerald-300 bg-white"
             >
@@ -140,17 +239,55 @@ const PricingForm = ({ initial, currencies, onSubmit, submitting, isEdit }) => {
           <label className="block text-xs font-medium text-gray-500 mb-1">Currency</label>
           {isEdit ? (
             <div className="flex items-center gap-2 px-3 py-2 bg-gray-50 border border-gray-200 rounded-lg">
-              <span className="text-sm font-semibold text-gray-700">{form.currency}</span>
+              <span className="text-sm font-semibold text-gray-700">
+                {isConversion && form.fromCurrency && form.toCurrency
+                  ? `${form.fromCurrency} → ${form.toCurrency}`
+                  : form.currencyMode === "wildcard" ? "All currencies" : form.currency}
+              </span>
               <span className="ml-auto text-[10px] text-gray-400 bg-gray-200 px-1.5 py-0.5 rounded">locked</span>
+            </div>
+          ) : isConversion ? (
+            <div className="grid grid-cols-2 gap-2">
+              <select
+                value={form.fromCurrency}
+                onChange={(e) => set("fromCurrency", e.target.value)}
+                required
+                className="w-full border border-gray-200 rounded-lg px-3 py-2 text-sm outline-none focus:ring-2 focus:ring-emerald-300 bg-white"
+              >
+                <option value="">From…</option>
+                {currencies.map((c) => (
+                  <option key={c.code} value={c.code}>{c.code}</option>
+                ))}
+              </select>
+              <select
+                value={form.toCurrency}
+                onChange={(e) => set("toCurrency", e.target.value)}
+                required
+                className="w-full border border-gray-200 rounded-lg px-3 py-2 text-sm outline-none focus:ring-2 focus:ring-emerald-300 bg-white"
+              >
+                <option value="">To…</option>
+                {currencies.map((c) => (
+                  <option key={c.code} value={c.code}>{c.code}</option>
+                ))}
+              </select>
             </div>
           ) : (
             <select
-              value={form.currency}
-              onChange={(e) => set("currency", e.target.value)}
+              value={form.currencyMode === "wildcard" ? "*" : form.currency}
+              onChange={(e) => {
+                if (e.target.value === "*") {
+                  set("currencyMode", "wildcard");
+                  set("currency", "*");
+                } else {
+                  set("currencyMode", "single");
+                  set("currency", e.target.value);
+                }
+              }}
               required
               className="w-full border border-gray-200 rounded-lg px-3 py-2 text-sm outline-none focus:ring-2 focus:ring-emerald-300 bg-white"
             >
               <option value="">Select currency…</option>
+              <option value="*">✱ All currencies (wildcard)</option>
               {currencies.map((c) => (
                 <option key={c.code} value={c.code}>{c.code} — {c.name}</option>
               ))}
@@ -159,43 +296,51 @@ const PricingForm = ({ initial, currencies, onSubmit, submitting, isEdit }) => {
         </div>
       </div>
 
-      {/* Provider section */}
-      <div className="space-y-3">
-        <div className="flex items-center gap-2">
-          <div className="h-px flex-1 bg-gray-100" />
-          <span className="text-xs font-bold text-gray-400 uppercase tracking-widest px-2">
-            Provider (Cost)
-          </span>
-          <div className="h-px flex-1 bg-gray-100" />
+      {isConversion && !isEdit && (
+        <p className="text-[11px] text-gray-400 -mt-3">
+          Both currencies in the pair must be active on the platform.
+        </p>
+      )}
+
+      {/* Provider section — conversion has no provider side, hide it entirely */}
+      {!isConversion && (
+        <div className="space-y-3">
+          <div className="flex items-center gap-2">
+            <div className="h-px flex-1 bg-gray-100" />
+            <span className="text-xs font-bold text-gray-400 uppercase tracking-widest px-2">
+              Provider (Cost)
+            </span>
+            <div className="h-px flex-1 bg-gray-100" />
+          </div>
+          <div className="bg-orange-50/50 border border-orange-100 rounded-xl p-4 grid grid-cols-2 sm:grid-cols-4 gap-3">
+            <NumInput
+              label="Percentage"
+              hint="0–1"
+              value={form.providerPercentage}
+              onChange={(v) => set("providerPercentage", v)}
+              max="1"
+            />
+            <NumInput
+              label="Fixed Fee"
+              step="0.01"
+              value={form.providerFixedFee}
+              onChange={(v) => set("providerFixedFee", v)}
+            />
+            <NumInput
+              label="Min Cap"
+              step="0.01"
+              value={form.providerMinCap}
+              onChange={(v) => set("providerMinCap", v)}
+            />
+            <NumInput
+              label="Max Cap"
+              step="0.01"
+              value={form.providerMaxCap}
+              onChange={(v) => set("providerMaxCap", v)}
+            />
+          </div>
         </div>
-        <div className="bg-orange-50/50 border border-orange-100 rounded-xl p-4 grid grid-cols-2 sm:grid-cols-4 gap-3">
-          <NumInput
-            label="Percentage"
-            hint="0–1"
-            value={form.providerPercentage}
-            onChange={(v) => set("providerPercentage", v)}
-            max="1"
-          />
-          <NumInput
-            label="Fixed Fee"
-            step="0.01"
-            value={form.providerFixedFee}
-            onChange={(v) => set("providerFixedFee", v)}
-          />
-          <NumInput
-            label="Min Cap"
-            step="0.01"
-            value={form.providerMinCap}
-            onChange={(v) => set("providerMinCap", v)}
-          />
-          <NumInput
-            label="Max Cap"
-            step="0.01"
-            value={form.providerMaxCap}
-            onChange={(v) => set("providerMaxCap", v)}
-          />
-        </div>
-      </div>
+      )}
 
       {/* Customer section */}
       <div className="space-y-3">
@@ -209,13 +354,14 @@ const PricingForm = ({ initial, currencies, onSubmit, submitting, isEdit }) => {
         <div className="bg-emerald-50/50 border border-emerald-100 rounded-xl p-4 grid grid-cols-2 sm:grid-cols-4 gap-3">
           <NumInput
             label="Percentage"
-            hint="0–1"
+            hint="0–1, takes priority over fixed fee"
             value={form.customerPercentage}
             onChange={(v) => set("customerPercentage", v)}
             max="1"
           />
           <NumInput
             label="Fixed Fee"
+            hint="used only if % = 0"
             step="0.01"
             value={form.customerFixedFee}
             onChange={(v) => set("customerFixedFee", v)}
@@ -236,22 +382,14 @@ const PricingForm = ({ initial, currencies, onSubmit, submitting, isEdit }) => {
       </div>
 
       {/* Margin preview */}
-      {form.currency && (
-        <div className="bg-gray-50 border border-gray-100 rounded-xl px-4 py-3 flex flex-wrap gap-4 text-xs text-gray-500">
-          <span className="flex items-center gap-1">
-            <Info size={11} className="text-gray-400" />
-            Margin preview (on fixed fees):
-          </span>
-          <span className="font-semibold text-emerald-600">
-            Net ≈ {sym(form.currency)}{(
-              parseFloat(form.customerFixedFee || 0) - parseFloat(form.providerFixedFee || 0)
-            ).toFixed(2)} flat
-          </span>
-          <span className="font-semibold text-blue-600">
-            +{((parseFloat(form.customerPercentage || 0) - parseFloat(form.providerPercentage || 0)) * 100).toFixed(2)}% spread
-          </span>
-        </div>
-      )}
+      <div className="bg-gray-50 border border-gray-100 rounded-xl px-4 py-3 flex flex-wrap gap-4 text-xs text-gray-500">
+        <span className="flex items-center gap-1">
+          <Info size={11} className="text-gray-400" />
+          {parseFloat(form.customerPercentage || 0) > 0
+            ? "Customer fee is percent-based (capped by min/max)."
+            : "Customer % is 0 or blank — flat customer fee applies."}
+        </span>
+      </div>
 
       {/* Active */}
       <div className="flex items-center justify-between py-3 px-4 bg-gray-50 rounded-xl">
@@ -283,6 +421,16 @@ const PricingForm = ({ initial, currencies, onSubmit, submitting, isEdit }) => {
 const ServiceGroup = ({ serviceName, configs, onEdit }) => {
   const [open, setOpen] = useState(true);
   const meta = SERVICE_META[serviceName] ?? { label: serviceName, color: "bg-gray-100 text-gray-600 border-gray-200", dot: "bg-gray-400" };
+  const isConversion = serviceName === "conversion";
+
+  const headers = isConversion
+    ? ["Currency", "Customer %", "Customer Fee", "C. Min", "C. Max", "Status", "Updated", ""]
+    : [
+        "Currency",
+        "Provider %", "Provider Fee", "P. Min", "P. Max",
+        "Customer %", "Customer Fee", "C. Min", "C. Max",
+        "Status", "Updated", "",
+      ];
 
   return (
     <div className="bg-white border border-gray-100 rounded-2xl shadow-sm overflow-hidden">
@@ -306,12 +454,7 @@ const ServiceGroup = ({ serviceName, configs, onEdit }) => {
           <table className="min-w-full text-sm text-left">
             <thead className="bg-gray-50 border-b border-gray-100">
               <tr>
-                {[
-                  "Currency",
-                  "Provider %", "Provider Fee", "P. Min", "P. Max",
-                  "Customer %", "Customer Fee", "C. Min", "C. Max",
-                  "Status", "Updated", "",
-                ].map((h) => (
+                {headers.map((h) => (
                   <th key={h} className="px-4 py-2.5 text-[11px] font-semibold text-gray-400 uppercase tracking-wide whitespace-nowrap">
                     {h}
                   </th>
@@ -319,56 +462,73 @@ const ServiceGroup = ({ serviceName, configs, onEdit }) => {
               </tr>
             </thead>
             <tbody className="divide-y divide-gray-50">
-              {configs.map((c) => (
-                <tr key={c.id} className="hover:bg-gray-50/60 transition-colors">
-                  <td className="px-4 py-3 whitespace-nowrap">
-                    <div className="flex items-center gap-2">
-                      <span className="w-6 h-6 rounded-full bg-slate-100 text-xs font-bold text-slate-600 flex items-center justify-center">
-                        {sym(c.currency)}
+              {configs.map((c) => {
+                const feeCurrency = feeCurrencyFor(c);
+                const wildcard = isWildcard(c.currency);
+                const pair = Boolean(c.fromCurrency && c.toCurrency) || isPair(c.currency);
+                return (
+                  <tr key={c.id} className="hover:bg-gray-50/60 transition-colors">
+                    <td className="px-4 py-3 whitespace-nowrap">
+                      <div className="flex items-center gap-2">
+                        {wildcard ? (
+                          <span className="w-6 h-6 rounded-full bg-slate-100 text-slate-500 flex items-center justify-center">
+                            <Globe size={12} />
+                          </span>
+                        ) : !pair ? (
+                          <span className="w-6 h-6 rounded-full bg-slate-100 text-xs font-bold text-slate-600 flex items-center justify-center">
+                            {sym(c.currency)}
+                          </span>
+                        ) : null}
+                        <span className="font-semibold text-gray-800">{currencyLabel(c)}</span>
+                      </div>
+                    </td>
+
+                    {/* provider — omitted entirely for conversion, no data to show */}
+                    {!isConversion && (
+                      <>
+                        <td className="px-4 py-3 text-orange-600 font-medium">{pctDisplay(c.providerPercentage)}</td>
+                        <td className="px-4 py-3 text-orange-600">{feeDisplay(feeCurrency, c.providerFixedFee)}</td>
+                        <td className="px-4 py-3 text-gray-500 text-xs">{feeDisplay(feeCurrency, c.providerMinCap)}</td>
+                        <td className="px-4 py-3 text-gray-500 text-xs">{feeDisplay(feeCurrency, c.providerMaxCap)}</td>
+                      </>
+                    )}
+
+                    {/* customer */}
+                    <td className="px-4 py-3 text-emerald-600 font-medium">{pctDisplay(c.customerPercentage)}</td>
+                    <td className="px-4 py-3 text-emerald-600">{feeDisplay(feeCurrency, c.customerFixedFee)}</td>
+                    <td className="px-4 py-3 text-gray-500 text-xs">{feeDisplay(feeCurrency, c.customerMinCap)}</td>
+                    <td className="px-4 py-3 text-gray-500 text-xs">{feeDisplay(feeCurrency, c.customerMaxCap)}</td>
+
+                    {/* status */}
+                    <td className="px-4 py-3">
+                      <span className={`inline-flex items-center gap-1 text-xs font-medium px-2 py-0.5 rounded-full ${
+                        c.isActive ? "bg-emerald-100 text-emerald-700" : "bg-gray-100 text-gray-500"
+                      }`}>
+                        <span className={`w-1.5 h-1.5 rounded-full ${c.isActive ? "bg-emerald-500" : "bg-gray-400"}`} />
+                        {c.isActive ? "Active" : "Inactive"}
                       </span>
-                      <span className="font-semibold text-gray-800">{c.currency}</span>
-                    </div>
-                  </td>
+                    </td>
 
-                  {/* provider */}
-                  <td className="px-4 py-3 text-orange-600 font-medium">{pctDisplay(c.providerPercentage)}</td>
-                  <td className="px-4 py-3 text-orange-600">{feeDisplay(c.currency, c.providerFixedFee)}</td>
-                  <td className="px-4 py-3 text-gray-500 text-xs">{feeDisplay(c.currency, c.providerMinCap)}</td>
-                  <td className="px-4 py-3 text-gray-500 text-xs">{feeDisplay(c.currency, c.providerMaxCap)}</td>
+                    <td className="px-4 py-3 text-xs text-gray-400 whitespace-nowrap">
+                      {c.updatedAt
+                        ? new Date(c.updatedAt).toLocaleDateString(undefined, {
+                            month: "short", day: "numeric", year: "numeric",
+                          })
+                        : "—"}
+                    </td>
 
-                  {/* customer */}
-                  <td className="px-4 py-3 text-emerald-600 font-medium">{pctDisplay(c.customerPercentage)}</td>
-                  <td className="px-4 py-3 text-emerald-600">{feeDisplay(c.currency, c.customerFixedFee)}</td>
-                  <td className="px-4 py-3 text-gray-500 text-xs">{feeDisplay(c.currency, c.customerMinCap)}</td>
-                  <td className="px-4 py-3 text-gray-500 text-xs">{feeDisplay(c.currency, c.customerMaxCap)}</td>
-
-                  {/* status */}
-                  <td className="px-4 py-3">
-                    <span className={`inline-flex items-center gap-1 text-xs font-medium px-2 py-0.5 rounded-full ${
-                      c.isActive ? "bg-emerald-100 text-emerald-700" : "bg-gray-100 text-gray-500"
-                    }`}>
-                      <span className={`w-1.5 h-1.5 rounded-full ${c.isActive ? "bg-emerald-500" : "bg-gray-400"}`} />
-                      {c.isActive ? "Active" : "Inactive"}
-                    </span>
-                  </td>
-
-                  <td className="px-4 py-3 text-xs text-gray-400 whitespace-nowrap">
-                    {new Date(c.updatedAt).toLocaleDateString(undefined, {
-                      month: "short", day: "numeric", year: "numeric",
-                    })}
-                  </td>
-
-                  <td className="px-4 py-3">
-                    <button
-                      onClick={() => onEdit(c)}
-                      className="w-7 h-7 flex items-center justify-center rounded-lg hover:bg-blue-50 text-gray-400 hover:text-blue-600 transition"
-                      title="Edit"
-                    >
-                      <Pencil size={13} />
-                    </button>
-                  </td>
-                </tr>
-              ))}
+                    <td className="px-4 py-3">
+                      <button
+                        onClick={() => onEdit(c)}
+                        className="w-7 h-7 flex items-center justify-center rounded-lg hover:bg-blue-50 text-gray-400 hover:text-blue-600 transition"
+                        title="Edit"
+                      >
+                        <Pencil size={13} />
+                      </button>
+                    </td>
+                  </tr>
+                );
+              })}
             </tbody>
           </table>
         </div>
@@ -433,11 +593,13 @@ export default function Pricing() {
   useEffect(() => { fetchAll(); }, []);
 
   // ── save (POST handles both create & update) ───────────────────────────────
-  const handleSave = async (form) => {
+  const handleSave = async (payload) => {
     setSubmitting(true);
     try {
-      await axios.post(`${API_BASE_URL}/superAdmin/pricing`, form, { headers });
-      showToast(`${SERVICE_META[form.serviceName]?.label ?? form.serviceName} / ${form.currency} saved`);
+      const res = await axios.post(`${API_BASE_URL}/superAdmin/pricing`, payload, { headers });
+      const saved = res.data?.data ?? payload;
+      const label = `${SERVICE_META[saved.serviceName]?.label ?? saved.serviceName} / ${currencyLabel(saved)}`;
+      showToast(`${label} saved`);
       setModal(null);
       fetchAll(true);
     } catch (err) {
@@ -487,7 +649,7 @@ export default function Pricing() {
         <div>
           <h1 className="text-2xl font-semibold text-gray-800">Service Pricing</h1>
           <p className="text-sm text-gray-400 mt-0.5">
-            Provider cost & customer sale rules per service and currency
+            Provider cost & customer sale rules per service, currency, and conversion pair
           </p>
         </div>
         <div className="flex items-center gap-2">
@@ -527,7 +689,7 @@ export default function Pricing() {
           <p className="text-2xl font-bold text-blue-600">
             {new Set(configs.map((c) => c.currency)).size}
           </p>
-          <p className="text-xs text-gray-400 mt-0.5">Currencies</p>
+          <p className="text-xs text-gray-400 mt-0.5">Currency Rules</p>
         </div>
       </div>
 
@@ -535,8 +697,8 @@ export default function Pricing() {
       <div className="bg-blue-50 border border-blue-100 rounded-xl px-4 py-3 flex items-start gap-3 text-xs text-blue-700">
         <Info size={14} className="mt-0.5 shrink-0 text-blue-400" />
         <div className="space-y-0.5">
-          <p><strong>How charges are calculated:</strong> Charge = (Amount × %) + Fixed Fee, then clamped between Min Cap and Max Cap.</p>
-          <p className="text-blue-500">Net Profit = Clamped Customer Charge − Clamped Provider Charge. All math runs server-side.</p>
+          <p><strong>How charges are calculated:</strong> If Customer % &gt; 0, the fee is percent-based (clamped between Min/Max Cap). If Customer % = 0, the flat Customer Fixed Fee applies instead.</p>
+          <p className="text-blue-500">Platform Profit = Customer Fee − Provider Fee. "*" currency rules apply as a fallback for any currency without a specific rule. All math runs server-side.</p>
         </div>
       </div>
 
@@ -569,7 +731,7 @@ export default function Pricing() {
       {modal === "create" && (
         <Modal
           title="New Pricing Rule"
-          subtitle="POST /superAdmin/pricing — creates or updates by service + currency"
+          
           onClose={() => setModal(null)}
         >
           <PricingForm
@@ -585,22 +747,29 @@ export default function Pricing() {
       {/* ── Edit modal ────────────────────────────────────────────────────── */}
       {modal === "edit" && selected && (
         <Modal
-          title={`Edit — ${SERVICE_META[selected.serviceName]?.label ?? selected.serviceName} / ${selected.currency}`}
+          title={`Edit — ${SERVICE_META[selected.serviceName]?.label ?? selected.serviceName} / ${currencyLabel(selected)}`}
           subtitle="serviceName and currency are locked (upsert key)"
           onClose={() => setModal(null)}
         >
           <PricingForm
             initial={{
               serviceName:            selected.serviceName,
-              currency:               selected.currency,
-              providerPercentage:     parseFloat(selected.providerPercentage),
-              providerFixedFee:       parseFloat(selected.providerFixedFee),
-              providerMinCap:         parseFloat(selected.providerMinCap),
-              providerMaxCap:         parseFloat(selected.providerMaxCap),
-              customerPercentage:     parseFloat(selected.customerPercentage),
-              customerFixedFee:       parseFloat(selected.customerFixedFee),
-              customerMinCap:         parseFloat(selected.customerMinCap),
-              customerMaxCap:         parseFloat(selected.customerMaxCap),
+              currencyMode:           isWildcard(selected.currency)
+                                         ? "wildcard"
+                                         : (selected.fromCurrency && selected.toCurrency) || isPair(selected.currency)
+                                           ? "pair"
+                                           : "single",
+              currency:               selected.currency ?? "",
+              fromCurrency:           selected.fromCurrency ?? (isPair(selected.currency) ? pairParts(selected.currency).from : ""),
+              toCurrency:             selected.toCurrency ?? (isPair(selected.currency) ? pairParts(selected.currency).to : ""),
+              providerPercentage:     selected.providerPercentage ?? "",
+              providerFixedFee:       selected.providerFixedFee ?? "",
+              providerMinCap:         selected.providerMinCap ?? "",
+              providerMaxCap:         selected.providerMaxCap ?? "",
+              customerPercentage:     selected.customerPercentage ?? "",
+              customerFixedFee:       selected.customerFixedFee ?? "",
+              customerMinCap:         selected.customerMinCap ?? "",
+              customerMaxCap:         selected.customerMaxCap ?? "",
               isActive:               selected.isActive,
             }}
             currencies={currencies}

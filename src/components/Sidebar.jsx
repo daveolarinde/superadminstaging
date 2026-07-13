@@ -90,7 +90,7 @@ const SidebarContent = ({ onClose }) => {
 
   const financeItems = [
     { to: "/admin/exchange-rates",  label: "Exchange Rates",   icon: <ArrowLeftRight size={16} /> },
-    { to: "/admin/Fees-management", label: "Fees Management",  icon: <Percent size={16} />        },
+    
     { to: "/admin/pricing",         label: "Service Pricing",  icon: <ReceiptText size={16} />    },
     { to: "/admin/currencies",      label: "Currencies",       icon: <Coins size={16} />          },
     { to: "/admin/virtual-cards",   label: "Virtual Cards",    icon: <CreditCard size={16} />     },
@@ -110,12 +110,11 @@ const SidebarContent = ({ onClose }) => {
     { to: "/admin/kyc-approved", label: "Approved", icon: <BadgeCheck size={15} /> },
     { to: "/admin/kyc-pending",  label: "Pending",  icon: <Clock size={15} />      },
     { to: "/admin/kyc-rejected", label: "Rejected", icon: <UserX size={15} />      },
-    { to: "/admin/kyc-limit",    label: "Limit",    icon: <UserX size={15} />      },
   ];
 
   const integrationItems = [
     { to: "/admin/wewire-beneficiaries", label: "WeWire Beneficiaries", icon: <Users2 size={15} /> },
-    { to: "/admin/admin-tools",          label: "User Tools",          icon: <Wrench size={15} /> },
+    
   ];
 
   return (
@@ -144,6 +143,7 @@ const SidebarContent = ({ onClose }) => {
         <SectionLabel>People</SectionLabel>
         <NavGroup label="User Management" icon={<Users size={16} />} items={userItems} onClose={onClose} />
         <NavGroup label="KYC Management" icon={<ShieldCheck size={16} />} items={kycItems} onClose={onClose} />
+        <NavItem to="/admin/kyc-limit" label="KYC Limit" icon={<UserX size={15} />} onClick={onClose} />
 
         <SectionLabel>Integrations</SectionLabel>
         {integrationItems.map((item) => <NavItem key={item.to} {...item} onClick={onClose} />)}

@@ -1,8 +1,9 @@
 import React, { useEffect, useState, useCallback } from "react";
 import { useNavigate } from "react-router-dom";
 import axios from "axios";
+import ProfitFilter from "../components/ProfitFilter";
 
-const API_BASE_URL = import.meta.env.VITE_STAGE_API_URL;
+const API_BASE_URL = import.meta.env.VITE_API_URL;
 
 // ── Helpers ───────────────────────────────────────────────────────────────────
 const CURRENCY_SYMBOLS = { NGN: "₦", USD: "$", GHS: "₵", GBP: "£", EUR: "€" };
@@ -102,7 +103,6 @@ const Profits = () => {
   const [loading, setLoading]                 = useState(true);
   const [error, setError]                     = useState("");
   const [searchTerm, setSearchTerm]           = useState("");
-  const [showFilters, setShowFilters]         = useState(false);
 
   const [filters, setFilters] = useState({
     currency:  "",
@@ -184,12 +184,6 @@ const Profits = () => {
     );
   }, [searchTerm, profits]);
 
-  const handleFilterChange = (key, value) =>
-    setFilters((prev) => ({ ...prev, [key]: value }));
-
-  const clearFilters = () =>
-    setFilters({ currency: "", date: "", startDate: "", endDate: "", userId: "" });
-
   const totalPages = Math.max(1, Math.ceil(pagination.total / pagination.limit));
 
   // ── states ─────────────────────────────────────────────────────────────────
@@ -230,98 +224,8 @@ const Profits = () => {
           </p>
         </div>
 
-        <button
-          onClick={() => setShowFilters((v) => !v)}
-          className="relative flex items-center gap-2 text-sm px-4 py-2 border border-gray-200 rounded-lg hover:bg-gray-50 transition"
-        >
-          <svg xmlns="http://www.w3.org/2000/svg" className="w-4 h-4 text-gray-500" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M3 4a1 1 0 011-1h16a1 1 0 011 1v2a1 1 0 01-.293.707L13 13.414V19a1 1 0 01-.553.894l-4 2A1 1 0 017 21v-7.586L3.293 6.707A1 1 0 013 6V4z" />
-          </svg>
-          Filters
-          {activeFilterCount > 0 && (
-            <span className="absolute -top-1.5 -right-1.5 w-4 h-4 rounded-full bg-emerald-500 text-white text-[10px] flex items-center justify-center font-bold">
-              {activeFilterCount}
-            </span>
-          )}
-        </button>
+        <ProfitFilter filters={filters} onApply={setFilters} />
       </div>
-
-      {/* ── Filters Panel ───────────────────────────────────────────────────── */}
-      {showFilters && (
-        <div className="bg-white border border-gray-100 rounded-2xl shadow-sm p-5 space-y-4">
-          <div className="flex items-center justify-between">
-            <p className="text-sm font-medium text-gray-700">Filter Records</p>
-            {activeFilterCount > 0 && (
-              <button
-                onClick={clearFilters}
-                className="text-xs text-red-500 hover:text-red-600 transition"
-              >
-                Clear all ({activeFilterCount})
-              </button>
-            )}
-          </div>
-
-          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
-            <div>
-              <label className="block text-xs font-medium text-gray-500 mb-1">Currency</label>
-              <select
-                value={filters.currency}
-                onChange={(e) => handleFilterChange("currency", e.target.value)}
-                className="w-full border border-gray-200 rounded-lg px-3 py-2 text-sm outline-none focus:ring-2 focus:ring-emerald-300 bg-white"
-              >
-                <option value="">All Currencies</option>
-                {["NGN", "USD", "GHS", "GBP", "EUR"].map((c) => (
-                  <option key={c} value={c}>{c}</option>
-                ))}
-              </select>
-            </div>
-
-            <div>
-              <label className="block text-xs font-medium text-gray-500 mb-1">Date</label>
-              <select
-                value={filters.date}
-                onChange={(e) => handleFilterChange("date", e.target.value)}
-                className="w-full border border-gray-200 rounded-lg px-3 py-2 text-sm outline-none focus:ring-2 focus:ring-emerald-300 bg-white"
-              >
-                <option value="">All Time</option>
-                <option value="today">Today</option>
-                <option value="yesterday">Yesterday</option>
-              </select>
-            </div>
-
-            <div>
-              <label className="block text-xs font-medium text-gray-500 mb-1">User ID</label>
-              <input
-                type="text"
-                placeholder="Paste user UUID…"
-                value={filters.userId}
-                onChange={(e) => handleFilterChange("userId", e.target.value)}
-                className="w-full border border-gray-200 rounded-lg px-3 py-2 text-sm outline-none focus:ring-2 focus:ring-emerald-300"
-              />
-            </div>
-
-            <div>
-              <label className="block text-xs font-medium text-gray-500 mb-1">Start Date</label>
-              <input
-                type="datetime-local"
-                value={filters.startDate}
-                onChange={(e) => handleFilterChange("startDate", e.target.value)}
-                className="w-full border border-gray-200 rounded-lg px-3 py-2 text-sm outline-none focus:ring-2 focus:ring-emerald-300"
-              />
-            </div>
-
-            <div>
-              <label className="block text-xs font-medium text-gray-500 mb-1">End Date</label>
-              <input
-                type="datetime-local"
-                value={filters.endDate}
-                onChange={(e) => handleFilterChange("endDate", e.target.value)}
-                className="w-full border border-gray-200 rounded-lg px-3 py-2 text-sm outline-none focus:ring-2 focus:ring-emerald-300"
-              />
-            </div>
-          </div>
-        </div>
-      )}
 
       {/* ── Summary Blocks (one per currency) ───────────────────────────────── */}
       {summary && Object.keys(summary).length > 0 ? (
@@ -352,30 +256,41 @@ const Profits = () => {
         </div>
       )}
 
-      {/* ── Search ──────────────────────────────────────────────────────────── */}
-      <div className="relative w-full sm:w-72">
-        <input
-          type="text"
-          placeholder="Search by name or email…"
-          value={searchTerm}
-          onChange={(e) => setSearchTerm(e.target.value)}
-          className="w-full pl-9 pr-4 py-2 border border-gray-200 rounded-lg text-sm focus:ring-2 focus:ring-emerald-300 focus:border-emerald-400 outline-none"
-        />
-        <svg
-          xmlns="http://www.w3.org/2000/svg"
-          className="w-4 h-4 absolute left-3 top-2.5 text-gray-400"
-          fill="none" viewBox="0 0 24 24" stroke="currentColor"
-        >
-          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M21 21l-4.35-4.35m1.6-5.4A7.25 7.25 0 1110.25 4a7.25 7.25 0 018 8z" />
-        </svg>
-        {searchTerm && (
-          <button
-            onClick={() => setSearchTerm("")}
-            className="absolute right-3 top-2.5 text-gray-400 hover:text-gray-600"
+      {/* ── Search + active filter summary ───────────────────────────────────── */}
+      <div className="flex flex-wrap items-center gap-3">
+        <div className="relative w-full sm:w-72">
+          <input
+            type="text"
+            placeholder="Search by name or email…"
+            value={searchTerm}
+            onChange={(e) => setSearchTerm(e.target.value)}
+            className="w-full pl-9 pr-4 py-2 border border-gray-200 rounded-lg text-sm focus:ring-2 focus:ring-emerald-300 focus:border-emerald-400 outline-none"
+          />
+          <svg
+            xmlns="http://www.w3.org/2000/svg"
+            className="w-4 h-4 absolute left-3 top-2.5 text-gray-400"
+            fill="none" viewBox="0 0 24 24" stroke="currentColor"
           >
-            <svg xmlns="http://www.w3.org/2000/svg" className="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2.5" d="M6 18L18 6M6 6l12 12" />
-            </svg>
+            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M21 21l-4.35-4.35m1.6-5.4A7.25 7.25 0 1110.25 4a7.25 7.25 0 018 8z" />
+          </svg>
+          {searchTerm && (
+            <button
+              onClick={() => setSearchTerm("")}
+              className="absolute right-3 top-2.5 text-gray-400 hover:text-gray-600"
+            >
+              <svg xmlns="http://www.w3.org/2000/svg" className="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2.5" d="M6 18L18 6M6 6l12 12" />
+              </svg>
+            </button>
+          )}
+        </div>
+
+        {activeFilterCount > 0 && (
+          <button
+            onClick={() => setFilters({ currency: "", date: "", startDate: "", endDate: "", userId: "" })}
+            className="text-xs text-red-500 hover:text-red-600 transition"
+          >
+            Clear all filters ({activeFilterCount})
           </button>
         )}
       </div>

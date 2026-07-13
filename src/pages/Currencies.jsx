@@ -2,7 +2,7 @@ import React, { useEffect, useState, useCallback } from "react";
 import axios from "axios";
 import { Plus, Pencil, Trash2, Globe, CheckCircle2, XCircle, RefreshCw, X } from "lucide-react";
 
-const API_BASE_URL = import.meta.env.VITE_STAGE_API_URL;
+const API_BASE_URL = import.meta.env.VITE_API_URL;
 
 // ── helpers ───────────────────────────────────────────────────────────────────
 const SYMBOL_FALLBACKS = { NGN: "₦", USD: "$", EUR: "€", GBP: "£", GHS: "₵" };
@@ -33,6 +33,7 @@ const EMPTY_FORM = {
   symbol: "",
   isActive: true,
   isVirtualAccountSupported: false,
+  transferNote: "",
 };
 
 // ── Modal ─────────────────────────────────────────────────────────────────────
@@ -52,7 +53,7 @@ const Modal = ({ title, onClose, children }) => (
           <X size={15} />
         </button>
       </div>
-      <div className="px-6 py-5">{children}</div>
+      <div className="px-6 py-5 max-h-[80vh] overflow-y-auto">{children}</div>
     </div>
   </div>
 );
@@ -175,6 +176,22 @@ const CurrencyForm = ({ initial, onSubmit, submitting, isEdit }) => {
           maxLength={5}
           className="w-full border border-gray-200 rounded-lg px-3 py-2 text-sm outline-none focus:ring-2 focus:ring-emerald-300"
         />
+      </div>
+
+      {/* Transfer Note — plain text, sent to backend as string */}
+      <div>
+        <label className="block text-xs font-medium text-gray-500 mb-1">
+          Transfer Note <span className="text-gray-300 font-normal">(optional)</span>
+        </label>
+        <textarea
+          value={form.transferNote}
+          onChange={(e) => set("transferNote", e.target.value)}
+          placeholder="e.g. Please ensure to include transaction reference when sending ZAR."
+          className="w-full border border-gray-200 rounded-lg px-3 py-2 text-sm outline-none focus:ring-2 focus:ring-emerald-300 min-h-[80px] resize-none"
+        />
+        <p className="text-[11px] text-gray-400 mt-1">
+          Shown to users as guidance for this currency.
+        </p>
       </div>
 
       {/* Toggles */}
@@ -335,10 +352,10 @@ export default function Currencies() {
   const handleUpdate = async (form) => {
     setSubmitting(true);
     try {
-      const { name, symbol, isActive, isVirtualAccountSupported } = form;
+      const { name, symbol, isActive, isVirtualAccountSupported, transferNote } = form;
       await axios.put(
         `${API_BASE_URL}/superAdmin/currencies/${selected.id}`,
-        { name, symbol, isActive, isVirtualAccountSupported },
+        { name, symbol, isActive, isVirtualAccountSupported, transferNote },
         { headers }
       );
       showToast(`${selected.code} updated successfully`);
@@ -489,7 +506,7 @@ export default function Currencies() {
                               try {
                                 await axios.put(
                                   `${API_BASE_URL}/superAdmin/currencies/${c.id}`,
-                                  { name: c.name, symbol: c.symbol, isActive: val, isVirtualAccountSupported: c.isVirtualAccountSupported },
+                                  { name: c.name, symbol: c.symbol, isActive: val, isVirtualAccountSupported: c.isVirtualAccountSupported, transferNote: c.transferNote },
                                   { headers }
                                 );
                                 fetchCurrencies(true);
@@ -514,7 +531,7 @@ export default function Currencies() {
                               try {
                                 await axios.put(
                                   `${API_BASE_URL}/superAdmin/currencies/${c.id}`,
-                                  { name: c.name, symbol: c.symbol, isActive: c.isActive, isVirtualAccountSupported: val },
+                                  { name: c.name, symbol: c.symbol, isActive: c.isActive, isVirtualAccountSupported: val, transferNote: c.transferNote },
                                   { headers }
                                 );
                                 fetchCurrencies(true);
@@ -598,6 +615,7 @@ export default function Currencies() {
               symbol: resolveSymbol(selected.code, selected.symbol),
               isActive: selected.isActive,
               isVirtualAccountSupported: selected.isVirtualAccountSupported,
+              transferNote: selected.transferNote ?? "",
             }}
             onSubmit={handleUpdate}
             submitting={submitting}

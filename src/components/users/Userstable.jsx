@@ -1,13 +1,13 @@
 // components/UsersTable.jsx
-import { useState, useCallback } from "react";
+import { useState, useCallback, useEffect, useRef, useMemo } from "react";
 import { useNavigate } from "react-router-dom";
 import { formatDistanceToNow } from "date-fns";
 import {
   MoreVertical, ExternalLink, ChevronLeft, ChevronRight,
   Mail, X, Send, ChevronDown, Users,
   Bold, Italic, Underline, Link, List, ListOrdered,
-  AlignLeft, AlignCenter, AlignRight, Minus, Undo, Redo,Wallet,Bell,
-  ShieldAlert,
+  AlignLeft, AlignCenter, AlignRight, Minus, Undo, Redo, Wallet, Bell,
+  ShieldAlert, Search, Loader2,
 } from "lucide-react";
 import { useEditor, EditorContent } from "@tiptap/react";
 import StarterKit from "@tiptap/starter-kit";
@@ -15,7 +15,77 @@ import UnderlineExt from "@tiptap/extension-underline";
 import LinkExt from "@tiptap/extension-link";
 import TextAlign from "@tiptap/extension-text-align";
 
-const API_URL = import.meta.env.VITE_STAGE_API_URL;
+const API_URL = import.meta.env.VITE_API_URL;
+
+// ── Relevance scoring ─────────────────────────────────────────────────────────
+// Re-ranks whatever page of users the backend returns for a search so the
+// strongest match for the typed query floats to the top, regardless of the
+// order the API happens to send them in. Lower score = more relevant.
+const userMatchScore = (user, query) => {
+  const q = query.trim().toLowerCase();
+  if (!q) return 0;
+
+  const first   = (user.firstname || "").toLowerCase();
+  const last    = (user.lastname || "").toLowerCase();
+  const full    = `${first} ${last}`.trim();
+  const email   = (user.email || "").toLowerCase();
+  const tag     = (user.tag || "").toLowerCase();
+  const phone   = (user.phoneNumber || "").toLowerCase();
+  const country = (user.country || "").toLowerCase();
+
+  // Lower weight = higher-priority field (full name checked first, per request)
+  const fields = [
+    { val: full,    weight: 0 },
+    { val: first,   weight: 1 },
+    { val: last,    weight: 1 },
+    { val: tag,     weight: 2 },
+    { val: email,   weight: 3 },
+    { val: phone,   weight: 4 },
+    { val: country, weight: 5 },
+  ];
+
+  let best = Infinity;
+  for (const { val, weight } of fields) {
+    if (!val) continue;
+    if (val === q) best = Math.min(best, weight * 10 + 0);            // exact match
+    else if (val.startsWith(q)) best = Math.min(best, weight * 10 + 1); // prefix match
+    else if (val.includes(q)) best = Math.min(best, weight * 10 + 2);   // substring match
+  }
+
+  return best;
+};
+
+// ── Selfie helper ─────────────────────────────────────────────────────────────
+// selfieUrl isn't a top-level field on the user object — it lives inside
+// kycRecords[]. Pull the first available one, or return null to fall back
+// to the initials avatar.
+const getSelfieUrl = (user) => {
+  const records = Array.isArray(user?.kycRecords) ? user.kycRecords : [];
+  const withSelfie = records.find((r) => r.selfieUrl);
+  return withSelfie?.selfieUrl || null;
+};
+
+// ── Avatar ────────────────────────────────────────────────────────────────────
+const UserAvatar = ({ user, size = "w-9 h-9", textSize = "text-sm" }) => {
+  const selfieUrl = getSelfieUrl(user);
+  const [failed, setFailed] = useState(false);
+  const showImage = selfieUrl && !failed;
+
+  return (
+    <div className={`${size} rounded-full bg-indigo-100 flex items-center justify-center text-indigo-600 ${textSize} font-bold shrink-0 uppercase overflow-hidden`}>
+      {showImage ? (
+        <img
+          src={selfieUrl}
+          alt={user.firstname}
+          className="w-full h-full object-cover"
+          onError={() => setFailed(true)}
+        />
+      ) : (
+        user.firstname?.[0] || "?"
+      )}
+    </div>
+  );
+};
 
 // ── Status badge ──────────────────────────────────────────────────────────────
 const StatusBadge = ({ status }) => {
@@ -190,11 +260,11 @@ const RichEditor = ({ onChange }) => {
 
 // ── Reset KYC Modal ───────────────────────────────────────────────────────────
 const ResetKycModal = ({ user, onClose }) => {
-  const [kycType,  setKycType]  = useState("identity");
-  const [reason,   setReason]   = useState("");
+  const [kycType,   setKycType]   = useState("identity");
+  const [reason,    setReason]    = useState("");
   const [resetting, setResetting] = useState(false);
-  const [result,   setResult]   = useState(null);
-  const [error,    setError]    = useState(null);
+  const [result,    setResult]    = useState(null);
+  const [error,     setError]     = useState(null);
 
   const handleReset = async () => {
     if (!reason.trim()) return setError("Please provide a reason for the KYC reset.");
@@ -220,7 +290,6 @@ const ResetKycModal = ({ user, onClose }) => {
     }
   };
 
-  // ── Success state ─────────────────────────────────────────────────────────
   if (result) {
     return (
       <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/40 backdrop-blur-sm">
@@ -247,12 +316,9 @@ const ResetKycModal = ({ user, onClose }) => {
     );
   }
 
-  // ── Form ──────────────────────────────────────────────────────────────────
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/40 backdrop-blur-sm">
       <div className="bg-white rounded-2xl shadow-2xl w-full max-w-lg flex flex-col">
-
-        {/* Header */}
         <div className="flex items-center justify-between px-6 py-4 border-b border-gray-100">
           <div className="flex items-center gap-2.5">
             <div className="w-8 h-8 rounded-lg bg-orange-50 flex items-center justify-center">
@@ -260,9 +326,7 @@ const ResetKycModal = ({ user, onClose }) => {
             </div>
             <div>
               <h2 className="text-sm font-bold text-gray-800 leading-tight">Reset KYC</h2>
-              <p className="text-xs text-gray-400">
-                {user.firstname} {user.lastname}
-              </p>
+              <p className="text-xs text-gray-400">{user.firstname} {user.lastname}</p>
             </div>
           </div>
           <button
@@ -273,10 +337,7 @@ const ResetKycModal = ({ user, onClose }) => {
           </button>
         </div>
 
-        {/* Body */}
         <div className="px-6 py-5 space-y-5">
-
-          {/* Info banner */}
           <div className="flex items-start gap-3 px-4 py-3 rounded-xl bg-amber-50 border border-amber-100">
             <ShieldAlert size={15} className="text-amber-500 mt-0.5 shrink-0" />
             <p className="text-xs text-amber-700 leading-relaxed">
@@ -285,7 +346,6 @@ const ResetKycModal = ({ user, onClose }) => {
             </p>
           </div>
 
-          {/* KYC type */}
           <div>
             <label className="block text-xs font-semibold text-gray-500 uppercase tracking-wide mb-2">
               KYC Type <span className="text-red-400">*</span>
@@ -311,7 +371,6 @@ const ResetKycModal = ({ user, onClose }) => {
             </div>
           </div>
 
-          {/* Reason */}
           <div>
             <label className="block text-xs font-semibold text-gray-500 uppercase tracking-wide mb-1.5">
               Reason <span className="text-red-400">*</span>
@@ -328,7 +387,6 @@ const ResetKycModal = ({ user, onClose }) => {
             </p>
           </div>
 
-          {/* Error */}
           {error && (
             <div className="flex items-start gap-2.5 px-4 py-3 rounded-xl bg-red-50 border border-red-100">
               <span className="w-1.5 h-1.5 rounded-full bg-red-500 mt-1.5 shrink-0" />
@@ -337,7 +395,6 @@ const ResetKycModal = ({ user, onClose }) => {
           )}
         </div>
 
-        {/* Footer */}
         <div className="flex items-center justify-end gap-2 px-6 py-4 border-t border-gray-100 bg-gray-50/60 rounded-b-2xl">
           <button
             onClick={onClose}
@@ -456,7 +513,7 @@ const EmailModal = ({ onClose, totalUsers, preselectedUsers }) => {
               <div className="flex flex-wrap gap-1.5 p-3 rounded-xl bg-gray-50 border border-gray-200 max-h-28 overflow-y-auto">
                 {recipients.map(u => (
                   <span key={u.id} className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full bg-white border border-gray-200 text-xs font-medium text-gray-700 shadow-sm">
-                    <span className="w-4 h-4 rounded-full bg-indigo-100 text-indigo-600 flex items-center justify-center text-[9px] font-bold uppercase shrink-0">{u.firstname?.[0] || "?"}</span>
+                    <UserAvatar user={u} size="w-4 h-4" textSize="text-[9px]" />
                     {u.firstname} {u.lastname}
                   </span>
                 ))}
@@ -553,7 +610,76 @@ const EmailModal = ({ onClose, totalUsers, preselectedUsers }) => {
   );
 };
 
+// ── Search Input ──────────────────────────────────────────────────────────────
+// Debounces the query and calls onSearch(query) after 400ms of inactivity.
+// Also resets pagination to page 1 on every new search.
+const SearchInput = ({ onSearch, isSearching, initialValue = "" }) => {
+  const [value, setValue] = useState(initialValue);
+  const timerRef = useRef(null);
+
+  const handleChange = (e) => {
+    const q = e.target.value;
+    setValue(q);
+    clearTimeout(timerRef.current);
+    timerRef.current = setTimeout(() => {
+      onSearch(q.trim());
+    }, 400);
+  };
+
+  const handleClear = () => {
+    setValue("");
+    clearTimeout(timerRef.current);
+    onSearch("");
+  };
+
+  useEffect(() => () => clearTimeout(timerRef.current), []);
+
+  return (
+    <div className="relative flex items-center w-full max-w-sm">
+      <Search
+        size={14}
+        className="absolute left-3 text-gray-400 pointer-events-none shrink-0"
+      />
+      <input
+        type="text"
+        value={value}
+        onChange={handleChange}
+        placeholder="Search by full name, email, username, or tag…"
+        className="w-full pl-8 pr-8 py-2 rounded-xl border border-gray-200 text-sm text-gray-800 placeholder-gray-400
+          bg-white focus:outline-none focus:border-blue-400 focus:ring-2 focus:ring-blue-50 transition"
+      />
+      {/* Right-side indicator: spinner while searching, clear button when there's text */}
+      <div className="absolute right-2.5 flex items-center">
+        {isSearching && value ? (
+          <Loader2 size={13} className="animate-spin text-blue-400" />
+        ) : value ? (
+          <button
+            onClick={handleClear}
+            className="w-4 h-4 flex items-center justify-center rounded-full bg-gray-200 hover:bg-gray-300 text-gray-500 transition"
+            title="Clear search"
+          >
+            <X size={9} />
+          </button>
+        ) : null}
+      </div>
+    </div>
+  );
+};
+
 // ── Main Component ────────────────────────────────────────────────────────────
+/**
+ * Props
+ * ─────
+ * users            – current page of user objects
+ * totalUsers       – total count (for pagination label)
+ * limit            – page size
+ * offset           – current offset
+ * onPageChange     – (newOffset: number) => void
+ * onStatusChange   – (userId, status) => void
+ * statusUpdating   – userId currently being updated (or null)
+ * onSearch         – (query: string) => void   ← called with debounced search term
+ * isSearching      – boolean                   ← true while the parent is fetching
+ */
 const UsersTable = ({
   users,
   totalUsers,
@@ -562,6 +688,8 @@ const UsersTable = ({
   onPageChange,
   onStatusChange,
   statusUpdating,
+  onSearch,
+  isSearching,
 }) => {
   const navigate = useNavigate();
 
@@ -569,7 +697,21 @@ const UsersTable = ({
   const [selectedIds,   setSelectedIds]   = useState(new Set());
   const [modalOpen,     setModalOpen]     = useState(false);
   const [targetedUsers, setTargetedUsers] = useState(null);
-  const [kycResetUser,  setKycResetUser]  = useState(null); // user to reset KYC for
+  const [kycResetUser,  setKycResetUser]  = useState(null);
+
+  // Tracks the *live* search term so we can re-rank whatever `users` the
+  // backend hands back — the search box itself is debounced separately.
+  const [searchQuery, setSearchQuery] = useState("");
+  const isSearchActive = searchQuery.trim().length > 0;
+
+  // Re-rank the returned page so the best match for what was typed comes
+  // first, regardless of the order the backend sent them in.
+  const displayedUsers = useMemo(() => {
+    if (!isSearchActive) return users;
+    return [...users].sort(
+      (a, b) => userMatchScore(a, searchQuery) - userMatchScore(b, searchQuery)
+    );
+  }, [users, searchQuery, isSearchActive]);
 
   const totalPages  = Math.ceil(totalUsers / limit);
   const currentPage = Math.floor(offset / limit) + 1;
@@ -579,9 +721,9 @@ const UsersTable = ({
 
   const statusOptions = ["active", "inactive", "blocked", "deactivated"];
 
-  const allSelected   = users.length > 0 && users.every(u => selectedIds.has(u.id));
-  const someSelected  = users.some(u => selectedIds.has(u.id));
-  const selectedUsers = users.filter(u => selectedIds.has(u.id));
+  const allSelected   = displayedUsers.length > 0 && displayedUsers.every(u => selectedIds.has(u.id));
+  const someSelected  = displayedUsers.some(u => selectedIds.has(u.id));
+  const selectedUsers = displayedUsers.filter(u => selectedIds.has(u.id));
 
   const toggleUser = (id) =>
     setSelectedIds(prev => {
@@ -592,19 +734,26 @@ const UsersTable = ({
 
   const toggleAll = () => {
     if (allSelected) {
-      setSelectedIds(prev => { const next = new Set(prev); users.forEach(u => next.delete(u.id)); return next; });
+      setSelectedIds(prev => { const next = new Set(prev); displayedUsers.forEach(u => next.delete(u.id)); return next; });
     } else {
-      setSelectedIds(prev => { const next = new Set(prev); users.forEach(u => next.add(u.id)); return next; });
+      setSelectedIds(prev => { const next = new Set(prev); displayedUsers.forEach(u => next.add(u.id)); return next; });
     }
   };
 
-  const openBroadcast          = ()     => { setTargetedUsers(null); setModalOpen(true); };
   const openTargeted           = (list) => { setTargetedUsers(list); setModalOpen(true); };
   const openTargetedFromSelect = ()     => openTargeted(selectedUsers);
   const closeModal             = ()     => { setModalOpen(false); setTargetedUsers(null); };
 
   const openKycReset  = (user) => { setKycResetUser(user); setOpenMenu(null); };
   const closeKycReset = ()     => setKycResetUser(null);
+
+  // When a new search fires: remember the query for re-ranking, forward it
+  // to the backend, and reset to page 1.
+  const handleSearch = useCallback((query) => {
+    setSearchQuery(query);
+    onSearch?.(query);
+    onPageChange(0);
+  }, [onSearch, onPageChange]);
 
   const thCls = "px-5 py-3.5 text-left text-xs font-bold text-gray-400 uppercase tracking-wider";
   const tdCls = "px-5 py-4";
@@ -621,37 +770,31 @@ const UsersTable = ({
 
       <div className="bg-white rounded-2xl border border-gray-100 shadow-sm overflow-hidden">
 
-        {/* Toolbar */}
-        <div className="flex items-center justify-between px-5 py-3.5 border-b border-gray-100">
-          <p className="text-xs text-gray-400">
+        {/* ── Toolbar ── */}
+        <div className="flex items-center justify-between gap-3 px-5 py-3.5 border-b border-gray-100">
+          {/* Left: total count */}
+          <p className="text-xs text-gray-400 shrink-0">
             <span className="font-semibold text-gray-600">{totalUsers.toLocaleString()}</span> total users
           </p>
-         <div className="flex items-center gap-2">
-  <button
-    onClick={() => navigate("/admin/admin-tools?tab=wallet")}
-    className="flex items-center gap-2 px-4 py-2 rounded-lg text-xs font-semibold bg-emerald-600 text-white hover:bg-emerald-700 transition shadow-sm"
-  >
-    <Wallet size={13} />
-    Adjust Wallet
-  </button>
-  <button
-    onClick={() => navigate("/admin/admin-tools?tab=push")}
-    className="flex items-center gap-2 px-4 py-2 rounded-lg text-xs font-semibold bg-indigo-600 text-white hover:bg-indigo-700 transition shadow-sm"
-  >
-    <Bell size={13} />
-    Send Push
-  </button>
-  <button
-    onClick={openBroadcast}
-    className="flex items-center gap-2 px-4 py-2 rounded-lg text-xs font-semibold bg-blue-600 text-white hover:bg-blue-700 transition shadow-sm"
-  >
-    <Mail size={13} />
-    Broadcast Email
-  </button>
-</div>
+
+          {/* Right: search */}
+          {onSearch && (
+            <SearchInput onSearch={handleSearch} isSearching={isSearching} />
+          )}
         </div>
 
-        {/* Selection action bar */}
+        {/* ── Search status line ── */}
+        {isSearchActive && (
+          <div className="px-5 py-2 border-b border-gray-50 bg-blue-50/40">
+            <p className="text-xs text-blue-600">
+              {isSearching
+                ? `Searching for "${searchQuery.trim()}"…`
+                : `${displayedUsers.length} match${displayedUsers.length === 1 ? "" : "es"} for "${searchQuery.trim()}" — best match shown first`}
+            </p>
+          </div>
+        )}
+
+        {/* ── Selection action bar ── */}
         {someSelected && (
           <div className="flex items-center justify-between px-5 py-2.5 bg-purple-50 border-b border-purple-100">
             <div className="flex items-center gap-2">
@@ -679,13 +822,22 @@ const UsersTable = ({
           </div>
         )}
 
-        {/* Table */}
+        {/* ── Table ── */}
         <div className="overflow-x-auto">
-          {users.length === 0 ? (
+          {displayedUsers.length === 0 ? (
             <div className="flex flex-col items-center justify-center py-20 gap-2">
-              <p className="text-3xl">👥</p>
-              <p className="text-sm font-medium text-gray-500">No users found</p>
-              <p className="text-xs text-gray-400">Try adjusting your search or filters</p>
+              {isSearching ? (
+                <>
+                  <Loader2 size={28} className="animate-spin text-blue-300" />
+                  <p className="text-sm font-medium text-gray-400">Searching…</p>
+                </>
+              ) : (
+                <>
+                  <p className="text-3xl">👥</p>
+                  <p className="text-sm font-medium text-gray-500">No users found</p>
+                  <p className="text-xs text-gray-400">Try adjusting your search or filters</p>
+                </>
+              )}
             </div>
           ) : (
             <table className="min-w-full text-sm">
@@ -709,7 +861,7 @@ const UsersTable = ({
                 </tr>
               </thead>
               <tbody className="divide-y divide-gray-50">
-                {users.map((user) => {
+                {displayedUsers.map((user) => {
                   const isChecked = selectedIds.has(user.id);
                   return (
                     <tr
@@ -727,9 +879,7 @@ const UsersTable = ({
 
                       <td className={tdCls}>
                         <div className="flex items-center gap-3 cursor-pointer" onClick={() => navigate(`/admin/all-users/${user.id}`)}>
-                          <div className="w-9 h-9 rounded-full bg-indigo-100 flex items-center justify-center text-indigo-600 text-sm font-bold shrink-0 uppercase">
-                            {user.firstname?.[0] || "?"}
-                          </div>
+                          <UserAvatar user={user} />
                           <div>
                             <p className="font-semibold text-gray-800 group-hover:text-blue-600 transition text-sm leading-tight">
                               {user.firstname} {user.lastname}
@@ -781,8 +931,6 @@ const UsersTable = ({
                               <>
                                 <div className="fixed inset-0 z-10" onClick={() => setOpenMenu(null)} />
                                 <div className="absolute right-0 mt-1 w-44 bg-white border border-gray-100 rounded-xl shadow-xl z-20 overflow-hidden py-1">
-
-                                  {/* Status section */}
                                   <p className="px-3 py-1.5 text-[10px] font-bold text-gray-400 uppercase tracking-wider">Set Status</p>
                                   {statusOptions.map((s) => {
                                     const colorMap = {
@@ -809,10 +957,8 @@ const UsersTable = ({
                                     );
                                   })}
 
-                                  {/* Divider */}
                                   <div className="my-1 border-t border-gray-100" />
 
-                                  {/* KYC section */}
                                   <p className="px-3 py-1.5 text-[10px] font-bold text-gray-400 uppercase tracking-wider">KYC</p>
                                   <button
                                     onClick={() => openKycReset(user)}
@@ -835,8 +981,8 @@ const UsersTable = ({
           )}
         </div>
 
-        {/* Pagination */}
-        {totalUsers > limit && (
+        {/* ── Pagination (skipped while search is active — see note below) ── */}
+        {!isSearchActive && totalUsers > limit && (
           <div className="flex flex-col sm:flex-row items-center justify-between gap-4 px-5 py-4 border-t border-gray-100 bg-gray-50/60">
             <p className="text-xs text-gray-400 shrink-0">
               Showing <span className="font-semibold text-gray-600">{startItem}–{endItem}</span> of{" "}

@@ -12,6 +12,13 @@ const getPageNumbers = (current, total) => {
   return [1, "...", current - 1, current, current + 1, "...", total];
 };
 
+// Types for which Approve should never be shown
+const NO_APPROVE_TYPES = new Set(["bvn", "nin"]);
+const isNoApproveType = (type) =>
+  NO_APPROVE_TYPES.has(String(type || "").trim().toLowerCase());
+
+// ── Debounce hook ─────────────────────────────────────────────────────────────
+
 // ── Status badge ──────────────────────────────────────────────────────────────
 const StatusBadge = ({ status }) => {
   const map = {
@@ -50,17 +57,19 @@ const KycTable = ({
   const [wewireLoading, setWewireLoading] = useState(null);
   const [wewireToast, setWewireToast] = useState(null);
 
+  const displayedData = data;
   const totalPages = Math.ceil(totalCount / rowsPerPage);
   const pageNumbers = getPageNumbers(currentPage, totalPages);
   const startItem = (currentPage - 1) * rowsPerPage + 1;
   const endItem = Math.min(currentPage * rowsPerPage, totalCount);
+  const isSearchActive = false;
 
   // ── Submit KYC to WeWire ──────────────────────────────────────────────────
   const handleSubmitToWeWire = async (userId) => {
     setWewireLoading(userId);
     setWewireToast(null);
     try {
-      const baseURL = import.meta.env.VITE_STAGE_API_URL;
+      const baseURL = import.meta.env.VITE_API_URL;
       const token = localStorage.getItem("token");
       const res = await fetch(`${baseURL}/superAdmin/users/${userId}/submit-wewire-kyc`, {
         method: "POST",
@@ -129,20 +138,22 @@ const KycTable = ({
               </tr>
             </thead>
             <tbody className="divide-y divide-gray-50">
-              {data.length === 0 ? (
+              {displayedData.length === 0 ? (
                 <tr>
                   <td colSpan={5} className="py-16 text-center text-gray-400 text-sm">
-                    No KYC records found
+                          No KYC records found
                   </td>
                 </tr>
-              ) : data.map((record, i) => (
+              ) : displayedData.map((record, i) => (
                 <tr
                   key={record.id}
                   className="hover:bg-gray-50/80 transition-colors group"
                 >
                   {/* No. */}
                   <td className="px-5 py-4 text-gray-400 text-xs font-mono">
-                    {String((currentPage - 1) * rowsPerPage + i + 1).padStart(2, "0")}
+                    {isSearchActive
+                      ? String(i + 1).padStart(2, "0")
+                      : String((currentPage - 1) * rowsPerPage + i + 1).padStart(2, "0")}
                   </td>
 
                   {/* User */}
@@ -192,8 +203,8 @@ const KycTable = ({
                         <div className="fixed inset-0 z-10" onClick={() => setActionOpenId(null)} />
                         <div className="absolute right-4 mt-1 w-52 bg-white border border-gray-100 rounded-xl shadow-xl z-20 overflow-hidden py-1">
 
-                          {/* ── Approve: hidden for utility_bill type ── */}
-                          {record.type !== "utility_bill" && (
+                          {/* ── Approve: hidden only for bvn and nin ── */}
+                          {!isNoApproveType(record.type) && (
                             <button onClick={() => onStatusChange(record, "approved")} className="flex items-center gap-2 w-full px-4 py-2.5 text-left text-xs font-medium hover:bg-emerald-50 text-emerald-700 transition">
                               <span className="w-2 h-2 rounded-full bg-emerald-500" /> Approve
                             </button>
@@ -249,8 +260,8 @@ const KycTable = ({
           </table>
         </div>
 
-        {/* ── Pagination ── */}
-        {totalCount > rowsPerPage && (
+        {/* ── Pagination (hidden during an active search — search shows all matches at once) ── */}
+        {!isSearchActive && totalCount > rowsPerPage && (
           <div className="flex flex-col sm:flex-row items-center justify-between gap-4 px-5 py-4 border-t border-gray-100 bg-gray-50/60">
 
             {/* Count info */}
@@ -317,7 +328,7 @@ const KycTable = ({
         user={selectedUser}
         isOpen={!!selectedUser}
         onClose={() => setSelectedUser(null)}
-        baseURL={import.meta.env.VITE_STAGE_API_URL}
+        baseURL={import.meta.env.VITE_API_URL}
         token={localStorage.getItem("token")}
         onSuccess={() => window.location.reload()}
       />

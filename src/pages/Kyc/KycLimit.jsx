@@ -1,7 +1,7 @@
 import { useState, useEffect, useCallback } from "react";
 import { ShieldCheck, Pencil, X, Check, RefreshCw, AlertCircle, ChevronRight } from "lucide-react";
 
-const API_URL = import.meta.env.VITE_STAGE_API_URL;
+const API_URL = import.meta.env.VITE_API_URL;
 
 // ── Helpers ───────────────────────────────────────────────────────────────────
 const getToken = () => localStorage.getItem("token");
@@ -13,8 +13,6 @@ const TIER_LABELS = {
   3: { label: "Tier 3", desc: "Advanced KYC",        color: "bg-emerald-50 text-emerald-700 ring-1 ring-emerald-200"  },
   4: { label: "Tier 4", desc: "Premium KYC",         color: "bg-amber-50 text-amber-700 ring-1 ring-amber-200"        },
 };
-
-const CURRENCIES = ["NGN", "USD"];
 
 const fmt = (val) =>
   Number(val).toLocaleString("en-US", { minimumFractionDigits: 2, maximumFractionDigits: 2 });
@@ -186,10 +184,10 @@ const TierCard = ({ tierData, currency, onSave }) => {
 
 // ── Main Page ─────────────────────────────────────────────────────────────────
 const KycLimit = () => {
-  const [data,        setData]        = useState([]);
-  const [loading,     setLoading]     = useState(true);
-  const [error,       setError]       = useState(null);
-  const [activeCurrency, setActiveCurrency] = useState("NGN");
+  const [data,           setData]           = useState([]);
+  const [loading,        setLoading]        = useState(true);
+  const [error,          setError]          = useState(null);
+  const [activeCurrency, setActiveCurrency] = useState(null);
 
   const fetchLimits = useCallback(async () => {
     setLoading(true);
@@ -201,6 +199,12 @@ const KycLimit = () => {
       const json = await res.json();
       if (!res.ok) throw new Error(json?.message || "Failed to fetch tier limits.");
       setData(json.data);
+
+      // Currencies come straight from the backend response
+      const currencies = [...new Set(json.data.map(d => d.currency))].sort();
+      setActiveCurrency(prev =>
+        prev && currencies.includes(prev) ? prev : (currencies[0] ?? null)
+      );
     } catch (err) {
       setError(err.message);
     } finally {
@@ -220,6 +224,8 @@ const KycLimit = () => {
       )
     );
   };
+
+  const currencies = [...new Set(data.map(d => d.currency))].sort();
 
   const tiersForCurrency = data
     .filter(d => d.currency === activeCurrency)
@@ -251,21 +257,23 @@ const KycLimit = () => {
         </div>
 
         {/* ── Currency tabs ── */}
-        <div className="flex items-center gap-1 p-1 bg-white rounded-xl border border-gray-100 shadow-sm w-fit">
-          {CURRENCIES.map(cur => (
-            <button
-              key={cur}
-              onClick={() => setActiveCurrency(cur)}
-              className={`px-5 py-2 rounded-lg text-xs font-bold transition ${
-                activeCurrency === cur
-                  ? "bg-blue-600 text-white shadow-sm"
-                  : "text-gray-500 hover:bg-gray-100"
-              }`}
-            >
-              {cur}
-            </button>
-          ))}
-        </div>
+        {currencies.length > 0 && (
+          <div className="flex items-center gap-1 p-1 bg-white rounded-xl border border-gray-100 shadow-sm w-fit">
+            {currencies.map(cur => (
+              <button
+                key={cur}
+                onClick={() => setActiveCurrency(cur)}
+                className={`px-5 py-2 rounded-lg text-xs font-bold transition ${
+                  activeCurrency === cur
+                    ? "bg-blue-600 text-white shadow-sm"
+                    : "text-gray-500 hover:bg-gray-100"
+                }`}
+              >
+                {cur}
+              </button>
+            ))}
+          </div>
+        )}
 
         {/* ── States ── */}
         {loading && (
@@ -291,6 +299,13 @@ const KycLimit = () => {
           </div>
         )}
 
+        {!loading && !error && currencies.length === 0 && (
+          <div className="flex items-center gap-3 px-5 py-4 rounded-2xl bg-gray-100 border border-gray-200">
+            <AlertCircle size={16} className="text-gray-400 shrink-0" />
+            <p className="text-sm text-gray-500">No tier limits returned by the backend yet.</p>
+          </div>
+        )}
+
         {/* ── Tier cards ── */}
         {!loading && !error && (
           <div className="space-y-3">
@@ -306,7 +321,7 @@ const KycLimit = () => {
         )}
 
         {/* ── Info note ── */}
-        {!loading && !error && (
+        {!loading && !error && currencies.length > 0 && (
           <div className="flex items-start gap-2.5 px-4 py-3 rounded-xl bg-blue-50 border border-blue-100">
             <AlertCircle size={14} className="text-blue-500 shrink-0 mt-0.5" />
             <p className="text-xs text-blue-600 leading-relaxed">

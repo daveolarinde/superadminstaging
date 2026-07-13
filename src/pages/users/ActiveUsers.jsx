@@ -7,7 +7,7 @@ import { Search, SlidersHorizontal, X } from "lucide-react";
 import UserSummaryCards from "../../components/users/Usersummarycards";
 import UsersTable from "../../components/users/Userstable";
 
-const baseURL = import.meta.env.VITE_STAGE_API_URL;
+const baseURL = import.meta.env.VITE_API_URL;
 
 export default function ActiveUsers() {
   const [users, setUsers]               = useState([]);
@@ -85,13 +85,19 @@ export default function ActiveUsers() {
   useEffect(() => {
     if (!searchTerm.trim()) { setFilteredUsers(users); return; }
     const term = searchTerm.toLowerCase();
-    setFilteredUsers(users.filter((u) =>
-      u.firstname?.toLowerCase().includes(term) ||
-      u.lastname?.toLowerCase().includes(term) ||
-      u.email?.toLowerCase().includes(term) ||
-      u.tag?.toLowerCase().includes(term) ||
-      u.username?.toLowerCase().includes(term)
-    ));
+    setFilteredUsers(users.filter((u) => {
+      const first = u.firstname?.toLowerCase() || "";
+      const last = u.lastname?.toLowerCase() || "";
+      const fullName = `${first} ${last}`.trim();
+      const reverseFullName = `${last} ${first}`.trim();
+      return first.includes(term) ||
+        last.includes(term) ||
+        fullName.includes(term) ||
+        reverseFullName.includes(term) ||
+        u.email?.toLowerCase().includes(term) ||
+        u.tag?.toLowerCase().includes(term) ||
+        u.username?.toLowerCase().includes(term);
+    }));
   }, [searchTerm, users]);
 
   // ── Status change ──────────────────────────────────────────────────────────
