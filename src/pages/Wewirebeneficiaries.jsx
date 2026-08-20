@@ -31,8 +31,8 @@ const displayName = (b) =>
 const AccountTypeBadge = ({ type }) => {
   const map = {
     BANK_ACCOUNT: { color: "bg-blue-50 text-blue-700", label: "Bank Account" },
-    WALLET:       { color: "bg-emerald-50 text-emerald-700", label: "Wallet" },
-    CARD:         { color: "bg-purple-50 text-purple-700", label: "Card" },
+    WALLET: { color: "bg-emerald-50 text-emerald-700", label: "Wallet" },
+    CARD: { color: "bg-purple-50 text-purple-700", label: "Card" },
   };
   const cfg = map[type] ?? { color: "bg-gray-100 text-gray-600", label: type ?? "Unknown" };
   return (
@@ -44,11 +44,10 @@ const AccountTypeBadge = ({ type }) => {
 
 // ── beneficiary type badge ────────────────────────────────────────────────────
 const BeneficiaryTypeBadge = ({ type }) => (
-  <span className={`inline-flex items-center gap-1 text-[10px] font-semibold px-2 py-0.5 rounded-full ${
-    type === "BUSINESS"
+  <span className={`inline-flex items-center gap-1 text-[10px] font-semibold px-2 py-0.5 rounded-full ${type === "BUSINESS"
       ? "bg-amber-50 text-amber-700"
       : "bg-sky-50 text-sky-700"
-  }`}>
+    }`}>
     {type === "BUSINESS" ? <Building2 size={9} /> : <User size={9} />}
     {type === "INDIVIDUAL" ? "Individual" : "Business"}
   </span>
@@ -78,14 +77,14 @@ const AccountCard = ({ account }) => {
 
       <div className="grid grid-cols-2 sm:grid-cols-4 gap-3 pt-1">
         {[
-          { label: "Bank",           value: account.bankName       },
-          { label: "Account No.",    value: account.accountNumber  },
-          { label: "SWIFT / BIC",    value: account.swiftBic       },
-          { label: "Routing No.",    value: account.routingNumber  },
-          { label: "IBAN",           value: account.iban           },
-          { label: "Sort Code",      value: account.sortCode       },
-          { label: "Country",        value: account.country        },
-          { label: "Settlement",     value: account.settlementMethod },
+          { label: "Bank", value: account.bankName },
+          { label: "Account No.", value: account.accountNumber },
+          { label: "SWIFT / BIC", value: account.swiftBic },
+          { label: "Routing No.", value: account.routingNumber },
+          { label: "IBAN", value: account.iban },
+          { label: "Sort Code", value: account.sortCode },
+          { label: "Country", value: account.country },
+          { label: "Settlement", value: account.settlementMethod },
         ]
           .filter((f) => f.value)
           .map(({ label, value }) => (
@@ -102,7 +101,7 @@ const AccountCard = ({ account }) => {
 // ── single beneficiary row ────────────────────────────────────────────────────
 const BeneficiaryRow = ({ beneficiary }) => {
   const [expanded, setExpanded] = useState(false);
-  const name     = displayName(beneficiary);
+  const name = displayName(beneficiary);
   const accounts = beneficiary.beneficiaryAccounts ?? [];
 
   return (
@@ -178,14 +177,14 @@ const BeneficiaryRow = ({ beneficiary }) => {
           {/* extra beneficiary details */}
           <div className="grid grid-cols-2 sm:grid-cols-4 gap-3 text-xs">
             {[
-              { label: "ID",           value: beneficiary.id,          mono: true },
-              { label: "External ID",  value: beneficiary.externalId              },
-              { label: "Business ID",  value: beneficiary.businessId,  mono: true },
-              { label: "Sub Customer", value: beneficiary.subCustomerId            },
-              { label: "Address",      value: [beneficiary.addressLine1, beneficiary.addressLine2, beneficiary.buildingName].filter(Boolean).join(", ") || null },
-              { label: "Postal Code",  value: beneficiary.postalCode              },
-              { label: "State",        value: beneficiary.state                   },
-              { label: "Registered",   value: beneficiary.createdAt ? new Date(beneficiary.createdAt).toLocaleString(undefined, { year: "numeric", month: "short", day: "numeric", hour: "2-digit", minute: "2-digit" }) : null },
+              { label: "ID", value: beneficiary.id, mono: true },
+              { label: "External ID", value: beneficiary.externalId },
+              { label: "Business ID", value: beneficiary.businessId, mono: true },
+              { label: "Sub Customer", value: beneficiary.subCustomerId },
+              { label: "Address", value: [beneficiary.addressLine1, beneficiary.addressLine2, beneficiary.buildingName].filter(Boolean).join(", ") || null },
+              { label: "Postal Code", value: beneficiary.postalCode },
+              { label: "State", value: beneficiary.state },
+              { label: "Registered", value: beneficiary.createdAt ? new Date(beneficiary.createdAt).toLocaleString(undefined, { year: "numeric", month: "short", day: "numeric", hour: "2-digit", minute: "2-digit" }) : null },
             ]
               .filter((f) => f.value)
               .map(({ label, value, mono }) => (
@@ -224,9 +223,8 @@ const Toast = ({ message, type, onClose }) => {
     return () => clearTimeout(t);
   }, [onClose]);
   return (
-    <div className={`fixed bottom-6 right-6 z-50 flex items-center gap-3 px-4 py-3 rounded-xl shadow-lg text-sm font-medium ${
-      type === "success" ? "bg-emerald-600 text-white" : "bg-red-500 text-white"
-    }`}>
+    <div className={`fixed bottom-6 right-6 z-50 flex items-center gap-3 px-4 py-3 rounded-xl shadow-lg text-sm font-medium ${type === "success" ? "bg-emerald-600 text-white" : "bg-red-500 text-white"
+      }`}>
       {type === "success" ? <CheckCircle2 size={16} /> : <XCircle size={16} />}
       {message}
       <button onClick={onClose} className="ml-2 opacity-70 hover:opacity-100"><X size={13} /></button>
@@ -237,17 +235,17 @@ const Toast = ({ message, type, onClose }) => {
 // ── main page ─────────────────────────────────────────────────────────────────
 export default function WewireBeneficiaries() {
   const [beneficiaries, setBeneficiaries] = useState([]);
-  const [filtered, setFiltered]           = useState([]);
-  const [loading, setLoading]             = useState(true);
-  const [refreshing, setRefreshing]       = useState(false);
-  const [error, setError]                 = useState("");
-  const [search, setSearch]               = useState("");
-  const [pagination, setPagination]       = useState({
+  const [filtered, setFiltered] = useState([]);
+  const [loading, setLoading] = useState(true);
+  const [refreshing, setRefreshing] = useState(false);
+  const [error, setError] = useState("");
+  const [search, setSearch] = useState("");
+  const [pagination, setPagination] = useState({
     currentPage: 1, totalPages: 1, totalItems: 0, pageSize: 30,
   });
-  const [toast, setToast]                 = useState(null);
+  const [toast, setToast] = useState(null);
 
-  const token   = localStorage.getItem("token");
+  const token = localStorage.getItem("token");
   const headers = { Authorization: `Bearer ${token}` };
 
   // ── fetch ──────────────────────────────────────────────────────────────────
@@ -262,14 +260,14 @@ export default function WewireBeneficiaries() {
       );
       // response shape: { data: { data: [], totalItems, totalPages, currentPage, pageSize } }
       const payload = res.data?.data ?? {};
-      const list    = payload.data ?? [];
+      const list = payload.data ?? [];
       setBeneficiaries(list);
       setFiltered(list);
       setPagination({
         currentPage: payload.currentPage ?? page,
-        totalPages:  payload.totalPages  ?? 1,
-        totalItems:  payload.totalItems  ?? list.length,
-        pageSize:    payload.pageSize    ?? 30,
+        totalPages: payload.totalPages ?? 1,
+        totalItems: payload.totalItems ?? list.length,
+        pageSize: payload.pageSize ?? 30,
       });
     } catch {
       setError("Failed to load WeWire beneficiaries.");
@@ -287,12 +285,12 @@ export default function WewireBeneficiaries() {
     const term = search.toLowerCase();
     setFiltered(
       beneficiaries.filter((b) =>
-        displayName(b).toLowerCase().includes(term)      ||
-        b.email?.toLowerCase().includes(term)            ||
+        displayName(b).toLowerCase().includes(term) ||
+        b.email?.toLowerCase().includes(term) ||
         b.beneficiaryAccounts?.some(
           (a) =>
-            a.bankName?.toLowerCase().includes(term)     ||
-            a.accountNumber?.includes(term)              ||
+            a.bankName?.toLowerCase().includes(term) ||
+            a.accountNumber?.includes(term) ||
             a.accountName?.toLowerCase().includes(term)
         )
       )
@@ -301,9 +299,9 @@ export default function WewireBeneficiaries() {
 
   // ── derived ────────────────────────────────────────────────────────────────
   const individualCount = beneficiaries.filter((b) => b.type === "INDIVIDUAL").length;
-  const businessCount   = beneficiaries.filter((b) => b.type === "BUSINESS").length;
-  const totalAccounts   = beneficiaries.reduce((s, b) => s + (b.beneficiaryAccounts?.length ?? 0), 0);
-  const currencies      = [...new Set(
+  const businessCount = beneficiaries.filter((b) => b.type === "BUSINESS").length;
+  const totalAccounts = beneficiaries.reduce((s, b) => s + (b.beneficiaryAccounts?.length ?? 0), 0);
+  const currencies = [...new Set(
     beneficiaries.flatMap((b) => b.beneficiaryAccounts?.map((a) => a.currency).filter(Boolean) ?? [])
   )];
 
@@ -356,10 +354,10 @@ export default function WewireBeneficiaries() {
       {/* ── Stats ─────────────────────────────────────────────────────────── */}
       <div className="grid grid-cols-2 sm:grid-cols-4 gap-4">
         {[
-          { label: "Total",       value: pagination.totalItems, color: "text-gray-800"    },
-          { label: "Individuals", value: individualCount,       color: "text-sky-600"     },
-          { label: "Businesses",  value: businessCount,         color: "text-amber-600"   },
-          { label: "Accounts",    value: totalAccounts,         color: "text-violet-600"  },
+          { label: "Total", value: pagination.totalItems, color: "text-gray-800" },
+          { label: "Individuals", value: individualCount, color: "text-sky-600" },
+          { label: "Businesses", value: businessCount, color: "text-amber-600" },
+          { label: "Accounts", value: totalAccounts, color: "text-violet-600" },
         ].map(({ label, value, color }) => (
           <div key={label} className="bg-white border border-gray-100 rounded-2xl p-4 shadow-sm text-center">
             <p className={`text-2xl font-bold ${color}`}>{value}</p>

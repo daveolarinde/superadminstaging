@@ -158,11 +158,10 @@ export default function VirtualAccounts() {
 
           <button
             onClick={() => setFilterOpen((p) => !p)}
-            className={`flex items-center gap-2 px-4 py-2.5 rounded-xl text-sm font-medium border shadow-sm transition ${
-              hasActiveFilters
+            className={`flex items-center gap-2 px-4 py-2.5 rounded-xl text-sm font-medium border shadow-sm transition ${hasActiveFilters
                 ? "bg-blue-600 border-blue-600 text-white hover:bg-blue-700"
                 : "bg-white border-gray-200 text-gray-600 hover:bg-gray-50"
-            }`}
+              }`}
           >
             <SlidersHorizontal size={15} /> Filter
           </button>
@@ -218,15 +217,14 @@ export default function VirtualAccounts() {
                   <button
                     key={o.v}
                     onClick={() => { setStatusFilter(o.v); setOffset(0); }}
-                    className={`flex-1 py-2.5 rounded-xl text-xs font-semibold border transition ${
-                      statusFilter === o.v
+                    className={`flex-1 py-2.5 rounded-xl text-xs font-semibold border transition ${statusFilter === o.v
                         ? o.v === "active"
                           ? "bg-emerald-600 border-emerald-600 text-white"
                           : o.v === "inactive"
-                          ? "bg-gray-600 border-gray-600 text-white"
-                          : "bg-blue-600 border-blue-600 text-white"
+                            ? "bg-gray-600 border-gray-600 text-white"
+                            : "bg-blue-600 border-blue-600 text-white"
                         : "border-gray-200 text-gray-600 hover:bg-gray-50 bg-white"
-                    }`}
+                      }`}
                   >
                     {o.l}
                   </button>

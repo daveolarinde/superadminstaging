@@ -36,14 +36,12 @@ const Toggle = ({ checked, onChange, label, hint }) => (
     </div>
     <button
       onClick={() => onChange(!checked)}
-      className={`relative w-11 h-6 rounded-full transition-colors duration-200 focus:outline-none ${
-        checked ? "bg-blue-600" : "bg-gray-200"
-      }`}
+      className={`relative w-11 h-6 rounded-full transition-colors duration-200 focus:outline-none ${checked ? "bg-blue-600" : "bg-gray-200"
+        }`}
     >
       <span
-        className={`absolute top-0.5 left-0.5 w-5 h-5 bg-white rounded-full shadow-sm transition-transform duration-200 ${
-          checked ? "translate-x-5" : "translate-x-0"
-        }`}
+        className={`absolute top-0.5 left-0.5 w-5 h-5 bg-white rounded-full shadow-sm transition-transform duration-200 ${checked ? "translate-x-5" : "translate-x-0"
+          }`}
       />
     </button>
   </div>
@@ -265,33 +263,29 @@ const ReferralSettings = () => {
 
         {/* ── Status banner ── */}
         <div
-          className={`flex items-center justify-between px-5 py-3.5 rounded-2xl border ${
-            draft?.isActive
+          className={`flex items-center justify-between px-5 py-3.5 rounded-2xl border ${draft?.isActive
               ? "bg-emerald-50 border-emerald-100"
               : "bg-gray-100 border-gray-200"
-          }`}
+            }`}
         >
           <div className="flex items-center gap-2.5">
             <span
-              className={`w-2 h-2 rounded-full ${
-                draft?.isActive ? "bg-emerald-500" : "bg-gray-400"
-              }`}
+              className={`w-2 h-2 rounded-full ${draft?.isActive ? "bg-emerald-500" : "bg-gray-400"
+                }`}
             />
             <p
-              className={`text-sm font-semibold ${
-                draft?.isActive ? "text-emerald-700" : "text-gray-500"
-              }`}
+              className={`text-sm font-semibold ${draft?.isActive ? "text-emerald-700" : "text-gray-500"
+                }`}
             >
               Referral program is {draft?.isActive ? "active" : "inactive"}
             </p>
           </div>
           <button
             onClick={() => update("isActive", !draft?.isActive)}
-            className={`flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-semibold transition ${
-              draft?.isActive
+            className={`flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-semibold transition ${draft?.isActive
                 ? "bg-white text-emerald-700 border border-emerald-200 hover:bg-emerald-50"
                 : "bg-blue-600 text-white hover:bg-blue-700"
-            }`}
+              }`}
           >
             {draft?.isActive ? "Deactivate" : "Activate"}
           </button>
@@ -327,24 +321,21 @@ const ReferralSettings = () => {
                   <button
                     key={opt.value}
                     onClick={() => update("rewardType", opt.value)}
-                    className={`flex items-start gap-3 p-4 rounded-xl border-2 text-left transition ${
-                      active
+                    className={`flex items-start gap-3 p-4 rounded-xl border-2 text-left transition ${active
                         ? "border-blue-500 bg-blue-50"
                         : "border-gray-100 bg-gray-50 hover:border-gray-200"
-                    }`}
+                      }`}
                   >
                     <div
-                      className={`w-8 h-8 rounded-lg flex items-center justify-center shrink-0 ${
-                        active ? "bg-blue-600" : "bg-gray-200"
-                      }`}
+                      className={`w-8 h-8 rounded-lg flex items-center justify-center shrink-0 ${active ? "bg-blue-600" : "bg-gray-200"
+                        }`}
                     >
                       <Icon size={15} className={active ? "text-white" : "text-gray-500"} />
                     </div>
                     <div>
                       <p
-                        className={`text-sm font-semibold ${
-                          active ? "text-blue-700" : "text-gray-700"
-                        }`}
+                        className={`text-sm font-semibold ${active ? "text-blue-700" : "text-gray-700"
+                          }`}
                       >
                         {opt.label}
                       </p>
@@ -555,16 +546,14 @@ const ReferralSettings = () => {
 
               <div className="flex items-center gap-2 mt-2 flex-wrap">
                 <span
-                  className={`inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-xs font-semibold ${
-                    draft.isActive
+                  className={`inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-xs font-semibold ${draft.isActive
                       ? "bg-emerald-50 text-emerald-700 ring-1 ring-emerald-200"
                       : "bg-gray-100 text-gray-500 ring-1 ring-gray-200"
-                  }`}
+                    }`}
                 >
                   <span
-                    className={`w-1.5 h-1.5 rounded-full ${
-                      draft.isActive ? "bg-emerald-500" : "bg-gray-400"
-                    }`}
+                    className={`w-1.5 h-1.5 rounded-full ${draft.isActive ? "bg-emerald-500" : "bg-gray-400"
+                      }`}
                   />
                   {draft.isActive ? "Active" : "Inactive"}
                 </span>

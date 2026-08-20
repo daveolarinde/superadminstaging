@@ -12,17 +12,64 @@ import {
   Pencil,
   Rocket,
   User as UserIcon,
+  History,
+  ChevronLeft,
+  ChevronRight,
 } from "lucide-react";
 import axios from "axios";
 import KycUpdateModal from "../../KycUpdateModal";
 
 // Types for which Approve should never be shown (case/whitespace-insensitive)
-const NO_APPROVE_TYPES = new Set(["bvn", "nin"]);
+const NO_APPROVE_TYPES = new Set(["bvn", "nin", "utility_bill"]);
 const isNoApproveType = (type) =>
   NO_APPROVE_TYPES.has(String(type || "").trim().toLowerCase());
 
+// Types for which the manual "Set Pending" option should never be shown.
+// For utility bill records, status is instead set to pending automatically
+// when the record is submitted to Graph (see handleSubmitToWeWire).
+const NO_PENDING_TYPES = new Set(["utility_bill"]);
+const isNoPendingType = (type) =>
+  NO_PENDING_TYPES.has(String(type || "").trim().toLowerCase());
+
+// ── Graph submission "once only" tracking helpers ─────────────────────────────
+const graphSubmitKey = (kycId) => "graphSubmitted_" + kycId;
+
+const isGraphSubmitted = (kycId) => {
+  try {
+    return localStorage.getItem(graphSubmitKey(kycId)) === "1";
+  } catch (e) {
+    return false;
+  }
+};
+
+const markGraphSubmitted = (kycId) => {
+  try {
+    localStorage.setItem(graphSubmitKey(kycId), "1");
+  } catch (e) {
+    /* no-op */
+  }
+};
+
+const clearGraphSubmitted = (kycId) => {
+  try {
+    localStorage.removeItem(graphSubmitKey(kycId));
+  } catch (e) {
+    /* no-op */
+  }
+};
+
+// ── Pagination helper: generates page numbers with ellipsis ──────────────────
+const getPageNumbers = (current, total) => {
+  if (total <= 7) return Array.from({ length: total }, (_, i) => i + 1);
+  if (current <= 4) return [1, 2, 3, 4, 5, "...", total];
+  if (current >= total - 3) return [1, "...", total - 4, total - 3, total - 2, total - 1, total];
+  return [1, "...", current - 1, current, current + 1, "...", total];
+};
+
 // ── Status Badge ──────────────────────────────────────────────────────────────
-const StatusBadge = ({ status }) => {
+// `failedReason` (when present) is rendered directly beneath the badge, not
+// hidden behind a hover/tooltip — admins need to see it at a glance.
+const StatusBadge = ({ status, failedReason }) => {
   const s = String(status || "").toLowerCase();
 
   const map = {
@@ -45,12 +92,19 @@ const StatusBadge = ({ status }) => {
   const dot = dotMap[s] || "bg-gray-400";
 
   return (
-    <span
-      className={`inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-xs font-semibold capitalize ${cls}`}
-    >
-      <span className={`w-1.5 h-1.5 rounded-full ${dot}`} />
-      {status}
-    </span>
+    <div className="flex flex-col gap-1 max-w-[220px]">
+      <span
+        className={`inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-xs font-semibold capitalize w-fit ${cls}`}
+      >
+        <span className={`w-1.5 h-1.5 rounded-full ${dot}`} />
+        {status}
+      </span>
+      {failedReason && (
+        <p className="text-[11px] leading-snug text-red-500/90 break-words">
+          {failedReason}
+        </p>
+      )}
+    </div>
   );
 };
 
@@ -64,9 +118,12 @@ const ActionMenu = ({
   onReject,
   onUpdateKyc,
   onSubmitWeWire,
+  onBackdate,
   wewireLoading,
+  wewireSubmitted,
   viewUrl,
   hideApprove,
+  hidePending,
   disabled,
 }) => {
   const menuRef = useRef(null);
@@ -179,7 +236,7 @@ const ActionMenu = ({
       "
     >
       <div className="py-1">
-        {/* Approve: hidden only for bvn and nin types, matching KycTable behavior */}
+        {/* Approve: hidden for bvn, nin, and utility_bill types */}
         {!hideApprove && (
           <button
             type="button"
@@ -199,22 +256,26 @@ const ActionMenu = ({
           </button>
         )}
 
-        <button
-          type="button"
-          role="menuitem"
-          data-menuitem="true"
-          disabled={disabled}
-          onClick={onPending}
-          className="
-            w-full flex items-center gap-3 px-4 py-2.5 text-left text-xs font-semibold
-            text-amber-700 hover:bg-amber-50
-            focus:outline-none focus:bg-amber-50
-            disabled:opacity-40 disabled:cursor-not-allowed
-          "
-        >
-          <Clock3 size={14} className="text-amber-600" />
-          Set Pending
-        </button>
+        {/* Set Pending: hidden for utility_bill — status is set to pending
+            automatically when the record is submitted to Graph instead */}
+        {!hidePending && (
+          <button
+            type="button"
+            role="menuitem"
+            data-menuitem="true"
+            disabled={disabled}
+            onClick={onPending}
+            className="
+              w-full flex items-center gap-3 px-4 py-2.5 text-left text-xs font-semibold
+              text-amber-700 hover:bg-amber-50
+              focus:outline-none focus:bg-amber-50
+              disabled:opacity-40 disabled:cursor-not-allowed
+            "
+          >
+            <Clock3 size={14} className="text-amber-600" />
+            Set Pending
+          </button>
+        )}
 
         <button
           type="button"
@@ -256,8 +317,9 @@ const ActionMenu = ({
           type="button"
           role="menuitem"
           data-menuitem="true"
-          disabled={wewireLoading}
+          disabled={wewireLoading || wewireSubmitted}
           onClick={onSubmitWeWire}
+          title={wewireSubmitted ? "Already submitted — update this KYC to submit again" : undefined}
           className="
             w-full flex items-center gap-3 px-4 py-2.5 text-left text-xs font-semibold
             text-purple-600 hover:bg-purple-50
@@ -270,12 +332,32 @@ const ActionMenu = ({
               <span className="w-2.5 h-2.5 rounded-full bg-purple-400 animate-pulse" />
               Submitting…
             </>
+          ) : wewireSubmitted ? (
+            <>
+              <CheckCircle2 size={14} className="text-purple-600" />
+              Already Submitted to Graph
+            </>
           ) : (
             <>
               <Rocket size={14} className="text-purple-600" />
-              Submit KYC to WeWire
+              Submit KYC to Graph
             </>
           )}
+        </button>
+
+        <button
+          type="button"
+          role="menuitem"
+          data-menuitem="true"
+          onClick={onBackdate}
+          className="
+            w-full flex items-center gap-3 px-4 py-2.5 text-left text-xs font-semibold
+            text-orange-600 hover:bg-orange-50
+            focus:outline-none focus:bg-orange-50
+          "
+        >
+          <History size={14} className="text-orange-600" />
+          Back-date / Reset KYC
         </button>
 
         {viewUrl && (
@@ -318,6 +400,7 @@ const KycRow = ({
   isOpen,
   isBusy,
   wewireLoading,
+  wewireSubmitted,
   onToggle,
   onClose,
   onApprove,
@@ -325,6 +408,7 @@ const KycRow = ({
   onReject,
   onUpdateKyc,
   onSubmitWeWire,
+  onBackdate,
   viewUrl,
 }) => {
   const btnRef = useRef(null);
@@ -342,7 +426,7 @@ const KycRow = ({
       </td>
 
       <td className="px-5 py-4">
-        <StatusBadge status={k.status} />
+        <StatusBadge status={k.status} failedReason={k.failedReason} />
       </td>
 
       <td className="px-5 py-4 text-gray-500 text-xs">
@@ -367,10 +451,9 @@ const KycRow = ({
           className={`
             inline-flex items-center gap-2 px-3 py-1.5 rounded-xl text-xs font-semibold
             border transition
-            ${
-              isOpen
-                ? "bg-gray-200 border-gray-200 text-gray-700"
-                : "bg-gray-100 border-gray-100 text-gray-600 hover:bg-gray-200"
+            ${isOpen
+              ? "bg-gray-200 border-gray-200 text-gray-700"
+              : "bg-gray-100 border-gray-100 text-gray-600 hover:bg-gray-200"
             }
           `}
         >
@@ -392,18 +475,23 @@ const KycRow = ({
           onClose={onClose}
           disabled={isBusy}
           hideApprove={isNoApproveType(k.type)}
+          hidePending={isNoPendingType(k.type)}
           wewireLoading={wewireLoading}
+          wewireSubmitted={wewireSubmitted}
           onApprove={onApprove}
           onPending={onPending}
           onReject={onReject}
           onUpdateKyc={onUpdateKyc}
           onSubmitWeWire={onSubmitWeWire}
+          onBackdate={onBackdate}
           viewUrl={viewUrl}
         />
       </td>
     </tr>
   );
 };
+
+const ROWS_PER_PAGE = 10;
 
 // ── Main Component ────────────────────────────────────────────────────────────
 export default function UserKYCTab({
@@ -421,6 +509,39 @@ export default function UserKYCTab({
   const [selectedUser, setSelectedUser] = useState(null);
   const [wewireLoadingId, setWewireLoadingId] = useState(null);
   const [wewireToast, setWewireToast] = useState(null);
+
+  // Forces re-render after marking/clearing a submitted flag (since the flag
+  // itself lives in localStorage, not React state).
+  const [, forceRerender] = useState(0);
+  const bump = () => forceRerender((n) => n + 1);
+
+  // Back-date / Reset KYC modal state
+  const [resetTarget, setResetTarget] = useState(null); // { record, user }
+  const [resetKycType, setResetKycType] = useState("identity");
+  const [resetReason, setResetReason] = useState("");
+  const [resetLoading, setResetLoading] = useState(false);
+  const [resetToast, setResetToast] = useState(null);
+
+  // ── Pagination state ──────────────────────────────────────────────────────
+  const [currentPage, setCurrentPage] = useState(1);
+  const rowsPerPage = ROWS_PER_PAGE;
+
+  const totalCount = kycRecords.length;
+  const totalPages = Math.max(1, Math.ceil(totalCount / rowsPerPage));
+
+  // Clamp current page if the underlying list shrinks (e.g. after a refetch)
+  useEffect(() => {
+    if (currentPage > totalPages) setCurrentPage(totalPages);
+  }, [totalPages, currentPage]);
+
+  const paginatedRecords = useMemo(() => {
+    const start = (currentPage - 1) * rowsPerPage;
+    return kycRecords.slice(start, start + rowsPerPage);
+  }, [kycRecords, currentPage, rowsPerPage]);
+
+  const pageNumbers = getPageNumbers(currentPage, totalPages);
+  const startItem = totalCount === 0 ? 0 : (currentPage - 1) * rowsPerPage + 1;
+  const endItem = Math.min(currentPage * rowsPerPage, totalCount);
 
   const safeBaseURL = baseURL || import.meta.env.VITE_API_URL;
 
@@ -449,6 +570,9 @@ export default function UserKYCTab({
     try {
       setUpdatingId(record.id);
       await updateKycStatus(record.id, { status });
+      // Clear the "submitted once" lock for this record since an admin
+      // update was just made — they can submit to Graph again if needed.
+      clearGraphSubmitted(record.id);
       await Promise.allSettled([fetchKycRecords?.(), fetchSummary?.()]);
     } catch (err) {
       const code = err?.response?.status;
@@ -474,6 +598,9 @@ export default function UserKYCTab({
         reason: rejectReason,
       });
 
+      // Clear the submitted lock for this record since it was just updated.
+      clearGraphSubmitted(rejectModal.id);
+
       await Promise.allSettled([fetchKycRecords?.(), fetchSummary?.()]);
       setRejectModal(null);
       setRejectSubject("");
@@ -490,12 +617,13 @@ export default function UserKYCTab({
     }
   };
 
-  // ── Submit KYC to WeWire ──────────────────────────────────────────────────
+  // ── Submit KYC to Graph ─────────────────────────────────────────────────────
+  // No longer calls the separate submit-wewire-kyc endpoint. Submitting to
+  // Graph is now just a status update — PATCH the record's status to
+  // "pending" via the same endpoint/helper used by Approve/Set Pending/Reject.
   const handleSubmitToWeWire = async (record) => {
-    const userId = record?.user?.id || record?.userId;
-    if (!userId) {
-      setWewireToast({ type: "error", message: "No user associated with this KYC record." });
-      setTimeout(() => setWewireToast(null), 4000);
+    if (isGraphSubmitted(record.id)) {
+      // Already locked — ignore stray clicks.
       return;
     }
 
@@ -504,13 +632,47 @@ export default function UserKYCTab({
     setActionOpenId(null);
 
     try {
+      await updateKycStatus(record.id, { status: "pending" });
+
+      // Lock this record's submit button until it's next updated
+      // (status change, Update KYC, or Back-date/Reset KYC).
+      markGraphSubmitted(record.id);
+      bump();
+
+      setWewireToast({ type: "success", message: "KYC submitted to Graph successfully." });
+      await Promise.allSettled([fetchKycRecords?.(), fetchSummary?.()]);
+    } catch (err) {
+      const code = err?.response?.status;
+      setWewireToast({
+        type: "error",
+        message:
+          code === 401
+            ? "Unauthorized (401). Your session expired—login again."
+            : err?.response?.data?.message || "Failed to submit KYC to Graph.",
+      });
+    } finally {
+      setWewireLoadingId(null);
+      setTimeout(() => setWewireToast(null), 4000);
+    }
+  };
+
+  // ── Back-date / Reset KYC ──────────────────────────────────────────────────
+  const handleSubmitReset = async () => {
+    if (!resetTarget?.user?.id) return;
+    setResetLoading(true);
+    setResetToast(null);
+    try {
       const t = token || localStorage.getItem("token");
-      const res = await fetch(`${safeBaseURL}/superAdmin/users/${userId}/submit-wewire-kyc`, {
+      const res = await fetch(`${safeBaseURL}/superAdmin/users/${resetTarget.user.id}/reset-kyc`, {
         method: "POST",
         headers: {
           "Content-Type": "application/json",
           Authorization: `Bearer ${t}`,
         },
+        body: JSON.stringify({
+          kycType: resetKycType,
+          reason: resetReason,
+        }),
       });
 
       const body = await res.json().catch(() => ({}));
@@ -519,13 +681,23 @@ export default function UserKYCTab({
         throw new Error(body?.message || `Request failed (${res.status})`);
       }
 
-      setWewireToast({ type: "success", message: body.message || "KYC submitted to WeWire successfully." });
+      // Clear the submitted lock for all this user's KYC records since
+      // they've just been reset and will need re-submission after re-approval.
+      kycRecords
+        .filter((r) => (r.user?.id || r.userId) === resetTarget.user.id)
+        .forEach((r) => clearGraphSubmitted(r.id));
+
+      setResetToast({ type: "success", message: body.message || "User KYC has been reset successfully." });
+      setResetTarget(null);
+      setResetReason("");
+      setResetKycType("identity");
+
       await Promise.allSettled([fetchKycRecords?.(), fetchSummary?.()]);
     } catch (err) {
-      setWewireToast({ type: "error", message: err.message || "Failed to submit KYC to WeWire." });
+      setResetToast({ type: "error", message: err.message || "Failed to reset user KYC." });
     } finally {
-      setWewireLoadingId(null);
-      setTimeout(() => setWewireToast(null), 4000);
+      setResetLoading(false);
+      setTimeout(() => setResetToast(null), 4000);
     }
   };
 
@@ -540,19 +712,37 @@ export default function UserKYCTab({
 
   return (
     <>
-      {/* ── WeWire toast notification ── */}
+      {/* ── Graph submit toast notification ── */}
       {wewireToast && (
         <div
-          className={`flex items-center gap-3 mb-3 px-4 py-3 rounded-xl text-sm font-medium shadow-sm border transition-all ${
-            wewireToast.type === "success"
+          className={`flex items-center gap-3 mb-3 px-4 py-3 rounded-xl text-sm font-medium shadow-sm border transition-all ${wewireToast.type === "success"
               ? "bg-emerald-50 border-emerald-200 text-emerald-700"
               : "bg-red-50 border-red-200 text-red-600"
-          }`}
+            }`}
         >
           <span>{wewireToast.type === "success" ? "✅" : "❌"}</span>
           {wewireToast.message}
           <button
             onClick={() => setWewireToast(null)}
+            className="ml-auto text-xs opacity-50 hover:opacity-100"
+          >
+            ✕
+          </button>
+        </div>
+      )}
+
+      {/* ── Reset KYC toast notification ── */}
+      {resetToast && (
+        <div
+          className={`flex items-center gap-3 mb-3 px-4 py-3 rounded-xl text-sm font-medium shadow-sm border transition-all ${resetToast.type === "success"
+              ? "bg-emerald-50 border-emerald-200 text-emerald-700"
+              : "bg-red-50 border-red-200 text-red-600"
+            }`}
+        >
+          <span>{resetToast.type === "success" ? "✅" : "❌"}</span>
+          {resetToast.message}
+          <button
+            onClick={() => setResetToast(null)}
             className="ml-auto text-xs opacity-50 hover:opacity-100"
           >
             ✕
@@ -577,13 +767,14 @@ export default function UserKYCTab({
             </thead>
 
             <tbody className="divide-y divide-gray-50">
-              {kycRecords.map((k) => (
+              {paginatedRecords.map((k) => (
                 <KycRow
                   key={k.id}
                   k={k}
                   isOpen={actionOpenId === k.id}
                   isBusy={updatingId === k.id}
                   wewireLoading={wewireLoadingId === k.id}
+                  wewireSubmitted={isGraphSubmitted(k.id)}
                   onToggle={() =>
                     setActionOpenId((prev) => (prev === k.id ? null : k.id))
                   }
@@ -596,12 +787,80 @@ export default function UserKYCTab({
                     setActionOpenId(null);
                   }}
                   onSubmitWeWire={() => handleSubmitToWeWire(k)}
+                  onBackdate={() => {
+                    const u = k.user || { id: k.userId };
+                    setResetTarget({ record: k, user: u });
+                    setResetKycType(isNoApproveType(k.type) ? k.type : "identity");
+                    setActionOpenId(null);
+                  }}
                   viewUrl={k.documentUrl || k.selfieUrl || null}
                 />
               ))}
             </tbody>
           </table>
         </div>
+
+        {/* ── Pagination controls ── */}
+        {totalCount > rowsPerPage && (
+          <div className="flex flex-col sm:flex-row items-center justify-between gap-4 px-5 py-4 border-t border-gray-100 bg-gray-50/60">
+            <p className="text-xs text-gray-400 shrink-0">
+              Showing <span className="font-semibold text-gray-600">{startItem}–{endItem}</span> of{" "}
+              <span className="font-semibold text-gray-600">{totalCount}</span> records
+            </p>
+
+            <div className="flex items-center gap-1">
+              <button
+                onClick={() => {
+                  setCurrentPage((p) => Math.max(1, p - 1));
+                  setActionOpenId(null);
+                }}
+                disabled={currentPage === 1}
+                className={`w-8 h-8 flex items-center justify-center rounded-lg border text-sm transition ${currentPage === 1
+                    ? "border-gray-100 text-gray-300 cursor-not-allowed bg-white"
+                    : "border-gray-200 text-gray-600 hover:bg-gray-100 bg-white"
+                  }`}
+              >
+                <ChevronLeft size={15} />
+              </button>
+
+              {pageNumbers.map((p, idx) =>
+                p === "..." ? (
+                  <span key={"ellipsis-" + idx} className="w-8 h-8 flex items-center justify-center text-gray-400 text-sm">
+                    …
+                  </span>
+                ) : (
+                  <button
+                    key={p}
+                    onClick={() => {
+                      setCurrentPage(p);
+                      setActionOpenId(null);
+                    }}
+                    className={`w-8 h-8 flex items-center justify-center rounded-lg border text-xs font-semibold transition ${p === currentPage
+                        ? "bg-blue-600 border-blue-600 text-white shadow-sm"
+                        : "border-gray-200 text-gray-600 hover:bg-gray-100 bg-white"
+                      }`}
+                  >
+                    {p}
+                  </button>
+                )
+              )}
+
+              <button
+                onClick={() => {
+                  setCurrentPage((p) => Math.min(totalPages, p + 1));
+                  setActionOpenId(null);
+                }}
+                disabled={currentPage === totalPages}
+                className={`w-8 h-8 flex items-center justify-center rounded-lg border text-sm transition ${currentPage === totalPages
+                    ? "border-gray-100 text-gray-300 cursor-not-allowed bg-white"
+                    : "border-gray-200 text-gray-600 hover:bg-gray-100 bg-white"
+                  }`}
+              >
+                <ChevronRight size={15} />
+              </button>
+            </div>
+          </div>
+        )}
       </div>
 
       {/* Reject Modal */}
@@ -682,6 +941,58 @@ export default function UserKYCTab({
         </div>
       )}
 
+      {/* Back-date / Reset KYC Modal */}
+      {resetTarget && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 px-4">
+          <div className="bg-white rounded-2xl shadow-xl w-full max-w-sm p-5">
+            <h3 className="text-sm font-bold text-gray-800 mb-1">Reset KYC (Back-date)</h3>
+            <p className="text-xs text-gray-400 mb-4">
+              {resetTarget.user?.firstname} {resetTarget.user?.lastname} will be asked to re-submit this document.
+            </p>
+
+            <label className="block text-xs font-semibold text-gray-500 mb-1">KYC Type</label>
+            <select
+              value={resetKycType}
+              onChange={(e) => setResetKycType(e.target.value)}
+              className="w-full mb-3 px-3 py-2 rounded-lg border border-gray-200 text-sm focus:outline-none focus:ring-2 focus:ring-orange-200"
+            >
+              <option value="identity">Identity</option>
+              <option value="utility">Utility</option>
+              <option value="bvn">BVN</option>
+              <option value="nin">NIN</option>
+            </select>
+
+            <label className="block text-xs font-semibold text-gray-500 mb-1">Reason</label>
+            <textarea
+              value={resetReason}
+              onChange={(e) => setResetReason(e.target.value)}
+              rows={3}
+              placeholder="e.g. Document blurry, please re-upload."
+              className="w-full mb-4 px-3 py-2 rounded-lg border border-gray-200 text-sm focus:outline-none focus:ring-2 focus:ring-orange-200 resize-none"
+            />
+
+            <div className="flex justify-end gap-2">
+              <button
+                onClick={() => {
+                  setResetTarget(null);
+                  setResetReason("");
+                }}
+                className="px-3 py-2 rounded-lg text-xs font-medium text-gray-500 hover:bg-gray-100 transition"
+              >
+                Cancel
+              </button>
+              <button
+                onClick={handleSubmitReset}
+                disabled={resetLoading || !resetReason.trim()}
+                className="px-3 py-2 rounded-lg text-xs font-semibold text-white bg-orange-600 hover:bg-orange-700 transition disabled:opacity-50 disabled:cursor-not-allowed"
+              >
+                {resetLoading ? "Resetting…" : "Confirm Reset"}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
       {/* KYC Update Modal */}
       <KycUpdateModal
         user={selectedUser}
@@ -690,6 +1001,14 @@ export default function UserKYCTab({
         baseURL={safeBaseURL}
         token={token || localStorage.getItem("token")}
         onSuccess={() => {
+          // Clear the "submitted once" lock for all of this user's KYC
+          // records since an update was just made — admin can submit again.
+          if (selectedUser) {
+            const uid = selectedUser.id || selectedUser.userId;
+            kycRecords
+              .filter((r) => (r.user?.id || r.userId) === uid)
+              .forEach((r) => clearGraphSubmitted(r.id));
+          }
           fetchKycRecords?.();
           fetchSummary?.();
           setSelectedUser(null);

@@ -5,6 +5,7 @@ import {
   ArrowLeft, Eye, EyeOff, Copy, Check, Snowflake, Play, Ban, Wallet,
   ArrowUpCircle, ArrowDownCircle, AlertTriangle, X, CheckCircle2,
   RefreshCw, Receipt, TrendingUp, TrendingDown, Hash,
+  ChevronLeft, ChevronRight,
 } from "lucide-react";
 
 const API_BASE_URL = import.meta.env.VITE_API_URL;
@@ -16,19 +17,25 @@ const fmt = (amount, currency) =>
     minimumFractionDigits: 2, maximumFractionDigits: 2,
   })}`;
 
+// Currencies exposed in the transaction filter — extend if more become relevant
+const CURRENCY_FILTERS = ["ALL", "NGN", "USD"];
+
+// Transaction type filter options
+const TYPE_FILTERS = ["ALL", "CREDIT", "DEBIT"];
+
 // Brand → gradient, so the card face actually looks like its network
 const BRAND_STYLES = {
-  visa:       "from-indigo-600 via-indigo-700 to-blue-900",
+  visa: "from-indigo-600 via-indigo-700 to-blue-900",
   mastercard: "from-orange-500 via-red-600 to-rose-800",
-  verve:      "from-emerald-600 via-teal-700 to-slate-900",
+  verve: "from-emerald-600 via-teal-700 to-slate-900",
 };
 const brandGradient = (brand) => BRAND_STYLES[String(brand || "").toLowerCase()] || "from-gray-700 via-gray-800 to-gray-950";
 
 const STATUS_STYLES = {
-  active:     "bg-emerald-400/20 text-emerald-200 ring-1 ring-emerald-300/40",
-  freeze:     "bg-blue-400/20 text-blue-200 ring-1 ring-blue-300/40",
+  active: "bg-emerald-400/20 text-emerald-200 ring-1 ring-emerald-300/40",
+  freeze: "bg-blue-400/20 text-blue-200 ring-1 ring-blue-300/40",
   terminated: "bg-red-400/20 text-red-200 ring-1 ring-red-300/40",
-  blocked:    "bg-gray-300/20 text-gray-200 ring-1 ring-gray-300/40",
+  blocked: "bg-gray-300/20 text-gray-200 ring-1 ring-gray-300/40",
 };
 
 // ── Card face (visual card design) ────────────────────────────────────────────
@@ -262,13 +269,12 @@ const CardBalanceModal = ({ card, onClose }) => {
                   key={opt.value}
                   type="button"
                   onClick={() => setActionType(opt.value)}
-                  className={`flex items-center gap-2.5 px-4 py-3 rounded-xl border text-left transition ${
-                    actionType === opt.value
+                  className={`flex items-center gap-2.5 px-4 py-3 rounded-xl border text-left transition ${actionType === opt.value
                       ? opt.value === "credit"
                         ? "border-emerald-400 bg-emerald-50 ring-2 ring-emerald-100"
                         : "border-red-400 bg-red-50 ring-2 ring-red-100"
                       : "border-gray-200 bg-white hover:border-gray-300"
-                  }`}
+                    }`}
                 >
                   {opt.icon}
                   <div>
@@ -353,9 +359,8 @@ const CardBalanceModal = ({ card, onClose }) => {
               <button
                 type="submit"
                 disabled={submitting}
-                className={`flex-1 py-2.5 rounded-xl text-sm font-semibold text-white transition disabled:opacity-60 disabled:cursor-not-allowed flex items-center justify-center gap-2 ${
-                  actionType === "debit" ? "bg-red-500 hover:bg-red-600" : "bg-emerald-600 hover:bg-emerald-700"
-                }`}
+                className={`flex-1 py-2.5 rounded-xl text-sm font-semibold text-white transition disabled:opacity-60 disabled:cursor-not-allowed flex items-center justify-center gap-2 ${actionType === "debit" ? "bg-red-500 hover:bg-red-600" : "bg-emerald-600 hover:bg-emerald-700"
+                  }`}
               >
                 {submitting ? (
                   <>
@@ -384,11 +389,11 @@ const CardBalanceModal = ({ card, onClose }) => {
 const TxStatusBadge = ({ status }) => {
   const s = String(status || "").toLowerCase();
   const map = {
-    success:   "bg-emerald-50 text-emerald-700 ring-1 ring-emerald-200",
+    success: "bg-emerald-50 text-emerald-700 ring-1 ring-emerald-200",
     completed: "bg-emerald-50 text-emerald-700 ring-1 ring-emerald-200",
-    pending:   "bg-amber-50 text-amber-700 ring-1 ring-amber-200",
-    failed:    "bg-red-50 text-red-600 ring-1 ring-red-200",
-    reversed:  "bg-gray-100 text-gray-500 ring-1 ring-gray-200",
+    pending: "bg-amber-50 text-amber-700 ring-1 ring-amber-200",
+    failed: "bg-red-50 text-red-600 ring-1 ring-red-200",
+    reversed: "bg-gray-100 text-gray-500 ring-1 ring-gray-200",
   };
   return (
     <span className={`inline-flex items-center px-2.5 py-1 rounded-full text-xs font-semibold capitalize ${map[s] || "bg-gray-100 text-gray-500 ring-1 ring-gray-200"}`}>
@@ -398,23 +403,69 @@ const TxStatusBadge = ({ status }) => {
 };
 
 // ── Transaction summary strip ─────────────────────────────────────────────────
-const TxSummary = ({ transactions, currency }) => {
+// When a single currency is selected, sums are accurate real money totals in
+// that currency. When "ALL" is selected, transactions may span multiple
+// currencies — summing raw amounts across currencies would be meaningless
+// (e.g. adding NGN and USD numbers together), so instead each card shows a
+// stacked per-currency breakdown at full size rather than a "Mixed" label.
+//
+// NOTE: this summarizes ALL currently filtered transactions for the card
+// (currency + type filters applied, pre-pagination), not just the currently
+// visible page — that's intentional, so the totals stay accurate regardless
+// of which page you're looking at.
+const TxSummary = ({ transactions, currencyFilter }) => {
   const stats = useMemo(() => {
-    let credit = 0, debit = 0;
+    const byCurrency = {}; // { NGN: { credit, debit }, USD: { credit, debit } }
     for (const t of transactions) {
       const amt = parseFloat(t.amount || 0);
-      const type = String(t.type || t.transactionType || "").toLowerCase();
-      if (type.includes("credit") || type === "funding" || type === "deposit") credit += amt;
-      else if (type.includes("debit") || type === "withdrawal" || type === "spend") debit += amt;
+      const type = String(t.type || "").toLowerCase();
+      const cur = t.currency || "—";
+      if (!byCurrency[cur]) byCurrency[cur] = { credit: 0, debit: 0 };
+      if (type === "credit") byCurrency[cur].credit += amt;
+      else if (type === "debit") byCurrency[cur].debit += amt;
     }
-    return { count: transactions.length, credit, debit, net: credit - debit };
+    return { count: transactions.length, byCurrency };
   }, [transactions]);
 
+  const currencies = Object.keys(stats.byCurrency);
+  const isSingleCurrency = currencyFilter !== "ALL" || currencies.length <= 1;
+  const soleCurrency = currencyFilter !== "ALL" ? currencyFilter : currencies[0];
+
+  const totalCredit = isSingleCurrency
+    ? (stats.byCurrency[soleCurrency]?.credit ?? 0)
+    : null;
+  const totalDebit = isSingleCurrency
+    ? (stats.byCurrency[soleCurrency]?.debit ?? 0)
+    : null;
+  const net = isSingleCurrency && totalCredit !== null && totalDebit !== null
+    ? totalCredit - totalDebit
+    : null;
+
   const cards = [
-    { label: "Transactions", value: stats.count.toLocaleString(), icon: <Receipt size={15} />, bg: "bg-indigo-50", fg: "text-indigo-600" },
-    { label: "Total Credit", value: fmt(stats.credit, currency), icon: <TrendingUp size={15} />, bg: "bg-emerald-50", fg: "text-emerald-600" },
-    { label: "Total Debit", value: fmt(stats.debit, currency), icon: <TrendingDown size={15} />, bg: "bg-red-50", fg: "text-red-500" },
-    { label: "Net Movement", value: fmt(stats.net, currency), icon: <Hash size={15} />, bg: "bg-blue-50", fg: "text-blue-600" },
+    { label: "Transactions", single: true, value: stats.count.toLocaleString(), icon: <Receipt size={15} />, bg: "bg-indigo-50", fg: "text-indigo-600" },
+    {
+      label: "Total Credit",
+      single: isSingleCurrency,
+      value: isSingleCurrency ? fmt(totalCredit, soleCurrency) : null,
+      breakdown: !isSingleCurrency ? currencies.map((c) => ({ currency: c, amount: fmt(stats.byCurrency[c].credit, c) })) : null,
+      icon: <TrendingUp size={15} />, bg: "bg-emerald-50", fg: "text-emerald-600",
+    },
+    {
+      label: "Total Debit",
+      single: isSingleCurrency,
+      value: isSingleCurrency ? fmt(totalDebit, soleCurrency) : null,
+      breakdown: !isSingleCurrency ? currencies.map((c) => ({ currency: c, amount: fmt(stats.byCurrency[c].debit, c) })) : null,
+      icon: <TrendingDown size={15} />, bg: "bg-red-50", fg: "text-red-500",
+    },
+    {
+      label: "Net Movement",
+      single: isSingleCurrency,
+      value: isSingleCurrency ? fmt(net, soleCurrency) : null,
+      breakdown: !isSingleCurrency
+        ? currencies.map((c) => ({ currency: c, amount: fmt(stats.byCurrency[c].credit - stats.byCurrency[c].debit, c) }))
+        : null,
+      icon: <Hash size={15} />, bg: "bg-blue-50", fg: "text-blue-600",
+    },
   ];
 
   return (
@@ -425,12 +476,34 @@ const TxSummary = ({ transactions, currency }) => {
             <span className={c.fg}>{c.icon}</span>
           </div>
           <p className="text-[10px] font-bold text-gray-400 uppercase tracking-widest mb-0.5">{c.label}</p>
-          <p className="text-lg font-bold text-gray-900">{c.value}</p>
+
+          {c.single ? (
+            <p className="text-lg font-bold text-gray-900">{c.value}</p>
+          ) : (
+            <div className="space-y-0.5 mt-0.5">
+              {c.breakdown.map(({ currency, amount }) => (
+                <div key={currency} className="flex items-baseline gap-1.5">
+                  <span className="text-[11px] font-semibold text-gray-400 w-8 shrink-0">{currency}</span>
+                  <span className="text-base font-bold text-gray-900 truncate">{amount}</span>
+                </div>
+              ))}
+            </div>
+          )}
         </div>
       ))}
     </div>
   );
 };
+
+// ── Page number generator (same pattern as UsersTable pagination) ─────────────
+const getPageNumbers = (current, total) => {
+  if (total <= 7) return Array.from({ length: total }, (_, i) => i + 1);
+  if (current <= 4) return [1, 2, 3, 4, 5, "...", total];
+  if (current >= total - 3) return [1, "...", total - 4, total - 3, total - 2, total - 1, total];
+  return [1, "...", current - 1, current, current + 1, "...", total];
+};
+
+const TX_PAGE_SIZE = 10;
 
 // ── Card transactions table ───────────────────────────────────────────────────
 const CardTransactionsTable = ({ card }) => {
@@ -438,6 +511,9 @@ const CardTransactionsTable = ({ card }) => {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
   const [refreshing, setRefreshing] = useState(false);
+  const [currencyFilter, setCurrencyFilter] = useState("ALL");
+  const [typeFilter, setTypeFilter] = useState("ALL");
+  const [page, setPage] = useState(1); // 1-indexed, client-side pagination
 
   const token = localStorage.getItem("token");
 
@@ -445,22 +521,32 @@ const CardTransactionsTable = ({ card }) => {
     try {
       showRefresh ? setRefreshing(true) : setLoading(true);
       setError("");
+
+      const params = { transactionClass: "card" };
+      // Confirmed field on the transaction object is `userId` — scope
+      // server-side by the card's owner so we're not pulling every card
+      // transaction platform-wide.
+      const ownerId = card.userId || card.customer_id;
+      if (ownerId) params.userId = ownerId;
+      if (currencyFilter !== "ALL") params.currency = currencyFilter;
+
       const res = await axios.get(`${API_BASE_URL}/superAdmin/transactions`, {
-        params: { transactionClass: "card" },
+        params,
         headers: { Authorization: `Bearer ${token}`, Accept: "application/json" },
       });
 
       const all = res.data?.data ?? res.data?.transactions ?? [];
 
-      // Backend shape (confirmed): each transaction has `card_id` (snake_case),
-      // matched against this card's `card_id` — NOT `cardId`/`id`. Falling back
-      // to the other variants too in case some records are shaped differently.
-      const scoped = all.filter((t) => {
-        const tCardId = t.card_id ?? t.cardId ?? t.card?.id;
-        return tCardId === card.card_id || tCardId === card.id;
-      });
-
-      setTransactions(scoped);
+      // NOTE: a confirmed real transaction sample does NOT include a
+      // `card_id` field on the transaction object, so we can't scope
+      // further client-side by card the way we previously tried to (that
+      // filter was silently dropping every result before). We rely on the
+      // server-side userId scope above instead. If a merchant/user can
+      // have multiple cards and results need to be split per-card, we need
+      // a confirmed field from the backend (possibly inside `details`) to
+      // key on — flag this if it turns out to matter.
+      setTransactions(all);
+      setPage(1); // reset to first page whenever the underlying data changes
     } catch (err) {
       console.error("Failed to fetch card transactions:", err);
       setError("Failed to fetch transactions for this card.");
@@ -473,23 +559,84 @@ const CardTransactionsTable = ({ card }) => {
   useEffect(() => {
     if (card?.id) fetchTransactions();
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [card?.id]);
+  }, [card?.id, currencyFilter]);
+
+  // ── Type filter is client-side (type isn't a server-side query param) ───────
+  const filteredTransactions = useMemo(() => {
+    if (typeFilter === "ALL") return transactions;
+    return transactions.filter(
+      (t) => String(t.type || "").toLowerCase() === typeFilter.toLowerCase()
+    );
+  }, [transactions, typeFilter]);
+
+  // Reset to page 1 whenever the type filter changes
+  useEffect(() => {
+    setPage(1);
+  }, [typeFilter]);
+
+  // ── Pagination derived state (client-side slice of `filteredTransactions`) ──
+  const totalItems = filteredTransactions.length;
+  const totalPages = Math.max(1, Math.ceil(totalItems / TX_PAGE_SIZE));
+  const currentPage = Math.min(page, totalPages);
+  const pageNumbers = getPageNumbers(currentPage, totalPages);
+  const startIdx = (currentPage - 1) * TX_PAGE_SIZE;
+  const endIdx = Math.min(startIdx + TX_PAGE_SIZE, totalItems);
+  const pagedTransactions = filteredTransactions.slice(startIdx, endIdx);
 
   return (
     <div className="space-y-4">
-      <TxSummary transactions={transactions} currency={card.currency} />
+      <TxSummary transactions={filteredTransactions} currencyFilter={currencyFilter} />
 
       <div className="bg-white rounded-2xl border border-gray-100 shadow-sm overflow-hidden">
-        <div className="flex items-center justify-between px-5 py-4 border-b border-gray-100">
+        <div className="flex flex-wrap items-center justify-between gap-3 px-5 py-4 border-b border-gray-100">
           <h3 className="text-sm font-bold text-gray-800">Card Transactions</h3>
-          <button
-            onClick={() => fetchTransactions(true)}
-            disabled={refreshing}
-            className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-semibold border border-gray-200 bg-white text-gray-600 hover:bg-gray-100 disabled:opacity-50 transition"
-          >
-            <RefreshCw size={12} className={refreshing ? "animate-spin" : ""} />
-            Refresh
-          </button>
+
+          <div className="flex flex-wrap items-center gap-2">
+            {/* Currency filter */}
+            <div className="flex items-center gap-1 p-1 rounded-xl border border-gray-200 bg-gray-50">
+              {CURRENCY_FILTERS.map((c) => (
+                <button
+                  key={c}
+                  onClick={() => setCurrencyFilter(c)}
+                  className={`px-3 py-1.5 rounded-lg text-xs font-semibold transition ${
+                    currencyFilter === c
+                      ? "bg-white text-gray-900 shadow-sm"
+                      : "text-gray-500 hover:text-gray-700"
+                  }`}
+                >
+                  {c}
+                </button>
+              ))}
+            </div>
+
+            {/* Type filter (credit / debit) */}
+            <div className="flex items-center gap-1 p-1 rounded-xl border border-gray-200 bg-gray-50">
+              {TYPE_FILTERS.map((t) => (
+                <button
+                  key={t}
+                  onClick={() => setTypeFilter(t)}
+                  className={`flex items-center gap-1 px-3 py-1.5 rounded-lg text-xs font-semibold capitalize transition ${
+                    typeFilter === t
+                      ? "bg-white text-gray-900 shadow-sm"
+                      : "text-gray-500 hover:text-gray-700"
+                  }`}
+                >
+                  {t === "CREDIT" && <ArrowUpCircle size={11} className="text-emerald-500" />}
+                  {t === "DEBIT" && <ArrowDownCircle size={11} className="text-red-500" />}
+                  {t.charAt(0) + t.slice(1).toLowerCase()}
+                </button>
+              ))}
+            </div>
+
+            <button
+              onClick={() => fetchTransactions(true)}
+              disabled={refreshing}
+              className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-semibold border border-gray-200 bg-white text-gray-600 hover:bg-gray-100 disabled:opacity-50 transition"
+            >
+              <RefreshCw size={12} className={refreshing ? "animate-spin" : ""} />
+              Refresh
+            </button>
+          </div>
         </div>
 
         {loading ? (
@@ -504,50 +651,106 @@ const CardTransactionsTable = ({ card }) => {
               Try again
             </button>
           </div>
-        ) : transactions.length === 0 ? (
+        ) : filteredTransactions.length === 0 ? (
           <div className="flex flex-col items-center justify-center py-16 gap-1">
             <p className="text-2xl">🧾</p>
-            <p className="text-sm font-medium text-gray-500">No transactions found for this card</p>
+            <p className="text-sm font-medium text-gray-500">
+              {currencyFilter === "ALL" && typeFilter === "ALL"
+                ? "No transactions found for this card"
+                : `No ${[typeFilter !== "ALL" ? typeFilter.toLowerCase() : null, currencyFilter !== "ALL" ? currencyFilter : null]
+                    .filter(Boolean)
+                    .join(" ")} transactions found for this card`}
+            </p>
           </div>
         ) : (
-          <div className="overflow-x-auto">
-            <table className="min-w-full text-sm">
-              <thead>
-                <tr className="bg-gray-50 border-b border-gray-100">
-                  {["Date", "Type", "Amount", "Status", "Reference", "Description"].map((h) => (
-                    <th key={h} className="px-5 py-3 text-left text-xs font-bold text-gray-400 uppercase tracking-wider whitespace-nowrap">
-                      {h}
-                    </th>
-                  ))}
-                </tr>
-              </thead>
-              <tbody className="divide-y divide-gray-50">
-                {transactions.map((t) => {
-                  const type = String(t.type || t.transactionType || "").toLowerCase();
-                  const isCredit = type.includes("credit") || type === "funding" || type === "deposit";
-                  return (
-                    <tr key={t.id || t.reference} className="hover:bg-gray-50/80 transition-colors">
-                      <td className="px-5 py-3.5 text-xs text-gray-500 whitespace-nowrap">
-                        {t.createdAt ? new Date(t.createdAt).toLocaleString() : "—"}
-                      </td>
-                      <td className="px-5 py-3.5">
-                        <span className={`inline-flex items-center gap-1 text-xs font-semibold capitalize ${isCredit ? "text-emerald-600" : "text-red-500"}`}>
-                          {isCredit ? <ArrowUpCircle size={12} /> : <ArrowDownCircle size={12} />}
-                          {type || "—"}
-                        </span>
-                      </td>
-                      <td className={`px-5 py-3.5 font-semibold ${isCredit ? "text-emerald-600" : "text-red-500"}`}>
-                        {isCredit ? "+" : "-"}{fmt(t.amount, t.currency || card.currency)}
-                      </td>
-                      <td className="px-5 py-3.5"><TxStatusBadge status={t.status} /></td>
-                      <td className="px-5 py-3.5 font-mono text-xs text-gray-500">{t.trans_id || t.reference || t.referenceId || "—"}</td>
-                      <td className="px-5 py-3.5 text-xs text-gray-600 max-w-xs truncate">{t.description || t.info || "—"}</td>
-                    </tr>
-                  );
-                })}
-              </tbody>
-            </table>
-          </div>
+          <>
+            <div className="overflow-x-auto">
+              <table className="min-w-full text-sm">
+                <thead>
+                  <tr className="bg-gray-50 border-b border-gray-100">
+                    {["Date", "Type", "Currency", "Amount", "Status", "Reference", "Description"].map((h) => (
+                      <th key={h} className="px-5 py-3 text-left text-xs font-bold text-gray-400 uppercase tracking-wider whitespace-nowrap">
+                        {h}
+                      </th>
+                    ))}
+                  </tr>
+                </thead>
+                <tbody className="divide-y divide-gray-50">
+                  {pagedTransactions.map((t) => {
+                    const type = String(t.type || "").toLowerCase();
+                    const isCredit = type === "credit";
+                    const description = t.details?.description || t.info || "—";
+                    return (
+                      <tr key={t.id || t.reference_id} className="hover:bg-gray-50/80 transition-colors">
+                        <td className="px-5 py-3.5 text-xs text-gray-500 whitespace-nowrap">
+                          {t.createdAt ? new Date(t.createdAt).toLocaleString() : "—"}
+                        </td>
+                        <td className="px-5 py-3.5">
+                          <span className={`inline-flex items-center gap-1 text-xs font-semibold capitalize ${isCredit ? "text-emerald-600" : "text-red-500"}`}>
+                            {isCredit ? <ArrowUpCircle size={12} /> : <ArrowDownCircle size={12} />}
+                            {type || "—"}
+                          </span>
+                        </td>
+                        <td className="px-5 py-3.5">
+                          <span className="px-2 py-0.5 rounded-md bg-gray-100 text-gray-600 text-xs font-semibold">
+                            {t.currency || "—"}
+                          </span>
+                        </td>
+                        <td className={`px-5 py-3.5 font-semibold ${isCredit ? "text-emerald-600" : "text-red-500"}`}>
+                          {isCredit ? "+" : "-"}{fmt(t.amount, t.currency || card.currency)}
+                        </td>
+                        <td className="px-5 py-3.5"><TxStatusBadge status={t.status} /></td>
+                        <td className="px-5 py-3.5 font-mono text-xs text-gray-500">{t.transaction_id || t.reference_id || "—"}</td>
+                        <td className="px-5 py-3.5 text-xs text-gray-600 max-w-xs truncate" title={description}>{description}</td>
+                      </tr>
+                    );
+                  })}
+                </tbody>
+              </table>
+            </div>
+
+            {/* ── Pagination ── */}
+            {totalItems > TX_PAGE_SIZE && (
+              <div className="flex flex-col sm:flex-row items-center justify-between gap-4 px-5 py-4 border-t border-gray-100 bg-gray-50/60">
+                <p className="text-xs text-gray-400 shrink-0">
+                  Showing <span className="font-semibold text-gray-600">{startIdx + 1}–{endIdx}</span> of{" "}
+                  <span className="font-semibold text-gray-600">{totalItems}</span> transactions
+                </p>
+                <div className="flex items-center gap-1">
+                  <button
+                    onClick={() => setPage((p) => Math.max(1, p - 1))}
+                    disabled={currentPage === 1}
+                    className="w-8 h-8 flex items-center justify-center rounded-lg border border-gray-200 bg-white text-gray-600 hover:bg-gray-100 disabled:opacity-30 disabled:cursor-not-allowed transition"
+                  >
+                    <ChevronLeft size={15} />
+                  </button>
+                  {pageNumbers.map((p, idx) =>
+                    p === "..." ? (
+                      <span key={`e${idx}`} className="w-8 h-8 flex items-center justify-center text-gray-400 text-sm">…</span>
+                    ) : (
+                      <button
+                        key={p}
+                        onClick={() => setPage(p)}
+                        className={`w-8 h-8 flex items-center justify-center rounded-lg border text-xs font-semibold transition ${p === currentPage
+                            ? "bg-blue-600 border-blue-600 text-white shadow-sm"
+                            : "border-gray-200 bg-white text-gray-600 hover:bg-gray-100"
+                          }`}
+                      >
+                        {p}
+                      </button>
+                    )
+                  )}
+                  <button
+                    onClick={() => setPage((p) => Math.min(totalPages, p + 1))}
+                    disabled={currentPage === totalPages}
+                    className="w-8 h-8 flex items-center justify-center rounded-lg border border-gray-200 bg-white text-gray-600 hover:bg-gray-100 disabled:opacity-30 disabled:cursor-not-allowed transition"
+                  >
+                    <ChevronRight size={15} />
+                  </button>
+                </div>
+              </div>
+            )}
+          </>
         )}
       </div>
     </div>

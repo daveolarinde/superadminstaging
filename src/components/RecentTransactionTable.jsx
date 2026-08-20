@@ -72,7 +72,7 @@ export default function RecentTransactionTable() {
     <div className="bg-white rounded-xl shadow p-4 sm:p-6 md:p-8 relative">
       {/* Header */}
       <div className="flex items-center gap-2 mb-6">
-        
+
         <span className="text-sm text-gray-600 font-medium">
           Recent Transactions (Last 30 mins, auto-updating)
         </span>
@@ -119,9 +119,8 @@ export default function RecentTransactionTable() {
                     </div>
                   </td>
                   <td
-                    className={`px-3 sm:px-6 py-3 font-semibold ${
-                      tx.amount.startsWith("+") ? "text-green-600" : "text-red-600"
-                    }`}
+                    className={`px-3 sm:px-6 py-3 font-semibold ${tx.amount.startsWith("+") ? "text-green-600" : "text-red-600"
+                      }`}
                   >
                     {tx.amount}
                   </td>
@@ -161,18 +160,16 @@ export default function RecentTransactionTable() {
             <button
               disabled={currentPage === 1}
               onClick={() => setCurrentPage((p) => p - 1)}
-              className={`px-4 py-2 rounded-lg border border-gray-200 ${
-                currentPage === 1 ? "text-gray-400" : "hover:bg-gray-50"
-              }`}
+              className={`px-4 py-2 rounded-lg border border-gray-200 ${currentPage === 1 ? "text-gray-400" : "hover:bg-gray-50"
+                }`}
             >
               Prev
             </button>
             <button
               disabled={currentPage === totalPages}
               onClick={() => setCurrentPage((p) => p + 1)}
-              className={`px-4 py-2 rounded-lg border border-gray-200 ${
-                currentPage === totalPages ? "text-gray-400" : "hover:bg-gray-50"
-              }`}
+              className={`px-4 py-2 rounded-lg border border-gray-200 ${currentPage === totalPages ? "text-gray-400" : "hover:bg-gray-50"
+                }`}
             >
               Next
             </button>

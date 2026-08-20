@@ -259,11 +259,10 @@ export default function ProfileTab({ user, parsedAddress, onUserUpdate }) {
             <div className="flex flex-col gap-0.5">
               <span className="text-xs text-gray-400 uppercase tracking-wide">Status</span>
               <span
-                className={`inline-flex items-center gap-1.5 w-fit text-xs font-semibold px-2.5 py-1 rounded-full ${
-                  user.status === "active"
+                className={`inline-flex items-center gap-1.5 w-fit text-xs font-semibold px-2.5 py-1 rounded-full ${user.status === "active"
                     ? "bg-green-50 text-green-600 border border-green-200"
                     : "bg-yellow-50 text-yellow-600 border border-yellow-200"
-                }`}
+                  }`}
               >
                 <span className={`w-1.5 h-1.5 rounded-full ${user.status === "active" ? "bg-green-500" : "bg-yellow-500"}`}></span>
                 {user.status}
@@ -317,9 +316,8 @@ export default function ProfileTab({ user, parsedAddress, onUserUpdate }) {
                     <span className="text-lg font-bold text-gray-800">{value}</span>
                   ) : (
                     <span
-                      className={`text-xs font-semibold px-2 py-0.5 rounded-full ${
-                        value ? "bg-green-100 text-green-600" : "bg-red-50 text-red-500"
-                      }`}
+                      className={`text-xs font-semibold px-2 py-0.5 rounded-full ${value ? "bg-green-100 text-green-600" : "bg-red-50 text-red-500"
+                        }`}
                     >
                       {value ? "Yes" : "No"}
                     </span>

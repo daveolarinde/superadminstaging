@@ -140,9 +140,8 @@ const ProfitFilter = ({ filters: appliedFilters = {}, onApply }) => {
       )}
 
       <div
-        className={`fixed top-0 right-0 h-full w-full max-w-md bg-white shadow-xl z-50 flex flex-col transform transition-transform duration-300 ${
-          isOpen ? "translate-x-0" : "translate-x-full"
-        }`}
+        className={`fixed top-0 right-0 h-full w-full max-w-md bg-white shadow-xl z-50 flex flex-col transform transition-transform duration-300 ${isOpen ? "translate-x-0" : "translate-x-full"
+          }`}
       >
         <div className="flex justify-between items-center border-b px-5 py-4">
           <h2 className="text-lg font-semibold text-gray-800">Filter Profits</h2>

@@ -7,11 +7,11 @@ const API_URL = import.meta.env.VITE_API_URL;
 const getToken = () => localStorage.getItem("token");
 
 const TIER_LABELS = {
-  0: { label: "Tier 0", desc: "Unverified",         color: "bg-gray-100 text-gray-500 ring-1 ring-gray-200"          },
-  1: { label: "Tier 1", desc: "Basic KYC",           color: "bg-blue-50 text-blue-600 ring-1 ring-blue-200"           },
-  2: { label: "Tier 2", desc: "Intermediate KYC",    color: "bg-indigo-50 text-indigo-600 ring-1 ring-indigo-200"     },
-  3: { label: "Tier 3", desc: "Advanced KYC",        color: "bg-emerald-50 text-emerald-700 ring-1 ring-emerald-200"  },
-  4: { label: "Tier 4", desc: "Premium KYC",         color: "bg-amber-50 text-amber-700 ring-1 ring-amber-200"        },
+  0: { label: "Tier 0", desc: "Unverified", color: "bg-gray-100 text-gray-500 ring-1 ring-gray-200" },
+  1: { label: "Tier 1", desc: "Basic KYC", color: "bg-blue-50 text-blue-600 ring-1 ring-blue-200" },
+  2: { label: "Tier 2", desc: "Intermediate KYC", color: "bg-indigo-50 text-indigo-600 ring-1 ring-indigo-200" },
+  3: { label: "Tier 3", desc: "Advanced KYC", color: "bg-emerald-50 text-emerald-700 ring-1 ring-emerald-200" },
+  4: { label: "Tier 4", desc: "Premium KYC", color: "bg-amber-50 text-amber-700 ring-1 ring-amber-200" },
 };
 
 const fmt = (val) =>
@@ -37,18 +37,18 @@ const EditableField = ({ label, value, editing, fieldKey, draft, onChange }) => 
 
 // ── Tier Card ─────────────────────────────────────────────────────────────────
 const TierCard = ({ tierData, currency, onSave }) => {
-  const [editing, setEditing]   = useState(false);
-  const [draft,   setDraft]     = useState({});
-  const [saving,  setSaving]    = useState(false);
-  const [error,   setError]     = useState(null);
-  const [success, setSuccess]   = useState(false);
+  const [editing, setEditing] = useState(false);
+  const [draft, setDraft] = useState({});
+  const [saving, setSaving] = useState(false);
+  const [error, setError] = useState(null);
+  const [success, setSuccess] = useState(false);
 
   const meta = TIER_LABELS[tierData.tier] || { label: `Tier ${tierData.tier}`, desc: "", color: "bg-gray-100 text-gray-500" };
 
   const startEdit = () => {
     setDraft({
-      dailyLimit:          tierData.dailyLimit,
-      monthlyLimit:        tierData.monthlyLimit,
+      dailyLimit: tierData.dailyLimit,
+      monthlyLimit: tierData.monthlyLimit,
       perTransactionLimit: tierData.perTransactionLimit,
     });
     setError(null);
@@ -64,14 +64,14 @@ const TierCard = ({ tierData, currency, onSave }) => {
     setError(null);
     try {
       const body = {
-        dailyLimit:          Number(draft.dailyLimit),
-        monthlyLimit:        Number(draft.monthlyLimit),
+        dailyLimit: Number(draft.dailyLimit),
+        monthlyLimit: Number(draft.monthlyLimit),
         perTransactionLimit: Number(draft.perTransactionLimit),
       };
-      const res  = await fetch(`${API_URL}/superAdmin/tier-limits/${tierData.tier}/${currency}`, {
-        method:  "PUT",
+      const res = await fetch(`${API_URL}/superAdmin/tier-limits/${tierData.tier}/${currency}`, {
+        method: "PUT",
         headers: {
-          "Content-Type":  "application/json",
+          "Content-Type": "application/json",
           "Authorization": `Bearer ${getToken()}`,
         },
         body: JSON.stringify(body),
@@ -93,9 +93,8 @@ const TierCard = ({ tierData, currency, onSave }) => {
   };
 
   return (
-    <div className={`bg-white rounded-2xl border shadow-sm overflow-hidden transition-all ${
-      editing ? "border-blue-200 ring-2 ring-blue-50" : "border-gray-100"
-    }`}>
+    <div className={`bg-white rounded-2xl border shadow-sm overflow-hidden transition-all ${editing ? "border-blue-200 ring-2 ring-blue-50" : "border-gray-100"
+      }`}>
       {/* Card header */}
       <div className="flex items-center justify-between px-5 py-4 border-b border-gray-50">
         <div className="flex items-center gap-3">
@@ -184,16 +183,16 @@ const TierCard = ({ tierData, currency, onSave }) => {
 
 // ── Main Page ─────────────────────────────────────────────────────────────────
 const KycLimit = () => {
-  const [data,           setData]           = useState([]);
-  const [loading,        setLoading]        = useState(true);
-  const [error,          setError]          = useState(null);
+  const [data, setData] = useState([]);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState(null);
   const [activeCurrency, setActiveCurrency] = useState(null);
 
   const fetchLimits = useCallback(async () => {
     setLoading(true);
     setError(null);
     try {
-      const res  = await fetch(`${API_URL}/superAdmin/tier-limits`, {
+      const res = await fetch(`${API_URL}/superAdmin/tier-limits`, {
         headers: { "Authorization": `Bearer ${getToken()}` },
       });
       const json = await res.json();
@@ -263,11 +262,10 @@ const KycLimit = () => {
               <button
                 key={cur}
                 onClick={() => setActiveCurrency(cur)}
-                className={`px-5 py-2 rounded-lg text-xs font-bold transition ${
-                  activeCurrency === cur
+                className={`px-5 py-2 rounded-lg text-xs font-bold transition ${activeCurrency === cur
                     ? "bg-blue-600 text-white shadow-sm"
                     : "text-gray-500 hover:bg-gray-100"
-                }`}
+                  }`}
               >
                 {cur}
               </button>

@@ -19,12 +19,12 @@ const fmt = (amount, currency) =>
 // ── Status badge ──────────────────────────────────────────────────────────────
 const StatusBadge = ({ status }) => {
   const map = {
-    active:     { cls: "bg-emerald-50 text-emerald-700 ring-1 ring-emerald-200", dot: "bg-emerald-500" },
-    freeze:     { cls: "bg-blue-50 text-blue-700 ring-1 ring-blue-200",          dot: "bg-blue-500"    },
-    terminated: { cls: "bg-red-50 text-red-600 ring-1 ring-red-200",             dot: "bg-red-500"     },
-    blocked:    { cls: "bg-gray-100 text-gray-600 ring-1 ring-gray-200",         dot: "bg-gray-400"    },
+    active: { cls: "bg-emerald-50 text-emerald-700 ring-1 ring-emerald-200", dot: "bg-emerald-500" },
+    freeze: { cls: "bg-blue-50 text-blue-700 ring-1 ring-blue-200", dot: "bg-blue-500" },
+    terminated: { cls: "bg-red-50 text-red-600 ring-1 ring-red-200", dot: "bg-red-500" },
+    blocked: { cls: "bg-gray-100 text-gray-600 ring-1 ring-gray-200", dot: "bg-gray-400" },
   };
-  const s     = String(status).toLowerCase();
+  const s = String(status).toLowerCase();
   const style = map[s] || map.blocked;
   return (
     <span className={`inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-xs font-semibold capitalize ${style.cls}`}>
@@ -47,10 +47,10 @@ const SummaryCard = ({ label, value, icon, bgColor, textColor }) => (
 
 // ── Action dropdown (freeze / unfreeze / terminate) ───────────────────────────
 const ActionDropdown = ({ card, onAction, loading }) => {
-  const s       = String(card.status).toLowerCase();
+  const s = String(card.status).toLowerCase();
   const options = [
-    s === "active" && { value: "freeze",    label: "❄️ Freeze"    },
-    s === "freeze" && { value: "unfreeze",  label: "▶️ Unfreeze"  },
+    s === "active" && { value: "freeze", label: "❄️ Freeze" },
+    s === "freeze" && { value: "unfreeze", label: "▶️ Unfreeze" },
     s !== "terminated" && { value: "terminate", label: "🚫 Terminate" },
   ].filter(Boolean);
 
@@ -74,12 +74,12 @@ const ActionDropdown = ({ card, onAction, loading }) => {
 // ── Card Balance Modal ────────────────────────────────────────────────────────
 const CardBalanceModal = ({ card, onClose }) => {
   const [actionType, setActionType] = useState("credit");
-  const [amount,     setAmount]     = useState("");
-  const [info,       setInfo]       = useState("");
-  const [description,setDescription]= useState("");
+  const [amount, setAmount] = useState("");
+  const [info, setInfo] = useState("");
+  const [description, setDescription] = useState("");
   const [submitting, setSubmitting] = useState(false);
-  const [result,     setResult]     = useState(null);
-  const [error,      setError]      = useState("");
+  const [result, setResult] = useState(null);
+  const [error, setError] = useState("");
 
   const token = localStorage.getItem("token");
 
@@ -93,11 +93,11 @@ const CardBalanceModal = ({ card, onClose }) => {
       const res = await axios.post(
         `${baseURL}/superAdmin/users/adjust-card-balance`,
         {
-          userId:      card.userId,
-          cardId:      card.card_id || card.id,
-          amount:      parseFloat(amount),
+          userId: card.userId,
+          cardId: card.card_id || card.id,
+          amount: parseFloat(amount),
           actionType,
-          info:        info.trim(),
+          info: info.trim(),
           description: description.trim(),
         },
         { headers: { Authorization: `Bearer ${token}` } }
@@ -147,10 +147,10 @@ const CardBalanceModal = ({ card, onClose }) => {
             {/* Before / After */}
             <div className="w-full bg-gray-50 border border-gray-100 rounded-2xl divide-y divide-gray-100">
               {[
-                { label: "Old Balance",    value: fmt(result.oldBalance, result.currency), },
-                { label: "New Balance",    value: fmt(result.newBalance, result.currency), highlight: true },
+                { label: "Old Balance", value: fmt(result.oldBalance, result.currency), },
+                { label: "New Balance", value: fmt(result.newBalance, result.currency), highlight: true },
                 { label: "Transaction ID", value: result.transactionId, mono: true },
-                { label: "Reference",      value: result.referenceId,   mono: true },
+                { label: "Reference", value: result.referenceId, mono: true },
               ].map(({ label, value, highlight, mono }) => (
                 <div key={label} className="flex items-center justify-between px-4 py-2.5">
                   <span className="text-xs text-gray-500">{label}</span>
@@ -181,28 +181,26 @@ const CardBalanceModal = ({ card, onClose }) => {
             {/* Action type */}
             <div className="grid grid-cols-2 gap-2">
               {[
-                { value: "credit", label: "Credit", desc: "Add funds",   icon: <ArrowUpCircle  size={14} className="text-emerald-500 shrink-0" /> },
-                { value: "debit",  label: "Debit",  desc: "Deduct funds", icon: <ArrowDownCircle size={14} className="text-red-500 shrink-0" /> },
+                { value: "credit", label: "Credit", desc: "Add funds", icon: <ArrowUpCircle size={14} className="text-emerald-500 shrink-0" /> },
+                { value: "debit", label: "Debit", desc: "Deduct funds", icon: <ArrowDownCircle size={14} className="text-red-500 shrink-0" /> },
               ].map((opt) => (
                 <button
                   key={opt.value}
                   type="button"
                   onClick={() => setActionType(opt.value)}
-                  className={`flex items-center gap-2.5 px-4 py-3 rounded-xl border text-left transition ${
-                    actionType === opt.value
+                  className={`flex items-center gap-2.5 px-4 py-3 rounded-xl border text-left transition ${actionType === opt.value
                       ? opt.value === "credit"
                         ? "border-emerald-400 bg-emerald-50 ring-2 ring-emerald-100"
                         : "border-red-400 bg-red-50 ring-2 ring-red-100"
                       : "border-gray-200 bg-white hover:border-gray-300"
-                  }`}
+                    }`}
                 >
                   {opt.icon}
                   <div>
-                    <p className={`text-sm font-semibold ${
-                      actionType === opt.value
+                    <p className={`text-sm font-semibold ${actionType === opt.value
                         ? opt.value === "credit" ? "text-emerald-700" : "text-red-700"
                         : "text-gray-700"
-                    }`}>{opt.label}</p>
+                      }`}>{opt.label}</p>
                     <p className="text-[10px] text-gray-400">{opt.desc}</p>
                   </div>
                 </button>
@@ -289,11 +287,10 @@ const CardBalanceModal = ({ card, onClose }) => {
               <button
                 type="submit"
                 disabled={submitting}
-                className={`flex-1 py-2.5 rounded-xl text-sm font-semibold text-white transition disabled:opacity-60 disabled:cursor-not-allowed flex items-center justify-center gap-2 ${
-                  actionType === "debit"
+                className={`flex-1 py-2.5 rounded-xl text-sm font-semibold text-white transition disabled:opacity-60 disabled:cursor-not-allowed flex items-center justify-center gap-2 ${actionType === "debit"
                     ? "bg-red-500 hover:bg-red-600"
                     : "bg-emerald-600 hover:bg-emerald-700"
-                }`}
+                  }`}
               >
                 {submitting ? (
                   <><svg className="animate-spin w-4 h-4" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24"><circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" /><path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8v8z" /></svg>Processing…</>
@@ -314,15 +311,15 @@ const CardBalanceModal = ({ card, onClose }) => {
 
 // ── Main ──────────────────────────────────────────────────────────────────────
 export default function VirtualCards() {
-  const [cards,        setCards]        = useState([]);
-  const [loading,      setLoading]      = useState(true);
-  const [error,        setError]        = useState("");
+  const [cards, setCards] = useState([]);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState("");
   const [statusFilter, setStatusFilter] = useState("");
-  const [refreshing,   setRefreshing]   = useState(false);
-  const [balanceCard,  setBalanceCard]  = useState(null); // card to adjust
+  const [refreshing, setRefreshing] = useState(false);
+  const [balanceCard, setBalanceCard] = useState(null); // card to adjust
 
   const navigate = useNavigate();
-  const token    = localStorage.getItem("token");
+  const token = localStorage.getItem("token");
 
   const fetchCards = async (showRefresh = false) => {
     try {
@@ -347,18 +344,18 @@ export default function VirtualCards() {
   useEffect(() => { if (baseURL && token) fetchCards(); }, [statusFilter]);
 
   const summary = useMemo(() => ({
-    totalCards:      cards.length,
-    activeCards:     cards.filter((c) => String(c.status).toLowerCase() === "active").length,
-    freezeCards:     cards.filter((c) => String(c.status).toLowerCase() === "freeze").length,
+    totalCards: cards.length,
+    activeCards: cards.filter((c) => String(c.status).toLowerCase() === "active").length,
+    freezeCards: cards.filter((c) => String(c.status).toLowerCase() === "freeze").length,
     terminatedCards: cards.filter((c) => String(c.status).toLowerCase() === "terminated").length,
-    blockedCards:    cards.filter((c) => String(c.status).toLowerCase() === "blocked").length,
+    blockedCards: cards.filter((c) => String(c.status).toLowerCase() === "blocked").length,
   }), [cards]);
 
   const handleAction = async (action, card) => {
     if (!card?.id) return alert("Invalid card selected");
     const endpointMap = {
-      freeze:    "/superAdmin/card/freeze",
-      unfreeze:  "/superAdmin/card/unfreeze",
+      freeze: "/superAdmin/card/freeze",
+      unfreeze: "/superAdmin/card/unfreeze",
       terminate: "/superAdmin/card/terminate",
     };
     try {
@@ -376,11 +373,11 @@ export default function VirtualCards() {
   };
 
   const summaryCards = [
-    { label: "Total Cards",  value: summary.totalCards,      icon: <CreditCard size={17} />,  bgColor: "bg-indigo-50",  textColor: "text-indigo-600"  },
-    { label: "Active",       value: summary.activeCards,     icon: <CheckCircle size={17} />, bgColor: "bg-emerald-50", textColor: "text-emerald-600" },
-    { label: "Frozen",       value: summary.freezeCards,     icon: <Snowflake size={17} />,   bgColor: "bg-blue-50",    textColor: "text-blue-600"    },
-    { label: "Terminated",   value: summary.terminatedCards, icon: <XCircle size={17} />,     bgColor: "bg-red-50",     textColor: "text-red-500"     },
-    { label: "Blocked",      value: summary.blockedCards,    icon: <ShieldOff size={17} />,   bgColor: "bg-gray-100",   textColor: "text-gray-500"    },
+    { label: "Total Cards", value: summary.totalCards, icon: <CreditCard size={17} />, bgColor: "bg-indigo-50", textColor: "text-indigo-600" },
+    { label: "Active", value: summary.activeCards, icon: <CheckCircle size={17} />, bgColor: "bg-emerald-50", textColor: "text-emerald-600" },
+    { label: "Frozen", value: summary.freezeCards, icon: <Snowflake size={17} />, bgColor: "bg-blue-50", textColor: "text-blue-600" },
+    { label: "Terminated", value: summary.terminatedCards, icon: <XCircle size={17} />, bgColor: "bg-red-50", textColor: "text-red-500" },
+    { label: "Blocked", value: summary.blockedCards, icon: <ShieldOff size={17} />, bgColor: "bg-gray-100", textColor: "text-gray-500" },
   ];
 
   return (
@@ -407,22 +404,21 @@ export default function VirtualCards() {
             className="border border-gray-200 rounded-xl px-3.5 py-2.5 text-sm text-gray-700 bg-white focus:outline-none focus:ring-2 focus:ring-blue-400 shadow-sm"
           >
             {[
-              { value: "",           label: "All Status"  },
-              { value: "active",     label: "Active"      },
-              { value: "freeze",     label: "Frozen"      },
-              { value: "terminated", label: "Terminated"  },
-              { value: "blocked",    label: "Blocked"     },
+              { value: "", label: "All Status" },
+              { value: "active", label: "Active" },
+              { value: "freeze", label: "Frozen" },
+              { value: "terminated", label: "Terminated" },
+              { value: "blocked", label: "Blocked" },
             ].map((o) => <option key={o.value} value={o.value}>{o.label}</option>)}
           </select>
 
           <button
             onClick={() => fetchCards(true)}
             disabled={refreshing}
-            className={`flex items-center gap-2 px-4 py-2.5 rounded-xl text-sm font-semibold border shadow-sm transition ${
-              refreshing
+            className={`flex items-center gap-2 px-4 py-2.5 rounded-xl text-sm font-semibold border shadow-sm transition ${refreshing
                 ? "bg-gray-100 text-gray-400 border-gray-200 cursor-not-allowed"
                 : "bg-blue-600 text-white border-blue-600 hover:bg-blue-700"
-            }`}
+              }`}
           >
             <RefreshCw size={15} className={refreshing ? "animate-spin" : ""} />
             Refresh

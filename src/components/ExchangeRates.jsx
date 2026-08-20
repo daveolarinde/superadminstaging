@@ -64,6 +64,24 @@ const MARGIN_OPERATION_OPTIONS = [
   { value: "subtract", label: "Subtract" },
 ];
 
+// Providers that can supply the live rate. Confirmed values: "graph", "wewire".
+const PROVIDER_OPTIONS = [
+  { value: "", label: "Select provider..." },
+  { value: "graph", label: "Graph" },
+  { value: "wewire", label: "WeWire" },
+  { value: "payscribe", label: "payscribe" },
+];
+
+function formatDiv(rateVal) {
+  const n = Number(rateVal);
+  if (!Number.isFinite(n) || n === 0) return "—";
+  const div = 1 / n;
+  if (div >= 1) {
+    return div.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 4 });
+  }
+  return div.toLocaleString(undefined, { minimumFractionDigits: 6, maximumFractionDigits: 8 });
+}
+
 // ── Main ──────────────────────────────────────────────────────────────────────
 export default function ExchangeRates() {
   const [tab, setTab] = useState("list");
@@ -92,11 +110,13 @@ export default function ExchangeRates() {
   const [rate, setRate] = useState("");
   const [margin, setMargin] = useState("");
   const [marginOperation, setMarginOperation] = useState("add");
+  const [provider, setProvider] = useState("");
 
   // Edit
   const [editRate, setEditRate] = useState("");
   const [editMargin, setEditMargin] = useState("");
   const [editMarginOperation, setEditMarginOperation] = useState("add");
+  const [editProvider, setEditProvider] = useState("");
 
   // ── List filter state ────────────────────────────────────────────────────
   const [filterCurrency, setFilterCurrency] = useState("");
@@ -269,6 +289,7 @@ export default function ExchangeRates() {
       setEditRate(String(data.rate));
       setEditMargin(String(data.margin ?? ""));
       setEditMarginOperation(data.marginOperation || "add");
+      setEditProvider(data.provider || "");
       setTab("view");
     } catch (err) {
       console.error("Error loading rate:", err);
@@ -280,6 +301,7 @@ export default function ExchangeRates() {
   const createRate = async () => {
     if (!baseCurrency || !targetCurrency) return alert("Base and target currencies are required");
     if (!margin) return alert("Margin is required");
+    if (!provider) return alert("Provider is required");
     try {
       const res = await axios.post(
         `${API_URL}/superAdmin/exchange-rates`,
@@ -289,6 +311,7 @@ export default function ExchangeRates() {
           ...(rate ? { rate: rate.trim() } : {}),
           margin: Number(margin),
           marginOperation,
+          provider,
         },
         { headers: { Authorization: `Bearer ${getToken()}` } }
       );
@@ -298,6 +321,7 @@ export default function ExchangeRates() {
       setRate("");
       setMargin("");
       setMarginOperation("add");
+      setProvider("");
       setTab("list");
     } catch (err) {
       console.error("Create failed:", err);
@@ -308,6 +332,7 @@ export default function ExchangeRates() {
   const updateRate = async () => {
     if (!selected || saving) return;
     if (!editMargin) return alert("Margin is required");
+    if (!editProvider) return alert("Provider is required");
     try {
       setSaving(true);
       const res = await axios.put(
@@ -316,6 +341,7 @@ export default function ExchangeRates() {
           rate: editRate.trim(),
           margin: Number(editMargin),
           marginOperation: editMarginOperation,
+          provider: editProvider,
         },
         { headers: { Authorization: `Bearer ${getToken()}` } }
       );
@@ -472,17 +498,15 @@ export default function ExchangeRates() {
             <div className="flex items-center gap-2 mt-4">
               <button
                 onClick={() => { setFromCur("NGN"); setToCur("USD"); setLastEdited("from"); }}
-                className={`px-3 py-2 rounded-xl text-xs font-semibold border transition ${
-                  fromCur === "NGN" ? "bg-blue-600 text-white border-blue-600" : "bg-white text-gray-600 border-gray-200 hover:bg-gray-50"
-                }`}
+                className={`px-3 py-2 rounded-xl text-xs font-semibold border transition ${fromCur === "NGN" ? "bg-blue-600 text-white border-blue-600" : "bg-white text-gray-600 border-gray-200 hover:bg-gray-50"
+                  }`}
               >
                 NGN → USD
               </button>
               <button
                 onClick={() => { setFromCur("USD"); setToCur("NGN"); setLastEdited("from"); }}
-                className={`px-3 py-2 rounded-xl text-xs font-semibold border transition ${
-                  fromCur === "USD" ? "bg-blue-600 text-white border-blue-600" : "bg-white text-gray-600 border-gray-200 hover:bg-gray-50"
-                }`}
+                className={`px-3 py-2 rounded-xl text-xs font-semibold border transition ${fromCur === "USD" ? "bg-blue-600 text-white border-blue-600" : "bg-white text-gray-600 border-gray-200 hover:bg-gray-50"
+                  }`}
               >
                 USD → NGN
               </button>
@@ -496,17 +520,15 @@ export default function ExchangeRates() {
         <div className="flex gap-2">
           <button
             onClick={() => setTab("list")}
-            className={`flex items-center gap-2 px-4 py-2.5 rounded-xl text-sm font-semibold border transition shadow-sm ${
-              tab === "list" ? "bg-blue-600 text-white border-blue-600" : "bg-white text-gray-600 border-gray-200 hover:bg-gray-50"
-            }`}
+            className={`flex items-center gap-2 px-4 py-2.5 rounded-xl text-sm font-semibold border transition shadow-sm ${tab === "list" ? "bg-blue-600 text-white border-blue-600" : "bg-white text-gray-600 border-gray-200 hover:bg-gray-50"
+              }`}
           >
             <ArrowLeftRight size={14} /> All Rates
           </button>
           <button
             onClick={() => setTab("create")}
-            className={`flex items-center gap-2 px-4 py-2.5 rounded-xl text-sm font-semibold border transition shadow-sm ${
-              tab === "create" ? "bg-blue-600 text-white border-blue-600" : "bg-white text-gray-600 border-gray-200 hover:bg-gray-50"
-            }`}
+            className={`flex items-center gap-2 px-4 py-2.5 rounded-xl text-sm font-semibold border transition shadow-sm ${tab === "create" ? "bg-blue-600 text-white border-blue-600" : "bg-white text-gray-600 border-gray-200 hover:bg-gray-50"
+              }`}
           >
             <Plus size={14} /> Create New
           </button>
@@ -566,8 +588,10 @@ export default function ExchangeRates() {
                     <th className={thCls}>Base</th>
                     <th className={thCls}>Target</th>
                     <th className={thCls}>Rate</th>
+                    <th className={thCls}>Div</th>
                     <th className={thCls}>Margin</th>
                     <th className={thCls}>Operation</th>
+                    <th className={thCls}>Provider</th>
                     <th className={thCls}>Last Updated</th>
                     <th className={thCls}>Action</th>
                   </tr>
@@ -582,13 +606,22 @@ export default function ExchangeRates() {
                         <span className="px-2.5 py-1 rounded-lg bg-emerald-50 text-emerald-700 text-xs font-bold">{r.targetCurrency}</span>
                       </td>
                       <td className={`${tdCls} font-mono font-semibold text-gray-900`}>{r.rate}</td>
+                      <td className={`${tdCls} font-mono text-gray-500`}>{formatDiv(r.rate)}</td>
                       <td className={`${tdCls} font-mono text-gray-700`}>{r.margin != null ? r.margin : "—"}</td>
                       <td className={tdCls}>
                         {r.marginOperation ? (
-                          <span className={`px-2.5 py-1 rounded-lg text-xs font-semibold ${
-                            r.marginOperation === "add" ? "bg-emerald-50 text-emerald-700" : "bg-rose-50 text-rose-700"
-                          }`}>
+                          <span className={`px-2.5 py-1 rounded-lg text-xs font-semibold ${r.marginOperation === "add" ? "bg-emerald-50 text-emerald-700" : "bg-rose-50 text-rose-700"
+                            }`}>
                             {r.marginOperation === "add" ? "Addition" : "Subtract"}
+                          </span>
+                        ) : (
+                          <span className="text-gray-400">—</span>
+                        )}
+                      </td>
+                      <td className={tdCls}>
+                        {r.provider ? (
+                          <span className="px-2.5 py-1 rounded-lg bg-indigo-50 text-indigo-700 text-xs font-semibold capitalize">
+                            {r.provider}
                           </span>
                         ) : (
                           <span className="text-gray-400">—</span>
@@ -634,8 +667,15 @@ export default function ExchangeRates() {
             />
           </div>
 
+          <Select
+            label="Provider *"
+            options={PROVIDER_OPTIONS}
+            value={provider}
+            onChange={(e) => setProvider(e.target.value)}
+          />
+
           <Input
-            label="Rate (optional)"
+            label="Rate (optional — auto-fetched from provider if left blank or 0)"
             type="number"
             placeholder="e.g. 1580.00"
             value={rate}
@@ -664,6 +704,7 @@ export default function ExchangeRates() {
               <span>
                 <strong>{baseCurrency}</strong> → <strong>{targetCurrency}</strong>
                 {rate && <span className="mx-1">@ {rate}</span>}
+                {provider && <span className="ml-1 text-blue-500">via {provider}</span>}
                 {margin && (
                   <span className="ml-1 text-blue-500">
                     ({marginOperation === "add" ? "+" : "−"}{margin}% margin)
@@ -709,12 +750,25 @@ export default function ExchangeRates() {
               <span className="px-3 py-1.5 rounded-xl bg-emerald-100 text-emerald-700 text-sm font-bold">{selected.targetCurrency}</span>
             </div>
 
+            <Select
+              label="Provider *"
+              options={PROVIDER_OPTIONS}
+              value={editProvider}
+              onChange={(e) => setEditProvider(e.target.value)}
+            />
+
             <Input
               label="Rate"
               type="number"
               value={editRate}
               onChange={(e) => setEditRate(e.target.value)}
             />
+
+            {editRate && (
+              <p className="text-xs text-gray-400">
+                Div: <span className="font-semibold text-gray-600">{formatDiv(editRate)}</span> (1 / {editRate})
+              </p>
+            )}
 
             <div className="grid grid-cols-2 gap-3">
               <Input
@@ -737,6 +791,7 @@ export default function ExchangeRates() {
                 <ArrowLeftRight size={14} />
                 <span>
                   1 <strong>{selected.baseCurrency}</strong> = <strong>{editRate}</strong> {selected.targetCurrency}
+                  {editProvider && <span className="ml-1 text-blue-500">via {editProvider}</span>}
                   {editMargin && (
                     <span className="ml-1 text-blue-500">
                       ({editMarginOperation === "add" ? "+" : "−"}{editMargin}% margin)

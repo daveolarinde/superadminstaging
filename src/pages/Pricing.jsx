@@ -11,11 +11,11 @@ const API_BASE_URL = import.meta.env.VITE_API_URL;
 const SERVICE_NAMES = ["wallet_deposit", "payout", "card_creation", "card_decline", "conversion"];
 
 const SERVICE_META = {
-  wallet_deposit: { label: "Wallet Deposit",  color: "bg-blue-50 text-blue-700 border-blue-100",    dot: "bg-blue-400"    },
-  payout:         { label: "Payout",          color: "bg-violet-50 text-violet-700 border-violet-100", dot: "bg-violet-400" },
-  card_creation:  { label: "Card Creation",   color: "bg-amber-50 text-amber-700 border-amber-100",  dot: "bg-amber-400"  },
-  card_decline:   { label: "Card Decline",    color: "bg-red-50 text-red-600 border-red-100",        dot: "bg-red-400"    },
-  conversion:     { label: "Conversion",      color: "bg-teal-50 text-teal-700 border-teal-100",     dot: "bg-teal-400"   },
+  wallet_deposit: { label: "Wallet Deposit", color: "bg-blue-50 text-blue-700 border-blue-100", dot: "bg-blue-400" },
+  payout: { label: "Payout", color: "bg-violet-50 text-violet-700 border-violet-100", dot: "bg-violet-400" },
+  card_creation: { label: "Card Creation", color: "bg-amber-50 text-amber-700 border-amber-100", dot: "bg-amber-400" },
+  card_decline: { label: "Card Decline", color: "bg-red-50 text-red-600 border-red-100", dot: "bg-red-400" },
+  conversion: { label: "Conversion", color: "bg-teal-50 text-teal-700 border-teal-100", dot: "bg-teal-400" },
 };
 
 const CURRENCY_SYMBOLS = { NGN: "₦", USD: "$", EUR: "€", GBP: "£", GHS: "₵" };
@@ -28,7 +28,7 @@ const pctDisplay = (val) => `${(parseFloat(val || 0) * 100).toFixed(2)}%`;
 //  - a wildcard        → "*"        (applies to all currencies for this service)
 //  - a FROM_TO pair     → "NGN_USD"  (conversion only, mirrors fromCurrency/toCurrency)
 const isWildcard = (currency) => currency === "*";
-const isPair     = (currency) => typeof currency === "string" && currency.includes("_") && currency !== "*";
+const isPair = (currency) => typeof currency === "string" && currency.includes("_") && currency !== "*";
 
 const pairParts = (currency) => {
   const [from, to] = (currency || "").split("_");
@@ -66,20 +66,20 @@ const CUSTOMER_FIELDS = ["customerPercentage", "customerFixedFee", "customerMinC
 const NUMERIC_FIELDS = [...PROVIDER_FIELDS, ...CUSTOMER_FIELDS];
 
 const EMPTY_FORM = {
-  serviceName:            "",
-  currencyMode:           "single",   // "single" | "wildcard" | "pair" (pair = conversion only)
-  currency:               "",
-  fromCurrency:           "",
-  toCurrency:              "",
-  providerPercentage:     "",
-  providerFixedFee:       "",
-  providerMinCap:         "",
-  providerMaxCap:         "",
-  customerPercentage:     "",
-  customerFixedFee:       "",
-  customerMinCap:         "",
-  customerMaxCap:         "",
-  isActive:               true,
+  serviceName: "",
+  currencyMode: "single",   // "single" | "wildcard" | "pair" (pair = conversion only)
+  currency: "",
+  fromCurrency: "",
+  toCurrency: "",
+  providerPercentage: "",
+  providerFixedFee: "",
+  providerMinCap: "",
+  providerMaxCap: "",
+  customerPercentage: "",
+  customerFixedFee: "",
+  customerMinCap: "",
+  customerMaxCap: "",
+  isActive: true,
 };
 
 // ── helpers ───────────────────────────────────────────────────────────────────
@@ -87,14 +87,12 @@ const Toggle = ({ checked, onChange }) => (
   <button
     type="button"
     onClick={() => onChange(!checked)}
-    className={`relative inline-flex h-5 w-9 items-center rounded-full transition-colors focus:outline-none ${
-      checked ? "bg-emerald-500" : "bg-gray-200"
-    }`}
+    className={`relative inline-flex h-5 w-9 items-center rounded-full transition-colors focus:outline-none ${checked ? "bg-emerald-500" : "bg-gray-200"
+      }`}
   >
     <span
-      className={`inline-block h-3.5 w-3.5 rounded-full bg-white shadow-sm transform transition-transform ${
-        checked ? "translate-x-[18px]" : "translate-x-0.5"
-      }`}
+      className={`inline-block h-3.5 w-3.5 rounded-full bg-white shadow-sm transform transition-transform ${checked ? "translate-x-[18px]" : "translate-x-0.5"
+        }`}
     />
   </button>
 );
@@ -426,11 +424,11 @@ const ServiceGroup = ({ serviceName, configs, onEdit }) => {
   const headers = isConversion
     ? ["Currency", "Customer %", "Customer Fee", "C. Min", "C. Max", "Status", "Updated", ""]
     : [
-        "Currency",
-        "Provider %", "Provider Fee", "P. Min", "P. Max",
-        "Customer %", "Customer Fee", "C. Min", "C. Max",
-        "Status", "Updated", "",
-      ];
+      "Currency",
+      "Provider %", "Provider Fee", "P. Min", "P. Max",
+      "Customer %", "Customer Fee", "C. Min", "C. Max",
+      "Status", "Updated", "",
+    ];
 
   return (
     <div className="bg-white border border-gray-100 rounded-2xl shadow-sm overflow-hidden">
@@ -501,9 +499,8 @@ const ServiceGroup = ({ serviceName, configs, onEdit }) => {
 
                     {/* status */}
                     <td className="px-4 py-3">
-                      <span className={`inline-flex items-center gap-1 text-xs font-medium px-2 py-0.5 rounded-full ${
-                        c.isActive ? "bg-emerald-100 text-emerald-700" : "bg-gray-100 text-gray-500"
-                      }`}>
+                      <span className={`inline-flex items-center gap-1 text-xs font-medium px-2 py-0.5 rounded-full ${c.isActive ? "bg-emerald-100 text-emerald-700" : "bg-gray-100 text-gray-500"
+                        }`}>
                         <span className={`w-1.5 h-1.5 rounded-full ${c.isActive ? "bg-emerald-500" : "bg-gray-400"}`} />
                         {c.isActive ? "Active" : "Inactive"}
                       </span>
@@ -512,8 +509,8 @@ const ServiceGroup = ({ serviceName, configs, onEdit }) => {
                     <td className="px-4 py-3 text-xs text-gray-400 whitespace-nowrap">
                       {c.updatedAt
                         ? new Date(c.updatedAt).toLocaleDateString(undefined, {
-                            month: "short", day: "numeric", year: "numeric",
-                          })
+                          month: "short", day: "numeric", year: "numeric",
+                        })
                         : "—"}
                     </td>
 
@@ -541,9 +538,8 @@ const ServiceGroup = ({ serviceName, configs, onEdit }) => {
 const Toast = ({ message, type, onClose }) => {
   useEffect(() => { const t = setTimeout(onClose, 3500); return () => clearTimeout(t); }, [onClose]);
   return (
-    <div className={`fixed bottom-6 right-6 z-[60] flex items-center gap-3 px-4 py-3 rounded-xl shadow-lg text-sm font-medium ${
-      type === "success" ? "bg-emerald-600 text-white" : "bg-red-500 text-white"
-    }`}>
+    <div className={`fixed bottom-6 right-6 z-[60] flex items-center gap-3 px-4 py-3 rounded-xl shadow-lg text-sm font-medium ${type === "success" ? "bg-emerald-600 text-white" : "bg-red-500 text-white"
+      }`}>
       {type === "success" ? <CheckCircle2 size={16} /> : <XCircle size={16} />}
       {message}
       <button onClick={onClose} className="ml-2 opacity-70 hover:opacity-100"><X size={13} /></button>
@@ -553,15 +549,15 @@ const Toast = ({ message, type, onClose }) => {
 
 // ── main page ─────────────────────────────────────────────────────────────────
 export default function Pricing() {
-  const [configs, setConfigs]       = useState([]);
+  const [configs, setConfigs] = useState([]);
   const [currencies, setCurrencies] = useState([]);
-  const [loading, setLoading]       = useState(true);
+  const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
-  const [error, setError]           = useState("");
-  const [modal, setModal]           = useState(null);  // null | "create" | "edit"
-  const [selected, setSelected]     = useState(null);
+  const [error, setError] = useState("");
+  const [modal, setModal] = useState(null);  // null | "create" | "edit"
+  const [selected, setSelected] = useState(null);
   const [submitting, setSubmitting] = useState(false);
-  const [toast, setToast]           = useState(null);
+  const [toast, setToast] = useState(null);
 
   const token = localStorage.getItem("token");
   const headers = { Authorization: `Bearer ${token}` };
@@ -575,7 +571,7 @@ export default function Pricing() {
     setError("");
     try {
       const [pricingRes, currenciesRes] = await Promise.all([
-        axios.get(`${API_BASE_URL}/superAdmin/pricing`,    { headers }),
+        axios.get(`${API_BASE_URL}/superAdmin/pricing`, { headers }),
         axios.get(`${API_BASE_URL}/superAdmin/currencies`, { headers }),
       ]);
       setConfigs(pricingRes.data?.data ?? []);
@@ -731,7 +727,7 @@ export default function Pricing() {
       {modal === "create" && (
         <Modal
           title="New Pricing Rule"
-          
+
           onClose={() => setModal(null)}
         >
           <PricingForm
@@ -753,24 +749,24 @@ export default function Pricing() {
         >
           <PricingForm
             initial={{
-              serviceName:            selected.serviceName,
-              currencyMode:           isWildcard(selected.currency)
-                                         ? "wildcard"
-                                         : (selected.fromCurrency && selected.toCurrency) || isPair(selected.currency)
-                                           ? "pair"
-                                           : "single",
-              currency:               selected.currency ?? "",
-              fromCurrency:           selected.fromCurrency ?? (isPair(selected.currency) ? pairParts(selected.currency).from : ""),
-              toCurrency:             selected.toCurrency ?? (isPair(selected.currency) ? pairParts(selected.currency).to : ""),
-              providerPercentage:     selected.providerPercentage ?? "",
-              providerFixedFee:       selected.providerFixedFee ?? "",
-              providerMinCap:         selected.providerMinCap ?? "",
-              providerMaxCap:         selected.providerMaxCap ?? "",
-              customerPercentage:     selected.customerPercentage ?? "",
-              customerFixedFee:       selected.customerFixedFee ?? "",
-              customerMinCap:         selected.customerMinCap ?? "",
-              customerMaxCap:         selected.customerMaxCap ?? "",
-              isActive:               selected.isActive,
+              serviceName: selected.serviceName,
+              currencyMode: isWildcard(selected.currency)
+                ? "wildcard"
+                : (selected.fromCurrency && selected.toCurrency) || isPair(selected.currency)
+                  ? "pair"
+                  : "single",
+              currency: selected.currency ?? "",
+              fromCurrency: selected.fromCurrency ?? (isPair(selected.currency) ? pairParts(selected.currency).from : ""),
+              toCurrency: selected.toCurrency ?? (isPair(selected.currency) ? pairParts(selected.currency).to : ""),
+              providerPercentage: selected.providerPercentage ?? "",
+              providerFixedFee: selected.providerFixedFee ?? "",
+              providerMinCap: selected.providerMinCap ?? "",
+              providerMaxCap: selected.providerMaxCap ?? "",
+              customerPercentage: selected.customerPercentage ?? "",
+              customerFixedFee: selected.customerFixedFee ?? "",
+              customerMinCap: selected.customerMinCap ?? "",
+              customerMaxCap: selected.customerMaxCap ?? "",
+              isActive: selected.isActive,
             }}
             currencies={currencies}
             onSubmit={handleSave}

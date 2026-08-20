@@ -43,11 +43,10 @@ function Pagination({ currentPage, totalPages, setPage }) {
           <button
             key={p}
             onClick={() => setPage(p)}
-            className={`w-8 h-8 flex items-center justify-center rounded-lg border text-xs font-semibold transition ${
-              p === currentPage
+            className={`w-8 h-8 flex items-center justify-center rounded-lg border text-xs font-semibold transition ${p === currentPage
                 ? "bg-blue-600 border-blue-600 text-white shadow-sm"
                 : "border-gray-200 bg-white text-gray-600 hover:bg-gray-100"
-            }`}
+              }`}
           >
             {p}
           </button>
@@ -114,9 +113,9 @@ const formatSummarySub = (count, currencies) => {
 // ── Breakdown table ───────────────────────────────────────────────────────────
 function BreakdownTable({ title, rows, page, setPage, showDate = false }) {
   const rowsPerPage = 10;
-  const totalPages  = Math.ceil((rows?.length || 0) / rowsPerPage);
-  const start       = (page - 1) * rowsPerPage;
-  const paged       = rows?.slice(start, start + rowsPerPage) || [];
+  const totalPages = Math.ceil((rows?.length || 0) / rowsPerPage);
+  const start = (page - 1) * rowsPerPage;
+  const paged = rows?.slice(start, start + rowsPerPage) || [];
 
   const thCls = "px-5 py-3.5 text-left text-xs font-bold text-gray-400 uppercase tracking-wider";
   const tdCls = "px-5 py-3.5 text-sm text-gray-700";
@@ -151,11 +150,10 @@ function BreakdownTable({ title, rows, page, setPage, showDate = false }) {
                   </span>
                 </td>
                 <td className={`${tdCls} capitalize`}>
-                  <span className={`inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-xs font-semibold ${
-                    row.type === "credit"
+                  <span className={`inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-xs font-semibold ${row.type === "credit"
                       ? "bg-emerald-50 text-emerald-700"
                       : "bg-red-50 text-red-600"
-                  }`}>
+                    }`}>
                     <span className={`w-1.5 h-1.5 rounded-full ${row.type === "credit" ? "bg-emerald-500" : "bg-red-500"}`} />
                     {row.type}
                   </span>
@@ -176,14 +174,14 @@ function BreakdownTable({ title, rows, page, setPage, showDate = false }) {
 function SummaryFilterBar({ period, setPeriod, dateRange, setDateRange }) {
   const [showCustom, setShowCustom] = useState(false);
   const [draftStart, setDraftStart] = useState(dateRange.startDate || "");
-  const [draftEnd, setDraftEnd]     = useState(dateRange.endDate || "");
+  const [draftEnd, setDraftEnd] = useState(dateRange.endDate || "");
 
   const periods = [
-    { value: "",        label: "All time" },
-    { value: "daily",   label: "Today" },
-    { value: "weekly",  label: "Last 7 Days" },
+    { value: "", label: "All time" },
+    { value: "daily", label: "Today" },
+    { value: "weekly", label: "Last 7 Days" },
     { value: "monthly", label: "This Month" },
-    { value: "yearly",  label: "This Year" },
+    { value: "yearly", label: "This Year" },
   ];
 
   const isCustomActive = !!dateRange.startDate && !!dateRange.endDate;
@@ -211,11 +209,10 @@ function SummaryFilterBar({ period, setPeriod, dateRange, setDateRange }) {
               setPeriod(p.value);
               clearCustomRange(); // mutually exclusive
             }}
-            className={`px-3.5 py-1.5 rounded-lg text-xs font-semibold transition ${
-              period === p.value && !isCustomActive
+            className={`px-3.5 py-1.5 rounded-lg text-xs font-semibold transition ${period === p.value && !isCustomActive
                 ? "bg-white text-gray-900 shadow-sm"
                 : "text-gray-500 hover:text-gray-700"
-            }`}
+              }`}
           >
             {p.label}
           </button>
@@ -287,14 +284,14 @@ function SummaryFilterBar({ period, setPeriod, dateRange, setDateRange }) {
 // ── Main component ────────────────────────────────────────────────────────────
 export default function TransactionSummary() {
   const [graphData, setGraphData] = useState({});
-  const [summary, setSummary]     = useState({});
+  const [summary, setSummary] = useState({});
   const [activeTab, setActiveTab] = useState("currentMonth");
-  const [type, setType]           = useState("");
+  const [type, setType] = useState("");
 
   // Currency is a display filter only — the backend has no currency param,
   // so we never send it to either endpoint. We fetch everything, unfiltered,
   // and narrow it down here.
-  const [currency, setCurrency]   = useState("");
+  const [currency, setCurrency] = useState("");
 
   // Full-page spinner only on the very first load; subsequent filter/tab
   // changes swap data in place with no loading flash.
@@ -302,12 +299,12 @@ export default function TransactionSummary() {
   const hasLoadedOnce = useRef(false);
 
   // Summary filters — mutually exclusive: period OR (startDate & endDate)
-  const [period, setPeriod]       = useState("");
+  const [period, setPeriod] = useState("");
   const [dateRange, setDateRange] = useState({ startDate: "", endDate: "" });
 
   const [overallPage, setOverallPage] = useState(1);
-  const [monthPage, setMonthPage]     = useState(1);
-  const [dailyPage, setDailyPage]     = useState(1);
+  const [monthPage, setMonthPage] = useState(1);
+  const [dailyPage, setDailyPage] = useState(1);
 
   useEffect(() => {
     const fetchData = async () => {
@@ -361,8 +358,8 @@ export default function TransactionSummary() {
   );
 
   const summaryData = summary?.summary || {};
-  const thisMonth   = summary?.thisMonth || {};
-  const daily       = summary?.daily || [];
+  const thisMonth = summary?.thisMonth || {};
+  const daily = summary?.daily || [];
 
   const summaryBreakdown = Array.isArray(summaryData.breakdown) && summaryData.breakdown.length
     ? summaryData.breakdown
@@ -484,22 +481,22 @@ export default function TransactionSummary() {
 
   const tabs = [
     { key: "currentMonth", label: "This Month" },
-    { key: "lastMonth",    label: "Last Month" },
-    { key: "currentYear",  label: "This Year" },
+    { key: "lastMonth", label: "Last Month" },
+    { key: "currentYear", label: "This Year" },
   ];
 
   const typeFilters = [
-    { value: "",       label: "All" },
+    { value: "", label: "All" },
     { value: "credit", label: "Credit" },
-    { value: "debit",  label: "Debit" },
+    { value: "debit", label: "Debit" },
   ];
 
   const isCustomActive = !!dateRange.startDate && !!dateRange.endDate;
   const activeFilterLabelBase = isCustomActive
     ? `${dateRange.startDate} → ${dateRange.endDate}`
     : period
-    ? { daily: "Today", weekly: "Last 7 Days", monthly: "This Month", yearly: "This Year" }[period]
-    : "All time";
+      ? { daily: "Today", weekly: "Last 7 Days", monthly: "This Month", yearly: "This Year" }[period]
+      : "All time";
   const activeFilterLabel = currency ? `${activeFilterLabelBase} · ${currency}` : activeFilterLabelBase;
 
   // ── Derive credit / debit / failed totals from the currently filtered summary ──
@@ -507,14 +504,14 @@ export default function TransactionSummary() {
     .filter((b) => b.type === "credit")
     .reduce((acc, b) => ({
       amount: acc.amount + Number(b.totalAmount || 0),
-      count:  acc.count + Number(b.count || 0),
+      count: acc.count + Number(b.count || 0),
     }), { amount: 0, count: 0 });
 
   const debitTotals = filteredSummaryBreakdown
     .filter((b) => b.type === "debit")
     .reduce((acc, b) => ({
       amount: acc.amount + Number(b.totalAmount || 0),
-      count:  acc.count + Number(b.count || 0),
+      count: acc.count + Number(b.count || 0),
     }), { amount: 0, count: 0 });
 
   // NOTE: the /get-transaction-summary payload only breaks transactions down
@@ -528,12 +525,12 @@ export default function TransactionSummary() {
       const relevant = currency ? failedBreakdown.filter((b) => b.currency === currency) : failedBreakdown;
       return relevant.reduce((acc, b) => ({
         amount: acc.amount + Number(b.totalAmount || 0),
-        count:  acc.count + Number(b.count || 0),
+        count: acc.count + Number(b.count || 0),
       }), { amount: 0, count: 0 });
     }
     return {
       amount: Number(summary?.failed?.totalAmount || 0),
-      count:  Number(summary?.failed?.totalTransactions || summary?.failed?.count || 0),
+      count: Number(summary?.failed?.totalTransactions || summary?.failed?.count || 0),
     };
   })();
 
@@ -561,11 +558,10 @@ export default function TransactionSummary() {
             <span className="text-xs font-bold text-gray-400 uppercase tracking-wider mr-0.5">Currency</span>
             <button
               onClick={() => setCurrency("")}
-              className={`px-3 py-1.5 rounded-full text-xs font-semibold border transition ${
-                currency === ""
+              className={`px-3 py-1.5 rounded-full text-xs font-semibold border transition ${currency === ""
                   ? "bg-blue-600 border-blue-600 text-white shadow-sm"
                   : "border-gray-200 text-gray-600 hover:bg-gray-50 bg-white"
-              }`}
+                }`}
             >
               All
             </button>
@@ -573,11 +569,10 @@ export default function TransactionSummary() {
               <button
                 key={code}
                 onClick={() => setCurrency(code)}
-                className={`px-3 py-1.5 rounded-full text-xs font-semibold border transition ${
-                  currency === code
+                className={`px-3 py-1.5 rounded-full text-xs font-semibold border transition ${currency === code
                     ? "bg-blue-600 border-blue-600 text-white shadow-sm"
                     : "border-gray-200 text-gray-600 hover:bg-gray-50 bg-white"
-                }`}
+                  }`}
               >
                 {code}
               </button>
@@ -655,11 +650,10 @@ export default function TransactionSummary() {
               <button
                 key={tab.key}
                 onClick={() => setActiveTab(tab.key)}
-                className={`px-3.5 py-1.5 rounded-lg text-xs font-semibold transition ${
-                  activeTab === tab.key
+                className={`px-3.5 py-1.5 rounded-lg text-xs font-semibold transition ${activeTab === tab.key
                     ? "bg-white text-gray-900 shadow-sm"
                     : "text-gray-500 hover:text-gray-700"
-                }`}
+                  }`}
               >
                 {tab.label}
               </button>
@@ -672,22 +666,21 @@ export default function TransactionSummary() {
               <button
                 key={t.value}
                 onClick={() => setType(t.value)}
-                className={`px-3.5 py-1.5 rounded-lg text-xs font-semibold border transition ${
-                  type === t.value
+                className={`px-3.5 py-1.5 rounded-lg text-xs font-semibold border transition ${type === t.value
                     ? t.value === "credit"
                       ? "bg-emerald-600 border-emerald-600 text-white"
                       : t.value === "debit"
-                      ? "bg-red-500 border-red-500 text-white"
-                      : "bg-blue-600 border-blue-600 text-white"
+                        ? "bg-red-500 border-red-500 text-white"
+                        : "bg-blue-600 border-blue-600 text-white"
                     : "border-gray-200 text-gray-600 hover:bg-gray-50 bg-white"
-                }`}
+                  }`}
               >
                 {t.label}
               </button>
             ))}
           </div>
         </div>
-{/* 
+        {/* 
         {chartIsApproximate && (
           // <p className="text-xs text-amber-600 bg-amber-50 rounded-lg px-3 py-2 mb-4">
           //   The trend graph isn't split by currency on the backend yet, so it's still showing all currencies combined.

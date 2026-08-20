@@ -1,5 +1,4 @@
-
-import React, { useEffect, useState, useMemo } from "react";
+import React, { useEffect, useState } from "react";
 import axios from "axios";
 import { Search, Filter } from "lucide-react";
 
@@ -7,71 +6,69 @@ import KycSummaryCards from "../../components/Kyc/KycSummaryCards";
 import KycTable from "../../components/Kyc/KycTable";
 
 const KycAll = () => {
-  const [rejectModal, setRejectModal]     = useState(null);
+  const [rejectModal, setRejectModal] = useState(null);
   const [rejectSubject, setRejectSubject] = useState("");
-  const [rejectReason, setRejectReason]   = useState("");
+  const [rejectReason, setRejectReason] = useState("");
 
-  const [kycData, setKycData]             = useState([]);
-  const [search, setSearch]               = useState("");
+  const [kycData, setKycData] = useState([]);
+  const [search, setSearch] = useState("");
   const [debouncedSearch, setDebouncedSearch] = useState("");
 
   const [initialLoading, setInitialLoading] = useState(true);
-  const [tableLoading, setTableLoading]     = useState(false);
-  const [error, setError]                   = useState(null);
+  const [tableLoading, setTableLoading] = useState(false);
+  const [error, setError] = useState(null);
 
   const [summary, setSummary] = useState({
     total: 0, pending: 0, success: 0, approved: 0, failed: 0,
   });
 
-  const [filterOpen, setFilterOpen]     = useState(false);
+  const [filterOpen, setFilterOpen] = useState(false);
   const [statusFilter, setStatusFilter] = useState("");
-  const [typeFilter, setTypeFilter]     = useState("");
-  const [currentPage, setCurrentPage]   = useState(1);
+  const [typeFilter, setTypeFilter] = useState("");
+  const [currentPage, setCurrentPage] = useState(1);
   const [actionOpenId, setActionOpenId] = useState(null);
 
   const rowsPerPage = 10;
-  const baseURL     = import.meta.env.VITE_API_URL;
-  const token       = localStorage.getItem("token");
-  const authHeader  = { headers: { Authorization: `Bearer ${token}` } };
+  const baseURL = import.meta.env.VITE_API_URL;
+  const token = localStorage.getItem("token");
+  const authHeader = { headers: { Authorization: `Bearer ${token}` } };
 
   // ── Debounce search ────────────────────────────────────────────────────────
   useEffect(() => {
-    const t = setTimeout(() => setDebouncedSearch(search), 400);
+    const t = setTimeout(() => setDebouncedSearch(search.trim()), 400);
     return () => clearTimeout(t);
   }, [search]);
 
   // ── Fetch summary ──────────────────────────────────────────────────────────
   const fetchSummary = async () => {
     try {
-      const res  = await axios.get(`${baseURL}/superAdmin/kyc`, authHeader);
+      const res = await axios.get(`${baseURL}/superAdmin/kyc`, authHeader);
       const data = res.data?.data || [];
       setSummary({
-        total:    data.length,
-        pending:  data.filter((d) => d.status === "pending").length,
-        success:  data.filter((d) => d.status === "success").length,
+        total: data.length,
+        pending: data.filter((d) => d.status === "pending").length,
+        success: data.filter((d) => d.status === "success").length,
         approved: data.filter((d) => d.status === "approved").length,
-        failed:   data.filter((d) => d.status === "rejected").length,
+        failed: data.filter((d) => d.status === "rejected").length,
       });
     } catch (err) {
       console.error(err);
     }
   };
 
-  // ── Fetch paginated KYC data ───────────────────────────────────────────────
+  // ── Fetch paginated KYC data (search, status, type, pagination — all server-side) ──
   const fetchKycPaginated = async (page = 1) => {
     try {
       setTableLoading(true);
-      const normalizedSearch =
-        debouncedSearch?.trim().length > 1 ? debouncedSearch.trim() : undefined;
 
       const res = await axios.get(`${baseURL}/superAdmin/kyc`, {
         ...authHeader,
         params: {
-          limit:  rowsPerPage,
+          limit: rowsPerPage,
           offset: (page - 1) * rowsPerPage,
-          q:      normalizedSearch,
+          search: debouncedSearch || undefined,
           status: statusFilter || undefined,
-          type:   typeFilter   || undefined,
+          type: typeFilter || undefined,
         },
       });
 
@@ -83,20 +80,6 @@ const KycAll = () => {
       setTableLoading(false);
     }
   };
-
-  // ── Client-side search filter (optional extra layer) ──────────────────────
-  const filteredKycData = useMemo(() => {
-    if (!debouncedSearch) return kycData;
-    const kw = debouncedSearch.toLowerCase();
-    return kycData.filter((r) => {
-      const first = r.user?.firstname?.toLowerCase() || "";
-      const last  = r.user?.lastname?.toLowerCase()  || "";
-      const fullName = `${first} ${last}`.trim();
-      const tag   = r.user?.tag?.toLowerCase()       || "";
-      const type  = r.type?.toLowerCase()            || "";
-      return first.includes(kw) || last.includes(kw) || fullName.includes(kw) || tag.includes(kw) || type.includes(kw);
-    });
-  }, [kycData, debouncedSearch]);
 
   // ── Update KYC status ─────────────────────────────────────────────────────
   const updateKycStatus = (kycId, payload) =>
@@ -122,7 +105,6 @@ const KycAll = () => {
   // ── Effects ────────────────────────────────────────────────────────────────
   useEffect(() => {
     fetchSummary();
-    fetchKycPaginated(1);
   }, []);
 
   useEffect(() => {
@@ -158,7 +140,7 @@ const KycAll = () => {
             type="text"
             placeholder="Search KYC records by name..."
             value={search}
-            onChange={(e) => { setSearch(e.target.value); setCurrentPage(1); }}
+            onChange={(e) => setSearch(e.target.value)}
             className="w-full pl-10 pr-4 py-2 border border-gray-200 rounded-lg text-gray-700 focus:outline-none focus:ring-2 focus:ring-blue-400"
           />
         </div>
@@ -176,7 +158,7 @@ const KycAll = () => {
               <p className="text-sm font-semibold text-gray-500 mb-2">Verification Type</p>
               <select
                 value={typeFilter}
-                onChange={(e) => { setTypeFilter(e.target.value); setCurrentPage(1); }}
+                onChange={(e) => setTypeFilter(e.target.value)}
                 className="w-full border border-gray-200 rounded-lg p-2 text-gray-600 mb-3 focus:ring-2 focus:ring-blue-400"
               >
                 <option value="">All Types</option>
@@ -188,7 +170,7 @@ const KycAll = () => {
               <p className="text-sm font-semibold text-gray-500 mb-2">Status</p>
               <select
                 value={statusFilter}
-                onChange={(e) => { setStatusFilter(e.target.value); setCurrentPage(1); }}
+                onChange={(e) => setStatusFilter(e.target.value)}
                 className="w-full border border-gray-200 rounded-lg p-2 text-gray-600 focus:ring-2 focus:ring-blue-400"
               >
                 <option value="">All</option>
@@ -203,7 +185,7 @@ const KycAll = () => {
 
       {/* ── KYC Table ── */}
       <KycTable
-        data={filteredKycData}
+        data={kycData}
         currentPage={currentPage}
         totalCount={summary.total}
         rowsPerPage={rowsPerPage}

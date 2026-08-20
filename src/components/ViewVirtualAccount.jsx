@@ -185,13 +185,12 @@ const ViewVirtualAccount = () => {
                   <p>
                     <span className="font-medium text-gray-700">Status:</span>{" "}
                     <span
-                      className={`px-2 py-1 rounded-full text-xs font-semibold ${
-                        status === "active" || status === "success"
+                      className={`px-2 py-1 rounded-full text-xs font-semibold ${status === "active" || status === "success"
                           ? "bg-green-100 text-green-700"
                           : status === "pending"
-                          ? "bg-yellow-100 text-yellow-700"
-                          : "bg-red-100 text-red-700"
-                      }`}
+                            ? "bg-yellow-100 text-yellow-700"
+                            : "bg-red-100 text-red-700"
+                        }`}
                     >
                       {account.status || "N/A"}
                     </span>

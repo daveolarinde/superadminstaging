@@ -4,15 +4,15 @@ import axios from "axios";
 import { ChevronLeft, CheckCircle2, XCircle, Clock, Copy, Check } from "lucide-react";
 
 export default function ViewTransactions() {
-  const { id }       = useParams();
-  const location     = useLocation();
-  const navigate     = useNavigate();
+  const { id } = useParams();
+  const location = useLocation();
+  const navigate = useNavigate();
 
   const [transaction, setTransaction] = useState(location.state?.transaction || null);
-  const [loading, setLoading]         = useState(!transaction);
-  const [copied, setCopied]           = useState(false);
+  const [loading, setLoading] = useState(!transaction);
+  const [copied, setCopied] = useState(false);
 
-  const token   = localStorage.getItem("token");
+  const token = localStorage.getItem("token");
   const baseUrl = import.meta.env.VITE_API_URL;
 
   useEffect(() => {
@@ -61,13 +61,13 @@ export default function ViewTransactions() {
   // ── Derived values ────────────────────────────────────────────────────────
   const status = transaction.status?.toLowerCase();
   const isSuccess = status === "success" || status === "completed";
-  const isFailed  = status === "failed";
+  const isFailed = status === "failed";
 
   const statusConfig = isSuccess
     ? { icon: <CheckCircle2 size={36} className="text-emerald-500" />, text: "text-emerald-600", bg: "bg-emerald-50", ring: "ring-emerald-100", label: "Successful" }
     : isFailed
-    ? { icon: <XCircle size={36} className="text-red-500" />,         text: "text-red-600",     bg: "bg-red-50",     ring: "ring-red-100",     label: "Failed"      }
-    : { icon: <Clock size={36} className="text-amber-500" />,         text: "text-amber-600",   bg: "bg-amber-50",   ring: "ring-amber-100",   label: "Pending"     };
+      ? { icon: <XCircle size={36} className="text-red-500" />, text: "text-red-600", bg: "bg-red-50", ring: "ring-red-100", label: "Failed" }
+      : { icon: <Clock size={36} className="text-amber-500" />, text: "text-amber-600", bg: "bg-amber-50", ring: "ring-amber-100", label: "Pending" };
 
   const isCredit = transaction.type === "credit";
 
@@ -79,13 +79,13 @@ export default function ViewTransactions() {
   } catch { /* ignore */ }
 
   const rows = [
-    { label: "Transaction Type", value: transaction.type,         mono: false },
-    { label: "Info",             value: transaction.info,         mono: false },
-    { label: "Total Amount",     value: transaction.total_amount, mono: true  },
-    { label: "Fee",              value: transaction.fee || "0.00",mono: true  },
-    { label: "Description",      value: parsedDescription,        mono: false },
-    { label: "Currency",         value: transaction.currency,     mono: false },
-    { label: "Date & Time",      value: transaction.createdAt ? new Date(transaction.createdAt).toLocaleString() : "-", mono: false },
+    { label: "Transaction Type", value: transaction.type, mono: false },
+    { label: "Info", value: transaction.info, mono: false },
+    { label: "Total Amount", value: transaction.total_amount, mono: true },
+    { label: "Fee", value: transaction.fee || "0.00", mono: true },
+    { label: "Description", value: parsedDescription, mono: false },
+    { label: "Currency", value: transaction.currency, mono: false },
+    { label: "Date & Time", value: transaction.createdAt ? new Date(transaction.createdAt).toLocaleString() : "-", mono: false },
   ].filter((r) => r.value && r.value !== "-" && r.value !== null && r.value !== undefined);
 
   return (

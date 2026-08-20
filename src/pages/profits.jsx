@@ -38,26 +38,26 @@ const Badge = ({ value, map }) => {
 };
 
 const MARGIN_STATUS_MAP = {
-  profit:     { color: "bg-emerald-100 text-emerald-700", label: "Profit"    },
-  loss:       { color: "bg-red-100 text-red-600",         label: "Loss"      },
-  break_even: { color: "bg-yellow-100 text-yellow-700",   label: "Break Even" },
+  profit: { color: "bg-emerald-100 text-emerald-700", label: "Profit" },
+  loss: { color: "bg-red-100 text-red-600", label: "Loss" },
+  break_even: { color: "bg-yellow-100 text-yellow-700", label: "Break Even" },
 };
 
 const TXN_STATUS_MAP = {
-  success: { color: "bg-green-100 text-green-700",   label: "Success" },
-  failed:  { color: "bg-red-100 text-red-600",       label: "Failed"  },
+  success: { color: "bg-green-100 text-green-700", label: "Success" },
+  failed: { color: "bg-red-100 text-red-600", label: "Failed" },
   pending: { color: "bg-yellow-100 text-yellow-700", label: "Pending" },
 };
 
 // Currency summary block — groups all stats for one currency
 const CurrencySummaryBlock = ({ currency, stats }) => {
   const metrics = [
-    { label: "Net Earnings",    value: fmt(stats.netEarnings,   currency), highlight: true  },
-    { label: "Monthly Profit",  value: fmt(stats.monthlyProfit, currency) },
-    { label: "Weekly Profit",   value: fmt(stats.weeklyProfit,  currency) },
-    { label: "Daily Profit",    value: fmt(stats.dailyProfit,   currency) },
-    { label: "Total Loss",      value: fmt(stats.totalLoss,     currency), negative: stats.totalLoss > 0 },
-    { label: "Transactions",    value: stats.totalTransactions             },
+    { label: "Net Earnings", value: fmt(stats.netEarnings, currency), highlight: true },
+    { label: "Monthly Profit", value: fmt(stats.monthlyProfit, currency) },
+    { label: "Weekly Profit", value: fmt(stats.weeklyProfit, currency) },
+    { label: "Daily Profit", value: fmt(stats.dailyProfit, currency) },
+    { label: "Total Loss", value: fmt(stats.totalLoss, currency), negative: stats.totalLoss > 0 },
+    { label: "Transactions", value: stats.totalTransactions },
   ];
 
   return (
@@ -74,13 +74,12 @@ const CurrencySummaryBlock = ({ currency, stats }) => {
           <div key={label} className="px-4 py-3">
             <p className="text-xs text-gray-400 mb-0.5">{label}</p>
             <p
-              className={`text-sm font-semibold ${
-                highlight
+              className={`text-sm font-semibold ${highlight
                   ? "text-emerald-600"
                   : negative
-                  ? "text-red-500"
-                  : "text-gray-800"
-              }`}
+                    ? "text-red-500"
+                    : "text-gray-800"
+                }`}
             >
               {value}
             </p>
@@ -95,21 +94,21 @@ const CurrencySummaryBlock = ({ currency, stats }) => {
 const Profits = () => {
   const navigate = useNavigate();
 
-  const [summary, setSummary]                 = useState(null);
-  const [profits, setProfits]                 = useState([]);
+  const [summary, setSummary] = useState(null);
+  const [profits, setProfits] = useState([]);
   const [filteredProfits, setFilteredProfits] = useState([]);
-  const [totalProfits, setTotalProfits]       = useState({});
-  const [pagination, setPagination]           = useState({ page: 1, limit: 10, total: 0 });
-  const [loading, setLoading]                 = useState(true);
-  const [error, setError]                     = useState("");
-  const [searchTerm, setSearchTerm]           = useState("");
+  const [totalProfits, setTotalProfits] = useState({});
+  const [pagination, setPagination] = useState({ page: 1, limit: 10, total: 0 });
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState("");
+  const [searchTerm, setSearchTerm] = useState("");
 
   const [filters, setFilters] = useState({
-    currency:  "",
-    date:      "",
+    currency: "",
+    date: "",
     startDate: "",
-    endDate:   "",
-    userId:    "",
+    endDate: "",
+    userId: "",
   });
 
   const token = localStorage.getItem("token");
@@ -126,11 +125,11 @@ const Profits = () => {
 
       try {
         const qp = new URLSearchParams({ page, limit: pagination.limit });
-        if (filters.currency)  qp.set("currency",  filters.currency);
-        if (filters.date)      qp.set("date",       filters.date);
-        if (filters.startDate) qp.set("startDate",  filters.startDate);
-        if (filters.endDate)   qp.set("endDate",    filters.endDate);
-        if (filters.userId)    qp.set("userId",     filters.userId);
+        if (filters.currency) qp.set("currency", filters.currency);
+        if (filters.date) qp.set("date", filters.date);
+        if (filters.startDate) qp.set("startDate", filters.startDate);
+        if (filters.endDate) qp.set("endDate", filters.endDate);
+        if (filters.userId) qp.set("userId", filters.userId);
 
         const headers = { Authorization: `Bearer ${token}` };
 
@@ -178,7 +177,7 @@ const Profits = () => {
       profits.filter(
         (p) =>
           p.user?.firstName?.toLowerCase().includes(term) ||
-          p.user?.lastName?.toLowerCase().includes(term)  ||
+          p.user?.lastName?.toLowerCase().includes(term) ||
           p.user?.email?.toLowerCase().includes(term)
       )
     );
@@ -315,8 +314,8 @@ const Profits = () => {
           <tbody className="divide-y divide-gray-50">
             {filteredProfits.length > 0 ? (
               filteredProfits.map((profit) => {
-                const ccy      = profit.currency || profit.transaction?.currency || "NGN";
-                const userId   = profit.userId || profit.user?.id;
+                const ccy = profit.currency || profit.transaction?.currency || "NGN";
+                const userId = profit.userId || profit.user?.id;
                 const fullName = `${profit.user?.firstName ?? ""} ${profit.user?.lastName ?? ""}`.trim() || "Unknown";
 
                 return (
@@ -416,11 +415,10 @@ const Profits = () => {
           <button
             disabled={pagination.page === 1}
             onClick={() => fetchProfits(pagination.page - 1)}
-            className={`px-3.5 py-1.5 rounded-lg text-sm font-medium transition ${
-              pagination.page === 1
+            className={`px-3.5 py-1.5 rounded-lg text-sm font-medium transition ${pagination.page === 1
                 ? "bg-gray-100 text-gray-400 cursor-not-allowed"
                 : "bg-white border border-gray-200 text-gray-700 hover:bg-gray-50"
-            }`}
+              }`}
           >
             ← Prev
           </button>
@@ -432,11 +430,10 @@ const Profits = () => {
           <button
             disabled={pagination.page >= totalPages}
             onClick={() => fetchProfits(pagination.page + 1)}
-            className={`px-3.5 py-1.5 rounded-lg text-sm font-medium transition ${
-              pagination.page >= totalPages
+            className={`px-3.5 py-1.5 rounded-lg text-sm font-medium transition ${pagination.page >= totalPages
                 ? "bg-gray-100 text-gray-400 cursor-not-allowed"
                 : "bg-emerald-600 text-white hover:bg-emerald-700"
-            }`}
+              }`}
           >
             Next →
           </button>

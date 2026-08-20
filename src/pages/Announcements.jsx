@@ -19,14 +19,14 @@ const getToken = () => localStorage.getItem("token");
 const authHeaders = () => ({ Authorization: `Bearer ${getToken()}` });
 
 const PLACEMENT_OPTIONS = [
-  { value: "",                    label: "Select placement…"  },
-  { value: "home_dashboard",      label: "Home Dashboard"     },
-  { value: "wallet_screen",       label: "Wallet Screen"      },
-  { value: "referral_page",       label: "Referral Page"      },
-  { value: "transaction_history", label: "Transaction History"},
-  { value: "transfer_screen",     label: "Transfer Screen"    },
-  { value: "kyc_banner",          label: "KYC Banner"         },
-  { value: "login_popup",         label: "Login Popup"        },
+  { value: "", label: "Select placement…" },
+  { value: "home_dashboard", label: "Home Dashboard" },
+  { value: "wallet_screen", label: "Wallet Screen" },
+  { value: "referral_page", label: "Referral Page" },
+  { value: "transaction_history", label: "Transaction History" },
+  { value: "transfer_screen", label: "Transfer Screen" },
+  { value: "kyc_banner", label: "KYC Banner" },
+  { value: "login_popup", label: "Login Popup" },
 ];
 
 // An item belongs to the Announcements tab if it has htmlContent, placement=app_launch, or type=major
@@ -66,8 +66,8 @@ const TYPE_META = {
 };
 
 const STATUS_META = {
-  active:   { cls: "bg-emerald-50 text-emerald-600 ring-1 ring-emerald-200", dot: "bg-emerald-500" },
-  inactive: { cls: "bg-gray-100 text-gray-500 ring-1 ring-gray-200",         dot: "bg-gray-400"   },
+  active: { cls: "bg-emerald-50 text-emerald-600 ring-1 ring-emerald-200", dot: "bg-emerald-500" },
+  inactive: { cls: "bg-gray-100 text-gray-500 ring-1 ring-gray-200", dot: "bg-gray-400" },
 };
 
 // ── Sub-components ────────────────────────────────────────────────────────────
@@ -148,9 +148,8 @@ const FileDropZone = ({ label, multiple, files, onChange, onRemove }) => {
         onDragLeave={() => setDragging(false)}
         onDrop={handleDrop}
         onClick={() => inputRef.current.click()}
-        className={`border-2 border-dashed rounded-xl p-5 text-center cursor-pointer transition-colors ${
-          dragging ? "border-blue-400 bg-blue-50" : "border-gray-200 hover:border-blue-300 hover:bg-gray-50"
-        }`}
+        className={`border-2 border-dashed rounded-xl p-5 text-center cursor-pointer transition-colors ${dragging ? "border-blue-400 bg-blue-50" : "border-gray-200 hover:border-blue-300 hover:bg-gray-50"
+          }`}
       >
         <Upload size={20} className="mx-auto mb-2 text-gray-400" />
         <p className="text-sm text-gray-500">{label}</p>
@@ -195,7 +194,7 @@ const ToolbarBtn = ({ onClick, active, disabled, title, children }) => (
 const ToolbarDivider = () => <div className="w-px h-4 bg-gray-200 mx-0.5 self-center" />;
 
 const RichEditor = ({ onChange, initialContent = "" }) => {
-  const [linkUrl,  setLinkUrl]  = useState("");
+  const [linkUrl, setLinkUrl] = useState("");
   const [showLink, setShowLink] = useState(false);
 
   const editor = useEditor({
@@ -245,8 +244,8 @@ const RichEditor = ({ onChange, initialContent = "" }) => {
           }}
           value={
             editor.isActive("heading", { level: 1 }) ? "1" :
-            editor.isActive("heading", { level: 2 }) ? "2" :
-            editor.isActive("heading", { level: 3 }) ? "3" : "p"
+              editor.isActive("heading", { level: 2 }) ? "2" :
+                editor.isActive("heading", { level: 3 }) ? "3" : "p"
           }
           className="text-xs text-gray-600 border border-gray-200 rounded-md px-1.5 py-1 bg-white focus:outline-none focus:border-rose-400 cursor-pointer h-7"
         >
@@ -256,16 +255,16 @@ const RichEditor = ({ onChange, initialContent = "" }) => {
           <option value="3">Heading 3</option>
         </select>
         <ToolbarDivider />
-        <ToolbarBtn onClick={() => editor.chain().focus().toggleBold().run()}      active={editor.isActive("bold")}      title="Bold"><Bold size={13} /></ToolbarBtn>
-        <ToolbarBtn onClick={() => editor.chain().focus().toggleItalic().run()}    active={editor.isActive("italic")}    title="Italic"><Italic size={13} /></ToolbarBtn>
+        <ToolbarBtn onClick={() => editor.chain().focus().toggleBold().run()} active={editor.isActive("bold")} title="Bold"><Bold size={13} /></ToolbarBtn>
+        <ToolbarBtn onClick={() => editor.chain().focus().toggleItalic().run()} active={editor.isActive("italic")} title="Italic"><Italic size={13} /></ToolbarBtn>
         <ToolbarBtn onClick={() => editor.chain().focus().toggleUnderline().run()} active={editor.isActive("underline")} title="Underline"><Underline size={13} /></ToolbarBtn>
         <ToolbarDivider />
-        <ToolbarBtn onClick={() => editor.chain().focus().toggleBulletList().run()}  active={editor.isActive("bulletList")}  title="Bullet list"><List size={13} /></ToolbarBtn>
+        <ToolbarBtn onClick={() => editor.chain().focus().toggleBulletList().run()} active={editor.isActive("bulletList")} title="Bullet list"><List size={13} /></ToolbarBtn>
         <ToolbarBtn onClick={() => editor.chain().focus().toggleOrderedList().run()} active={editor.isActive("orderedList")} title="Numbered list"><ListOrdered size={13} /></ToolbarBtn>
         <ToolbarDivider />
-        <ToolbarBtn onClick={() => editor.chain().focus().setTextAlign("left").run()}   active={editor.isActive({ textAlign: "left" })}   title="Align left"><AlignLeft size={13} /></ToolbarBtn>
+        <ToolbarBtn onClick={() => editor.chain().focus().setTextAlign("left").run()} active={editor.isActive({ textAlign: "left" })} title="Align left"><AlignLeft size={13} /></ToolbarBtn>
         <ToolbarBtn onClick={() => editor.chain().focus().setTextAlign("center").run()} active={editor.isActive({ textAlign: "center" })} title="Align center"><AlignCenter size={13} /></ToolbarBtn>
-        <ToolbarBtn onClick={() => editor.chain().focus().setTextAlign("right").run()}  active={editor.isActive({ textAlign: "right" })}  title="Align right"><AlignRight size={13} /></ToolbarBtn>
+        <ToolbarBtn onClick={() => editor.chain().focus().setTextAlign("right").run()} active={editor.isActive({ textAlign: "right" })} title="Align right"><AlignRight size={13} /></ToolbarBtn>
         <ToolbarDivider />
         <ToolbarBtn onClick={() => editor.chain().focus().setHorizontalRule().run()} title="Horizontal rule"><Minus size={13} /></ToolbarBtn>
         <ToolbarDivider />
@@ -318,21 +317,21 @@ const AnnouncementModal = ({ open, onClose, onSaved, editData, mode }) => {
     status: "active", subject: "", htmlContent: "",
   };
 
-  const [form, setForm]     = useState(blankForm);
-  const [files, setFiles]   = useState([]);
+  const [form, setForm] = useState(blankForm);
+  const [files, setFiles] = useState([]);
   const [saving, setSaving] = useState(false);
-  const [error, setError]   = useState("");
+  const [error, setError] = useState("");
 
   useEffect(() => {
     if (!open) return;
     if (editData) {
       setForm({
-        name:        editData.name        || "",
-        type:        editData.type        || (isMajorMode ? "other" : "single_image"),
-        placement:   editData.placement   || "",
-        actionUrl:   editData.actionUrl   || "",
-        status:      editData.status      || "active",
-        subject:     editData.subject     || "",
+        name: editData.name || "",
+        type: editData.type || (isMajorMode ? "other" : "single_image"),
+        placement: editData.placement || "",
+        actionUrl: editData.actionUrl || "",
+        status: editData.status || "active",
+        subject: editData.subject || "",
         htmlContent: editData.htmlContent || "",
       });
     } else {
@@ -372,11 +371,11 @@ const AnnouncementModal = ({ open, onClose, onSaved, editData, mode }) => {
       if (isMajorMode) {
         // Always send as type "other" with placement "app_launch" — matches old records too
         const payload = {
-          name:        form.name.trim(),
-          type:        "other",
-          status:      "active",
-          placement:   "app_launch",
-          subject:     form.subject,
+          name: form.name.trim(),
+          type: "other",
+          status: "active",
+          placement: "app_launch",
+          subject: form.subject,
           htmlContent: form.htmlContent,
         };
 
@@ -463,11 +462,10 @@ const AnnouncementModal = ({ open, onClose, onSaved, editData, mode }) => {
                     key={val}
                     type="button"
                     onClick={() => { set("type", val); setFiles([]); setError(""); }}
-                    className={`flex flex-col items-center gap-1.5 py-3 px-2 rounded-xl border-2 text-xs font-semibold transition-all ${
-                      form.type === val
+                    className={`flex flex-col items-center gap-1.5 py-3 px-2 rounded-xl border-2 text-xs font-semibold transition-all ${form.type === val
                         ? "border-violet-500 bg-violet-50 text-violet-600"
                         : "border-gray-200 text-gray-500 hover:border-gray-300"
-                    }`}
+                      }`}
                   >
                     <span className="text-lg">
                       {val === "single_image" ? "🖼️" : val === "carousel" ? "🎠" : "📄"}
@@ -594,13 +592,12 @@ const AnnouncementModal = ({ open, onClose, onSaved, editData, mode }) => {
                       key={s}
                       type="button"
                       onClick={() => set("status", s)}
-                      className={`flex-1 py-2.5 rounded-xl border-2 text-sm font-semibold capitalize transition-all ${
-                        form.status === s
+                      className={`flex-1 py-2.5 rounded-xl border-2 text-sm font-semibold capitalize transition-all ${form.status === s
                           ? s === "active"
                             ? "border-emerald-500 bg-emerald-50 text-emerald-600"
                             : "border-gray-400 bg-gray-100 text-gray-600"
                           : "border-gray-200 text-gray-400 hover:border-gray-300"
-                      }`}
+                        }`}
                     >
                       {s === "active" ? "✅ Active" : "⏸ Inactive"}
                     </button>
@@ -617,9 +614,8 @@ const AnnouncementModal = ({ open, onClose, onSaved, editData, mode }) => {
               Cancel
             </button>
             <button type="submit" disabled={saving}
-              className={`flex-1 py-2.5 text-white rounded-xl text-sm font-semibold disabled:opacity-60 transition flex items-center justify-center gap-2 ${
-                isMajorMode ? "bg-rose-500 hover:bg-rose-600" : "bg-violet-600 hover:bg-violet-700"
-              }`}
+              className={`flex-1 py-2.5 text-white rounded-xl text-sm font-semibold disabled:opacity-60 transition flex items-center justify-center gap-2 ${isMajorMode ? "bg-rose-500 hover:bg-rose-600" : "bg-violet-600 hover:bg-violet-700"
+                }`}
             >
               {saving ? (
                 <>
@@ -654,9 +650,8 @@ const ItemTable = ({ items, mode, onEdit, onToggle, onDelete, togglingId, deleti
         <button
           type="button"
           onClick={openCreate}
-          className={`mt-3 px-4 py-2 text-sm text-white rounded-xl transition ${
-            isAnn ? "bg-rose-500 hover:bg-rose-600" : "bg-violet-600 hover:bg-violet-700"
-          }`}
+          className={`mt-3 px-4 py-2 text-sm text-white rounded-xl transition ${isAnn ? "bg-rose-500 hover:bg-rose-600" : "bg-violet-600 hover:bg-violet-700"
+            }`}
         >
           + Create one
         </button>
@@ -706,9 +701,8 @@ const ItemTable = ({ items, mode, onEdit, onToggle, onDelete, togglingId, deleti
                 {/* Placement */}
                 <td className="px-4 py-3.5">
                   {item.placement ? (
-                    <span className={`inline-flex items-center px-2 py-0.5 rounded-md text-xs font-medium ${
-                      item.placement === "app_launch" ? "bg-rose-50 text-rose-600" : "bg-gray-100 text-gray-600"
-                    }`}>
+                    <span className={`inline-flex items-center px-2 py-0.5 rounded-md text-xs font-medium ${item.placement === "app_launch" ? "bg-rose-50 text-rose-600" : "bg-gray-100 text-gray-600"
+                      }`}>
                       {placementLabel(item.placement)}
                     </span>
                   ) : (
@@ -763,13 +757,12 @@ const ItemTable = ({ items, mode, onEdit, onToggle, onDelete, togglingId, deleti
                       onClick={() => onToggle(item)}
                       disabled={togglingId === item.id || isLocked}
                       title={isLocked ? "Announcements are always active" : item.status === "active" ? "Deactivate" : "Activate"}
-                      className={`p-1.5 rounded-lg transition ${
-                        isLocked
+                      className={`p-1.5 rounded-lg transition ${isLocked
                           ? "text-gray-300 cursor-not-allowed"
                           : item.status === "active"
-                          ? "text-emerald-600 hover:bg-emerald-50"
-                          : "text-gray-400 hover:bg-gray-100"
-                      } disabled:opacity-40`}
+                            ? "text-emerald-600 hover:bg-emerald-50"
+                            : "text-gray-400 hover:bg-gray-100"
+                        } disabled:opacity-40`}
                     >
                       {togglingId === item.id ? (
                         <div className="w-4 h-4 border-2 border-current border-t-transparent rounded-full animate-spin" />
@@ -807,18 +800,18 @@ const ItemTable = ({ items, mode, onEdit, onToggle, onDelete, togglingId, deleti
 // ── Main Page ─────────────────────────────────────────────────────────────────
 export default function Announcements() {
   const [announcements, setAnnouncements] = useState([]);
-  const [loading, setLoading]             = useState(true);
-  const [refreshing, setRefreshing]       = useState(false);
-  const [error, setError]                 = useState("");
+  const [loading, setLoading] = useState(true);
+  const [refreshing, setRefreshing] = useState(false);
+  const [error, setError] = useState("");
 
-  const [activeTab, setActiveTab]         = useState("banner");
-  const [filterType, setFilterType]       = useState("");
-  const [filterStatus, setFilterStatus]   = useState("");
-  const [modalOpen, setModalOpen]         = useState(false);
-  const [editData, setEditData]           = useState(null);
-  const [modalMode, setModalMode]         = useState("banner");
-  const [togglingId, setTogglingId]       = useState(null);
-  const [deletingId, setDeletingId]       = useState(null);
+  const [activeTab, setActiveTab] = useState("banner");
+  const [filterType, setFilterType] = useState("");
+  const [filterStatus, setFilterStatus] = useState("");
+  const [modalOpen, setModalOpen] = useState(false);
+  const [editData, setEditData] = useState(null);
+  const [modalMode, setModalMode] = useState("banner");
+  const [togglingId, setTogglingId] = useState(null);
+  const [deletingId, setDeletingId] = useState(null);
 
   const fetchAnnouncements = async (showRefresh = false) => {
     try {
@@ -884,12 +877,12 @@ export default function Announcements() {
   };
 
   // Split using the shared helper — covers type:major, type:other+htmlContent, placement:app_launch
-  const bannerItems       = announcements.filter((a) => !isAnnouncementItem(a));
-  const announcementItems = announcements.filter((a) =>  isAnnouncementItem(a));
+  const bannerItems = announcements.filter((a) => !isAnnouncementItem(a));
+  const announcementItems = announcements.filter((a) => isAnnouncementItem(a));
 
   const baseItems = activeTab === "banner" ? bannerItems : announcementItems;
-  const filtered  = baseItems.filter((a) => {
-    if (filterType   && a.type   !== filterType)   return false;
+  const filtered = baseItems.filter((a) => {
+    if (filterType && a.type !== filterType) return false;
     if (filterStatus && a.status !== filterStatus) return false;
     return true;
   });
@@ -947,9 +940,8 @@ export default function Announcements() {
             type="button"
             onClick={() => fetchAnnouncements(true)}
             disabled={refreshing}
-            className={`flex items-center gap-1.5 px-3.5 py-2 rounded-xl text-sm font-semibold border shadow-sm transition ${
-              refreshing ? "bg-gray-100 text-gray-400 border-gray-200 cursor-not-allowed" : "bg-white text-gray-600 border-gray-200 hover:bg-gray-50"
-            }`}
+            className={`flex items-center gap-1.5 px-3.5 py-2 rounded-xl text-sm font-semibold border shadow-sm transition ${refreshing ? "bg-gray-100 text-gray-400 border-gray-200 cursor-not-allowed" : "bg-white text-gray-600 border-gray-200 hover:bg-gray-50"
+              }`}
           >
             <RefreshCw size={13} className={refreshing ? "animate-spin" : ""} />
             Refresh
@@ -958,9 +950,8 @@ export default function Announcements() {
           <button
             type="button"
             onClick={() => openCreate(activeTab)}
-            className={`flex items-center gap-1.5 px-4 py-2 rounded-xl text-sm font-semibold text-white transition shadow-sm ${
-              isBannerTab ? "bg-violet-600 hover:bg-violet-700" : "bg-rose-500 hover:bg-rose-600"
-            }`}
+            className={`flex items-center gap-1.5 px-4 py-2 rounded-xl text-sm font-semibold text-white transition shadow-sm ${isBannerTab ? "bg-violet-600 hover:bg-violet-700" : "bg-rose-500 hover:bg-rose-600"
+              }`}
           >
             <Plus size={15} />
             New {isBannerTab ? "Banner" : "Announcement"}
@@ -971,9 +962,9 @@ export default function Announcements() {
       {/* ── Summary cards ── */}
       <div className="grid grid-cols-3 gap-4">
         {[
-          { label: "Total",    value: baseItems.length,                                        bg: "bg-indigo-50",  text: "text-indigo-700"  },
-          { label: "Active",   value: baseItems.filter((a) => a.status === "active").length,   bg: "bg-emerald-50", text: "text-emerald-700" },
-          { label: "Inactive", value: baseItems.filter((a) => a.status === "inactive").length, bg: "bg-gray-100",   text: "text-gray-600"    },
+          { label: "Total", value: baseItems.length, bg: "bg-indigo-50", text: "text-indigo-700" },
+          { label: "Active", value: baseItems.filter((a) => a.status === "active").length, bg: "bg-emerald-50", text: "text-emerald-700" },
+          { label: "Inactive", value: baseItems.filter((a) => a.status === "inactive").length, bg: "bg-gray-100", text: "text-gray-600" },
         ].map((s) => (
           <div key={s.label} className={`${s.bg} rounded-2xl p-4 border border-white`}>
             <p className="text-xs font-bold uppercase tracking-widest text-gray-400">{s.label}</p>
@@ -985,30 +976,28 @@ export default function Announcements() {
       {/* ── Tabs ── */}
       <div className="flex gap-1 bg-gray-100 rounded-2xl p-1 w-fit">
         {[
-          { key: "banner",       label: "Banners",       icon: <LayoutDashboard size={14} />, count: bannerItems.length       },
-          { key: "announcement", label: "Announcements", icon: <Megaphone size={14} />,       count: announcementItems.length },
+          { key: "banner", label: "Banners", icon: <LayoutDashboard size={14} />, count: bannerItems.length },
+          { key: "announcement", label: "Announcements", icon: <Megaphone size={14} />, count: announcementItems.length },
         ].map((tab) => (
           <button
             key={tab.key}
             type="button"
             onClick={() => handleTabSwitch(tab.key)}
-            className={`flex items-center gap-2 px-4 py-2 rounded-xl text-sm font-semibold transition-all ${
-              activeTab === tab.key
+            className={`flex items-center gap-2 px-4 py-2 rounded-xl text-sm font-semibold transition-all ${activeTab === tab.key
                 ? tab.key === "announcement"
                   ? "bg-white text-rose-500 shadow-sm"
                   : "bg-white text-violet-600 shadow-sm"
                 : "text-gray-500 hover:text-gray-700"
-            }`}
+              }`}
           >
             {tab.icon}
             {tab.label}
-            <span className={`text-xs px-1.5 py-0.5 rounded-full font-bold ${
-              activeTab === tab.key
+            <span className={`text-xs px-1.5 py-0.5 rounded-full font-bold ${activeTab === tab.key
                 ? tab.key === "announcement"
                   ? "bg-rose-50 text-rose-500"
                   : "bg-violet-50 text-violet-600"
                 : "bg-gray-200 text-gray-500"
-            }`}>
+              }`}>
               {tab.count}
             </span>
           </button>

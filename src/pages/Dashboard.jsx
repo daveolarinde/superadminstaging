@@ -40,14 +40,14 @@ function StatCard({ label, value, icon, bgColor, textColor, loading }) {
 // ── Main ──────────────────────────────────────────────────────────────────────
 export default function Dashboard() {
   const baseURL = import.meta.env.VITE_API_URL;
-  const token   = localStorage.getItem("token");
+  const token = localStorage.getItem("token");
 
   const [kycStats, setKycStats] = useState({ total: 0, pending: 0, approved: 0, rejected: 0 });
-  const [summary, setSummary]   = useState(null);
+  const [summary, setSummary] = useState(null);
   const [graphData, setGraphData] = useState({});
   const [activeTab, setActiveTab] = useState("currentMonth");
-  const [type, setType]           = useState("");
-  const [loading, setLoading]     = useState(true);
+  const [type, setType] = useState("");
+  const [loading, setLoading] = useState(true);
 
   useEffect(() => {
     const fetchData = async () => {
@@ -71,8 +71,8 @@ export default function Dashboard() {
         if (kycRes.data?.status === "success") {
           const list = kycRes.data.data || [];
           setKycStats({
-            total:    list.length,
-            pending:  list.filter((k) => k.status?.toLowerCase() === "pending").length,
+            total: list.length,
+            pending: list.filter((k) => k.status?.toLowerCase() === "pending").length,
             approved: list.filter((k) => k.status?.toLowerCase() === "success").length,
             rejected: list.filter((k) => ["failed", "rejected"].includes(k.status?.toLowerCase())).length,
           });
@@ -145,21 +145,21 @@ export default function Dashboard() {
 
   const tabs = [
     { key: "currentMonth", label: "This Month" },
-    { key: "lastMonth",    label: "Last Month" },
-    { key: "currentYear",  label: "This Year"  },
+    { key: "lastMonth", label: "Last Month" },
+    { key: "currentYear", label: "This Year" },
   ];
 
   const typeFilters = [
-    { value: "",       label: "All"    },
+    { value: "", label: "All" },
     { value: "credit", label: "Credit" },
-    { value: "debit",  label: "Debit"  },
+    { value: "debit", label: "Debit" },
   ];
 
   const statCards = [
-    { label: "Total Users",   value: summary?.totalUsers ?? 0, icon: <Users size={18} />,        bgColor: "bg-blue-50",   textColor: "text-blue-600"   },
-    { label: "Pending KYC",   value: kycStats.pending,          icon: <Clock size={18} />,         bgColor: "bg-amber-50",  textColor: "text-amber-600"  },
-    { label: "Approved KYC",  value: kycStats.approved,         icon: <CheckCircle size={18} />,   bgColor: "bg-emerald-50",textColor: "text-emerald-600"},
-    { label: "Rejected KYC",  value: kycStats.rejected,         icon: <XCircle size={18} />,       bgColor: "bg-red-50",    textColor: "text-red-500"    },
+    { label: "Total Users", value: summary?.totalUsers ?? 0, icon: <Users size={18} />, bgColor: "bg-blue-50", textColor: "text-blue-600" },
+    { label: "Pending KYC", value: kycStats.pending, icon: <Clock size={18} />, bgColor: "bg-amber-50", textColor: "text-amber-600" },
+    { label: "Approved KYC", value: kycStats.approved, icon: <CheckCircle size={18} />, bgColor: "bg-emerald-50", textColor: "text-emerald-600" },
+    { label: "Rejected KYC", value: kycStats.rejected, icon: <XCircle size={18} />, bgColor: "bg-red-50", textColor: "text-red-500" },
   ];
 
   return (
@@ -199,11 +199,10 @@ export default function Dashboard() {
                 <button
                   key={tab.key}
                   onClick={() => setActiveTab(tab.key)}
-                  className={`px-3.5 py-1.5 rounded-lg text-xs font-semibold transition ${
-                    activeTab === tab.key
+                  className={`px-3.5 py-1.5 rounded-lg text-xs font-semibold transition ${activeTab === tab.key
                       ? "bg-white text-gray-900 shadow-sm"
                       : "text-gray-500 hover:text-gray-700"
-                  }`}
+                    }`}
                 >
                   {tab.label}
                 </button>
@@ -216,15 +215,14 @@ export default function Dashboard() {
                 <button
                   key={t.value}
                   onClick={() => setType(t.value)}
-                  className={`px-3.5 py-1.5 rounded-lg text-xs font-semibold border transition ${
-                    type === t.value
+                  className={`px-3.5 py-1.5 rounded-lg text-xs font-semibold border transition ${type === t.value
                       ? t.value === "credit"
                         ? "bg-emerald-600 border-emerald-600 text-white"
                         : t.value === "debit"
-                        ? "bg-red-500 border-red-500 text-white"
-                        : "bg-blue-600 border-blue-600 text-white"
+                          ? "bg-red-500 border-red-500 text-white"
+                          : "bg-blue-600 border-blue-600 text-white"
                       : "border-gray-200 bg-white text-gray-600 hover:bg-gray-50"
-                  }`}
+                    }`}
                 >
                   {t.label}
                 </button>
@@ -259,10 +257,10 @@ export default function Dashboard() {
 
           <div className="space-y-3 flex-1">
             {[
-              { label: "Total Submissions", value: kycStats.total,    bar: "bg-blue-500",    pct: 100 },
-              { label: "Pending",           value: kycStats.pending,  bar: "bg-amber-400",   pct: kycStats.total ? Math.round((kycStats.pending  / kycStats.total) * 100) : 0 },
-              { label: "Approved",          value: kycStats.approved, bar: "bg-emerald-500", pct: kycStats.total ? Math.round((kycStats.approved / kycStats.total) * 100) : 0 },
-              { label: "Rejected",          value: kycStats.rejected, bar: "bg-red-400",     pct: kycStats.total ? Math.round((kycStats.rejected / kycStats.total) * 100) : 0 },
+              { label: "Total Submissions", value: kycStats.total, bar: "bg-blue-500", pct: 100 },
+              { label: "Pending", value: kycStats.pending, bar: "bg-amber-400", pct: kycStats.total ? Math.round((kycStats.pending / kycStats.total) * 100) : 0 },
+              { label: "Approved", value: kycStats.approved, bar: "bg-emerald-500", pct: kycStats.total ? Math.round((kycStats.approved / kycStats.total) * 100) : 0 },
+              { label: "Rejected", value: kycStats.rejected, bar: "bg-red-400", pct: kycStats.total ? Math.round((kycStats.rejected / kycStats.total) * 100) : 0 },
             ].map((item) => (
               <div key={item.label}>
                 <div className="flex justify-between items-center mb-1.5">

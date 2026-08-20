@@ -14,14 +14,12 @@ const Toggle = ({ checked, onChange, disabled }) => (
     type="button"
     disabled={disabled}
     onClick={() => onChange(!checked)}
-    className={`relative inline-flex h-5 w-9 items-center rounded-full transition-colors focus:outline-none focus:ring-2 focus:ring-emerald-400 focus:ring-offset-1 ${
-      checked ? "bg-emerald-500" : "bg-gray-200"
-    } ${disabled ? "opacity-50 cursor-not-allowed" : "cursor-pointer"}`}
+    className={`relative inline-flex h-5 w-9 items-center rounded-full transition-colors focus:outline-none focus:ring-2 focus:ring-emerald-400 focus:ring-offset-1 ${checked ? "bg-emerald-500" : "bg-gray-200"
+      } ${disabled ? "opacity-50 cursor-not-allowed" : "cursor-pointer"}`}
   >
     <span
-      className={`inline-block h-3.5 w-3.5 transform rounded-full bg-white shadow-sm transition-transform ${
-        checked ? "translate-x-[18px]" : "translate-x-0.5"
-      }`}
+      className={`inline-block h-3.5 w-3.5 transform rounded-full bg-white shadow-sm transition-transform ${checked ? "translate-x-[18px]" : "translate-x-0.5"
+        }`}
     />
   </button>
 );
@@ -280,11 +278,10 @@ const Toast = ({ message, type, onClose }) => {
 
   return (
     <div
-      className={`fixed bottom-6 right-6 z-[60] flex items-center gap-3 px-4 py-3 rounded-xl shadow-lg text-sm font-medium transition-all animate-in ${
-        type === "success"
+      className={`fixed bottom-6 right-6 z-[60] flex items-center gap-3 px-4 py-3 rounded-xl shadow-lg text-sm font-medium transition-all animate-in ${type === "success"
           ? "bg-emerald-600 text-white"
           : "bg-red-500 text-white"
-      }`}
+        }`}
     >
       {type === "success" ? <CheckCircle2 size={16} /> : <XCircle size={16} />}
       {message}
@@ -298,9 +295,9 @@ const Toast = ({ message, type, onClose }) => {
 // ── Main Page ─────────────────────────────────────────────────────────────────
 export default function Currencies() {
   const [currencies, setCurrencies] = useState([]);
-  const [loading, setLoading]       = useState(true);
+  const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
-  const [error, setError]           = useState("");
+  const [error, setError] = useState("");
 
   // modal state
   const [modal, setModal] = useState(null); // null | "create" | "edit" | "delete"
@@ -384,8 +381,8 @@ export default function Currencies() {
   };
 
   // ── derived ────────────────────────────────────────────────────────────────
-  const activeCount   = currencies.filter((c) => c.isActive).length;
-  const vaCount       = currencies.filter((c) => c.isVirtualAccountSupported).length;
+  const activeCount = currencies.filter((c) => c.isActive).length;
+  const vaCount = currencies.filter((c) => c.isVirtualAccountSupported).length;
 
   // ── render ─────────────────────────────────────────────────────────────────
   if (loading)
@@ -447,9 +444,9 @@ export default function Currencies() {
       {/* ── Stats row ─────────────────────────────────────────────────────── */}
       <div className="grid grid-cols-3 gap-4">
         {[
-          { label: "Total",           value: currencies.length,        color: "text-gray-800"    },
-          { label: "Active",          value: activeCount,              color: "text-emerald-600" },
-          { label: "Virtual Account", value: vaCount,                  color: "text-blue-600"    },
+          { label: "Total", value: currencies.length, color: "text-gray-800" },
+          { label: "Active", value: activeCount, color: "text-emerald-600" },
+          { label: "Virtual Account", value: vaCount, color: "text-blue-600" },
         ].map(({ label, value, color }) => (
           <div key={label} className="bg-white border border-gray-100 rounded-2xl p-4 shadow-sm text-center">
             <p className={`text-2xl font-bold ${color}`}>{value}</p>

@@ -7,14 +7,14 @@ import {
   X, CheckCircle2, XCircle, Send, Bell,
 } from "lucide-react";
 
-import ProfileTab          from "./UserProfile/userTabs/ProfileTab";
-import WalletsTab          from "./UserProfile/userTabs/WalletsTab";
-import TransactionsTab     from "./UserProfile/userTabs/TransactionsTab";
-import ProfitHistoryTab    from "./UserProfile/userTabs/ProfitHistoryTab";
-import VirtualAccountsTab  from "./UserProfile/userTabs/VirtualAccountsTab";
-import UserKYCTab          from "./UserProfile/userTabs/UserKYCTab";
+import ProfileTab from "./UserProfile/userTabs/ProfileTab";
+import WalletsTab from "./UserProfile/userTabs/WalletsTab";
+import TransactionsTab from "./UserProfile/userTabs/TransactionsTab";
+import ProfitHistoryTab from "./UserProfile/userTabs/ProfitHistoryTab";
+import VirtualAccountsTab from "./UserProfile/userTabs/VirtualAccountsTab";
+import UserKYCTab from "./UserProfile/userTabs/UserKYCTab";
 import UserVirtualCardsTab from "./UserProfile/userTabs/Uservirtualcardstab";
-import BeneficiariesTab    from "./UserProfile/userTabs/BeneficiariesTab";
+import BeneficiariesTab from "./UserProfile/userTabs/BeneficiariesTab";
 
 const API_BASE_URL = import.meta.env.VITE_API_URL;
 
@@ -34,7 +34,7 @@ const TABS = [
   "Virtual Accounts",
   "Beneficiaries",
   "Virtual Cards",
-  
+
   "Adjust Balance",
   "Push Notification",
 ];
@@ -59,10 +59,10 @@ const AdjustResult = ({ data, onReset }) => (
     </div>
     <div className="bg-gray-50 border border-gray-100 rounded-2xl divide-y divide-gray-100 text-left">
       {[
-        { label: "Old Balance",    value: fmt(data.oldBalance, data.currency)    },
-        { label: "New Balance",    value: fmt(data.newBalance, data.currency), hi: true },
-        { label: "Transaction ID", value: data.transactionId, mono: true          },
-        { label: "Reference",      value: data.referenceId,   mono: true          },
+        { label: "Old Balance", value: fmt(data.oldBalance, data.currency) },
+        { label: "New Balance", value: fmt(data.newBalance, data.currency), hi: true },
+        { label: "Transaction ID", value: data.transactionId, mono: true },
+        { label: "Reference", value: data.referenceId, mono: true },
       ].map(({ label, value, hi, mono }) => (
         <div key={label} className="flex items-center justify-between px-4 py-3">
           <span className="text-xs text-gray-500">{label}</span>
@@ -78,12 +78,12 @@ const AdjustResult = ({ data, onReset }) => (
 
 // ── Adjust Wallet Tab ─────────────────────────────────────────────────────────
 const AdjustBalanceTab = ({ userId, userName, accounts = [] }) => {
-  const [currencies,  setCurrencies]  = useState([]);
+  const [currencies, setCurrencies] = useState([]);
   const [currLoading, setCurrLoading] = useState(true);
-  const [form,        setForm]        = useState({ currency: "", amount: "", actionType: "", info: "", description: "" });
-  const [submitting,  setSubmitting]  = useState(false);
-  const [result,      setResult]      = useState(null);
-  const [error,       setError]       = useState("");
+  const [form, setForm] = useState({ currency: "", amount: "", actionType: "", info: "", description: "" });
+  const [submitting, setSubmitting] = useState(false);
+  const [result, setResult] = useState(null);
+  const [error, setError] = useState("");
 
   const token = localStorage.getItem("token");
   const headers = { Authorization: `Bearer ${token}` };
@@ -106,14 +106,14 @@ const AdjustBalanceTab = ({ userId, userName, accounts = [] }) => {
       ? form.actionType === "debit"
         ? selectedBalance - debitAmount
         : form.actionType === "credit"
-        ? selectedBalance + parseFloat(form.amount || 0)
-        : selectedBalance
+          ? selectedBalance + parseFloat(form.amount || 0)
+          : selectedBalance
       : null;
 
   useEffect(() => {
     axios.get(`${API_BASE_URL}/superAdmin/currencies`, { headers })
       .then((r) => setCurrencies((r.data?.data ?? []).filter((c) => c.isActive)))
-      .catch(() => {})
+      .catch(() => { })
       .finally(() => setCurrLoading(false));
   }, []);
 
@@ -172,11 +172,10 @@ const AdjustBalanceTab = ({ userId, userName, accounts = [] }) => {
                   key={a.currency}
                   type="button"
                   onClick={() => set("currency", a.currency)}
-                  className={`text-[10px] rounded-full px-2 py-0.5 border transition ${
-                    form.currency === a.currency
+                  className={`text-[10px] rounded-full px-2 py-0.5 border transition ${form.currency === a.currency
                       ? "bg-emerald-100 border-emerald-300 text-emerald-700 font-semibold"
                       : "bg-white border-gray-200 text-gray-500 hover:border-gray-300"
-                  }`}
+                    }`}
                 >
                   {a.currency}
                 </button>
@@ -243,15 +242,14 @@ const AdjustBalanceTab = ({ userId, userName, accounts = [] }) => {
           </label>
           <div className="grid grid-cols-2 gap-2">
             {[
-              { value: "credit", label: "Credit", desc: "Add funds to wallet",    icon: <ArrowUpCircle   size={14} className="text-emerald-500 shrink-0" />, active: "border-emerald-400 bg-emerald-50 ring-2 ring-emerald-100", activeText: "text-emerald-700" },
-              { value: "debit",  label: "Debit",  desc: "Deduct from wallet",     icon: <ArrowDownCircle size={14} className="text-red-500 shrink-0" />,     active: "border-red-400 bg-red-50 ring-2 ring-red-100",           activeText: "text-red-700"     },
+              { value: "credit", label: "Credit", desc: "Add funds to wallet", icon: <ArrowUpCircle size={14} className="text-emerald-500 shrink-0" />, active: "border-emerald-400 bg-emerald-50 ring-2 ring-emerald-100", activeText: "text-emerald-700" },
+              { value: "debit", label: "Debit", desc: "Deduct from wallet", icon: <ArrowDownCircle size={14} className="text-red-500 shrink-0" />, active: "border-red-400 bg-red-50 ring-2 ring-red-100", activeText: "text-red-700" },
             ].map((opt) => (
               <button
                 key={opt.value} type="button"
                 onClick={() => set("actionType", opt.value)}
-                className={`flex items-center gap-2.5 px-4 py-3 rounded-xl border text-left transition ${
-                  form.actionType === opt.value ? opt.active : "border-gray-200 bg-white hover:border-gray-300 hover:bg-gray-50"
-                }`}
+                className={`flex items-center gap-2.5 px-4 py-3 rounded-xl border text-left transition ${form.actionType === opt.value ? opt.active : "border-gray-200 bg-white hover:border-gray-300 hover:bg-gray-50"
+                  }`}
               >
                 {opt.icon}
                 <div>
@@ -291,9 +289,8 @@ const AdjustBalanceTab = ({ userId, userName, accounts = [] }) => {
 
         {/* Debit warning + insufficient funds */}
         {form.actionType === "debit" && form.amount && (
-          <div className={`flex items-start gap-2.5 px-4 py-3 rounded-xl border ${
-            insufficientFunds ? "bg-red-50 border-red-100" : "bg-amber-50 border-amber-100"
-          }`}>
+          <div className={`flex items-start gap-2.5 px-4 py-3 rounded-xl border ${insufficientFunds ? "bg-red-50 border-red-100" : "bg-amber-50 border-amber-100"
+            }`}>
             <AlertTriangle size={14} className={`mt-0.5 shrink-0 ${insufficientFunds ? "text-red-500" : "text-amber-500"}`} />
             <div className={`text-xs ${insufficientFunds ? "text-red-700" : "text-amber-700"}`}>
               <p>
@@ -331,9 +328,8 @@ const AdjustBalanceTab = ({ userId, userName, accounts = [] }) => {
         <button
           type="submit"
           disabled={submitting}
-          className={`w-full py-2.5 rounded-xl text-sm font-semibold text-white transition disabled:opacity-60 disabled:cursor-not-allowed flex items-center justify-center gap-2 ${
-            form.actionType === "debit" ? "bg-red-500 hover:bg-red-600" : "bg-emerald-600 hover:bg-emerald-700"
-          }`}
+          className={`w-full py-2.5 rounded-xl text-sm font-semibold text-white transition disabled:opacity-60 disabled:cursor-not-allowed flex items-center justify-center gap-2 ${form.actionType === "debit" ? "bg-red-500 hover:bg-red-600" : "bg-emerald-600 hover:bg-emerald-700"
+            }`}
         >
           {submitting ? <><Spinner sm />Processing…</> : (
             <>
@@ -349,10 +345,10 @@ const AdjustBalanceTab = ({ userId, userName, accounts = [] }) => {
 
 // ── Push Notification Tab ─────────────────────────────────────────────────────
 const PushNotificationTab = ({ userId, userName }) => {
-  const [form,       setForm]       = useState({ title: "", body: "" });
+  const [form, setForm] = useState({ title: "", body: "" });
   const [submitting, setSubmitting] = useState(false);
-  const [result,     setResult]     = useState(null);
-  const [error,      setError]      = useState("");
+  const [result, setResult] = useState(null);
+  const [error, setError] = useState("");
 
   const token = localStorage.getItem("token");
   const headers = { Authorization: `Bearer ${token}` };
@@ -615,45 +611,45 @@ const PushNotificationTab = ({ userId, userName }) => {
 // ─────────────────────────────────────────────────────────────────────────────
 export default function UserProfileView({ onClose }) {
   const { userId } = useParams();
-  const navigate   = useNavigate();
+  const navigate = useNavigate();
 
-  const [user,        setUser]        = useState(null);
+  const [user, setUser] = useState(null);
   const [loadingUser, setLoadingUser] = useState(true);
-  const [errorUser,   setErrorUser]   = useState("");
-  const [activeTab,   setActiveTab]   = useState("Profile");
+  const [errorUser, setErrorUser] = useState("");
+  const [activeTab, setActiveTab] = useState("Profile");
 
   // Virtual Accounts
-  const [virtualAccounts,        setVirtualAccounts]        = useState([]);
+  const [virtualAccounts, setVirtualAccounts] = useState([]);
   const [virtualAccountsLoading, setVirtualAccountsLoading] = useState(false);
-  const [virtualAccountsError,   setVirtualAccountsError]   = useState("");
-  const [virtualAccountsPage,    setVirtualAccountsPage]    = useState(0);
-  const [virtualAccountsCount,   setVirtualAccountsCount]   = useState(null);
+  const [virtualAccountsError, setVirtualAccountsError] = useState("");
+  const [virtualAccountsPage, setVirtualAccountsPage] = useState(0);
+  const [virtualAccountsCount, setVirtualAccountsCount] = useState(null);
   const virtualAccountsLimit = 10;
 
   // Transactions
-  const [txns,        setTxns]        = useState([]);
+  const [txns, setTxns] = useState([]);
   const [txnsLoading, setTxnsLoading] = useState(false);
-  const [txnsPage,    setTxnsPage]    = useState(0);
-  const [txnsCount,   setTxnsCount]   = useState(null);
+  const [txnsPage, setTxnsPage] = useState(0);
+  const [txnsCount, setTxnsCount] = useState(null);
   const txnsLimit = 10;
 
   // Profits
-  const [profits,        setProfits]        = useState([]);
+  const [profits, setProfits] = useState([]);
   const [profitsLoading, setProfitsLoading] = useState(false);
-  const [profitsPage,    setProfitsPage]    = useState(0);
-  const [profitsCount,   setProfitsCount]   = useState(null);
-  const [profitSummary,  setProfitSummary]  = useState(null);
+  const [profitsPage, setProfitsPage] = useState(0);
+  const [profitsCount, setProfitsCount] = useState(null);
+  const [profitSummary, setProfitSummary] = useState(null);
   const profitsLimit = 10;
 
   // KYC
   const [kycRecords, setKycRecords] = useState([]);
 
-  const token       = localStorage.getItem("token");
+  const token = localStorage.getItem("token");
   const authHeaders = useMemo(() => (token ? { Authorization: `Bearer ${token}` } : {}), [token]);
 
   const virtualAccountsPagesTotal = virtualAccountsCount ? Math.ceil(virtualAccountsCount / virtualAccountsLimit) : null;
-  const txnsPagesTotal            = txnsCount            ? Math.ceil(txnsCount            / txnsLimit)            : null;
-  const profitsPagesTotal         = profitsCount         ? Math.ceil(profitsCount         / profitsLimit)         : null;
+  const txnsPagesTotal = txnsCount ? Math.ceil(txnsCount / txnsLimit) : null;
+  const profitsPagesTotal = profitsCount ? Math.ceil(profitsCount / profitsLimit) : null;
 
   const parsedAddress = useMemo(() => {
     try {
@@ -682,7 +678,7 @@ export default function UserProfileView({ onClose }) {
     setErrorUser("");
     return axios.get(`${API_BASE_URL}/superAdmin/users`, { headers: { ...authHeaders, Accept: "application/json" } })
       .then((res) => {
-        const all   = Array.isArray(res.data?.data) ? res.data.data : [];
+        const all = Array.isArray(res.data?.data) ? res.data.data : [];
         const found = all.find((u) => [u?.id, u?._id, u?.userId].some((v) => String(v).trim() === String(userId).trim()));
         if (!found) { setErrorUser("User not found"); setUser(null); }
         else { setUser(found); setKycRecords(Array.isArray(found.kycRecords) ? found.kycRecords : []); }
@@ -761,8 +757,8 @@ export default function UserProfileView({ onClose }) {
     }
   }, [userId, authHeaders]);
 
-  useEffect(() => { if (activeTab === "Virtual Accounts")  fetchVirtualAccounts(virtualAccountsPage); }, [activeTab, virtualAccountsPage, fetchVirtualAccounts]);
-  useEffect(() => { if (activeTab === "Transactions")      fetchTransactions(txnsPage);               }, [activeTab, txnsPage,            fetchTransactions]);
+  useEffect(() => { if (activeTab === "Virtual Accounts") fetchVirtualAccounts(virtualAccountsPage); }, [activeTab, virtualAccountsPage, fetchVirtualAccounts]);
+  useEffect(() => { if (activeTab === "Transactions") fetchTransactions(txnsPage); }, [activeTab, txnsPage, fetchTransactions]);
   useEffect(() => {
     if (activeTab === "Profit History") { fetchProfits(profitsPage); fetchProfitSummary(); }
   }, [activeTab, profitsPage, fetchProfits, fetchProfitSummary]);
@@ -844,15 +840,14 @@ export default function UserProfileView({ onClose }) {
               <button
                 key={t}
                 onClick={() => setActiveTab(t)}
-                className={`flex-shrink-0 text-sm px-3 py-2 rounded-t-lg whitespace-nowrap transition-colors ${
-                  t === activeTab
+                className={`flex-shrink-0 text-sm px-3 py-2 rounded-t-lg whitespace-nowrap transition-colors ${t === activeTab
                     ? isAction
                       ? t === "Adjust Balance"
                         ? "text-emerald-600 border-b-2 border-emerald-500 font-semibold bg-emerald-50/50"
                         : "text-blue-600 border-b-2 border-blue-600 font-semibold bg-blue-50/50"
                       : "text-blue-600 border-b-2 border-blue-600 font-semibold bg-blue-50/50"
                     : "text-gray-500 hover:text-gray-700 hover:bg-gray-50"
-                }`}
+                  }`}
               >
                 {t}
               </button>
@@ -862,12 +857,12 @@ export default function UserProfileView({ onClose }) {
 
         {/* Content */}
         <div className="p-4 sm:p-6">
-          {activeTab === "Profile"           && <ProfileTab user={user} parsedAddress={parsedAddress} onUserUpdate={fetchUser} />}
-          {activeTab === "Wallets"           && <WalletsTab user={user} />}
-          {activeTab === "Transactions"      && (
+          {activeTab === "Profile" && <ProfileTab user={user} parsedAddress={parsedAddress} onUserUpdate={fetchUser} />}
+          {activeTab === "Wallets" && <WalletsTab user={user} />}
+          {activeTab === "Transactions" && (
             <TransactionsTab txns={txns} txnsLoading={txnsLoading} txnsCount={txnsCount} txnsPage={txnsPage} txnsPagesTotal={txnsPagesTotal} setTxnsPage={setTxnsPage} />
           )}
-          {activeTab === "Profit History"    && (
+          {activeTab === "Profit History" && (
             <ProfitHistoryTab profits={profits} profitsLoading={profitsLoading} profitsCount={profitsCount} profitsPage={profitsPage} profitsPagesTotal={profitsPagesTotal} profitSummary={profitSummary} setProfitsPage={setProfitsPage} />
           )}
           {activeTab === "KYC Verification" && (
@@ -892,12 +887,12 @@ export default function UserProfileView({ onClose }) {
           {activeTab === "Virtual Accounts" && (
             <VirtualAccountsTab virtualAccounts={virtualAccounts} virtualAccountsLoading={virtualAccountsLoading} virtualAccountsError={virtualAccountsError} virtualAccountsCount={virtualAccountsCount} virtualAccountsPage={virtualAccountsPage} virtualAccountsPagesTotal={virtualAccountsPagesTotal} setVirtualAccountsPage={setVirtualAccountsPage} />
           )}
-          {activeTab === "Beneficiaries"    && <BeneficiariesTab userId={userId} baseURL={API_BASE_URL} authHeader={authHeaders} />}
-          {activeTab === "Virtual Cards"    && <UserVirtualCardsTab userId={userId} baseURL={API_BASE_URL} authHeader={authHeaders} />}
+          {activeTab === "Beneficiaries" && <BeneficiariesTab userId={userId} baseURL={API_BASE_URL} authHeader={authHeaders} />}
+          {activeTab === "Virtual Cards" && <UserVirtualCardsTab userId={userId} baseURL={API_BASE_URL} authHeader={authHeaders} />}
           {/* {activeTab === "Card Summary"     && <CardSummaryTab userId={userId} />} */}
 
           {/* ── Action tabs ── */}
-          {activeTab === "Adjust Balance"    && (
+          {activeTab === "Adjust Balance" && (
             <AdjustBalanceTab userId={userId} userName={userName} accounts={user.accounts || []} />
           )}
           {activeTab === "Push Notification" && <PushNotificationTab userId={userId} userName={userName} />}

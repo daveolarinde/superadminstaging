@@ -12,30 +12,30 @@ const getPageNumbers = (current, total) => {
 };
 
 export default function TransactionTable() {
-  const [transactions, setTransactions]               = useState([]);
-  const [searchTerm, setSearchTerm]                   = useState("");
-  const [showFilter, setShowFilter]                   = useState(false);
+  const [transactions, setTransactions] = useState([]);
+  const [searchTerm, setSearchTerm] = useState("");
+  const [showFilter, setShowFilter] = useState(false);
   const [filterTransactionId, setFilterTransactionId] = useState("");
-  const [filterStartDate, setFilterStartDate]         = useState("");
-  const [filterEndDate, setFilterEndDate]             = useState("");
-  const [filterCurrency, setFilterCurrency]           = useState("");
-  const [filterType, setFilterType]                   = useState("");
-  const [filterClass, setFilterClass]                 = useState("");
-  const [loading, setLoading]                         = useState(false);
-  const [currentPage, setCurrentPage]                 = useState(1);
+  const [filterStartDate, setFilterStartDate] = useState("");
+  const [filterEndDate, setFilterEndDate] = useState("");
+  const [filterCurrency, setFilterCurrency] = useState("");
+  const [filterType, setFilterType] = useState("");
+  const [filterClass, setFilterClass] = useState("");
+  const [loading, setLoading] = useState(false);
+  const [currentPage, setCurrentPage] = useState(1);
 
   // ✅ Staged filter state — only committed when "Apply" is clicked
   const [stagedStartDate, setStagedStartDate] = useState("");
-  const [stagedEndDate, setStagedEndDate]     = useState("");
-  const [stagedCurrency, setStagedCurrency]   = useState("");
-  const [stagedType, setStagedType]           = useState("");
-  const [stagedClass, setStagedClass]         = useState("");
+  const [stagedEndDate, setStagedEndDate] = useState("");
+  const [stagedCurrency, setStagedCurrency] = useState("");
+  const [stagedType, setStagedType] = useState("");
+  const [stagedClass, setStagedClass] = useState("");
 
   const pageSize = 10;
   const navigate = useNavigate();
   const location = useLocation();
-  const token    = localStorage.getItem("token");
-  const baseUrl  = import.meta.env.VITE_API_URL;
+  const token = localStorage.getItem("token");
+  const baseUrl = import.meta.env.VITE_API_URL;
   const selectedCurrency = location.state?.currency || "";
 
   // ── Fetch — depends only on committed filter state ─────────────────────
@@ -43,13 +43,13 @@ export default function TransactionTable() {
     setLoading(true);
     try {
       const params = {};
-      if (filterStartDate) params.startDate        = filterStartDate;
-      if (filterEndDate)   params.endDate          = filterEndDate;
-      if (filterType)      params.type             = filterType;
-      if (filterClass)     params.transactionClass = filterClass;
+      if (filterStartDate) params.startDate = filterStartDate;
+      if (filterEndDate) params.endDate = filterEndDate;
+      if (filterType) params.type = filterType;
+      if (filterClass) params.transactionClass = filterClass;
 
       // Route-level currency takes priority over filter currency
-      if (selectedCurrency)  params.currency = selectedCurrency;
+      if (selectedCurrency) params.currency = selectedCurrency;
       else if (filterCurrency) params.currency = filterCurrency;
 
       const res = await axios.get(`${baseUrl}/superAdmin/transactions`, {
@@ -59,21 +59,21 @@ export default function TransactionTable() {
 
       if (res.data.success && Array.isArray(res.data.data)) {
         const formatted = res.data.data.map((tx, idx) => ({
-          id:            idx + 1,
+          id: idx + 1,
           transactionId: tx.id,
-          type:          tx.type,
+          type: tx.type,
           user: {
-            id:       tx.user?.id,
-            name:     `${tx.user?.firstname || "Unknown"} ${tx.user?.lastname || ""}`.trim(),
+            id: tx.user?.id,
+            name: `${tx.user?.firstname || "Unknown"} ${tx.user?.lastname || ""}`.trim(),
             username: tx.user?.tag ? `@${tx.user.tag}` : tx.user?.email || "",
           },
-          amount:      `${tx.type === "credit" ? "+" : "-"}${tx.amount} ${tx.currency}`,
+          amount: `${tx.type === "credit" ? "+" : "-"}${tx.amount} ${tx.currency}`,
           old_balance: tx.oldBalance ?? tx.old_balance ?? "-",
           new_balance: tx.newBalance ?? tx.new_balance ?? "-",
-          charge:      tx.fee ? `${tx.fee} ${tx.currency}` : "0.00",
-          remarks:     tx.info || tx.type || "-",
-          dateTime:    new Date(tx.createdAt || Date.now()).toLocaleString(),
-          raw:         tx,
+          charge: tx.fee ? `${tx.fee} ${tx.currency}` : "0.00",
+          remarks: tx.info || tx.type || "-",
+          dateTime: new Date(tx.createdAt || Date.now()).toLocaleString(),
+          raw: tx,
         }));
         setTransactions(formatted);
       } else {
@@ -117,10 +117,10 @@ export default function TransactionTable() {
   const handleClearFilters = () => {
     // Clear both staged and committed
     setStagedStartDate(""); setStagedEndDate("");
-    setStagedCurrency("");  setStagedType(""); setStagedClass("");
+    setStagedCurrency(""); setStagedType(""); setStagedClass("");
     setFilterTransactionId("");
     setFilterStartDate(""); setFilterEndDate("");
-    setFilterCurrency("");  setFilterType(""); setFilterClass("");
+    setFilterCurrency(""); setFilterType(""); setFilterClass("");
     setCurrentPage(1);
     setShowFilter(false);
   };
@@ -136,20 +136,20 @@ export default function TransactionTable() {
     return matchesSearch && matchesFilterId;
   });
 
-  const totalPages          = Math.ceil(filteredTransactions.length / pageSize);
-  const startIndex          = (currentPage - 1) * pageSize;
-  const endIndex            = Math.min(startIndex + pageSize, filteredTransactions.length);
+  const totalPages = Math.ceil(filteredTransactions.length / pageSize);
+  const startIndex = (currentPage - 1) * pageSize;
+  const endIndex = Math.min(startIndex + pageSize, filteredTransactions.length);
   const currentTransactions = filteredTransactions.slice(startIndex, startIndex + pageSize);
-  const pageNumbers         = getPageNumbers(currentPage, totalPages);
-  const activeFilterCount   = [filterStartDate, filterEndDate, filterCurrency, filterType, filterClass].filter(Boolean).length;
+  const pageNumbers = getPageNumbers(currentPage, totalPages);
+  const activeFilterCount = [filterStartDate, filterEndDate, filterCurrency, filterType, filterClass].filter(Boolean).length;
 
   const headers = ["No.", "Transaction ID", "User", "Amount", "Old Balance", "New Balance", "Charge", "Remarks", "Date & Time", "Action"];
 
   const classBadgeMap = {
-    card:     "bg-violet-50 text-violet-700 border border-violet-200",
-    swap:     "bg-amber-50 text-amber-700 border border-amber-200",
+    card: "bg-violet-50 text-violet-700 border border-violet-200",
+    swap: "bg-amber-50 text-amber-700 border border-amber-200",
     transfer: "bg-blue-50 text-blue-700 border border-blue-200",
-    wallet:   "bg-teal-50 text-teal-700 border border-teal-200",
+    wallet: "bg-teal-50 text-teal-700 border border-teal-200",
   };
 
   return (
@@ -375,13 +375,12 @@ export default function TransactionTable() {
                 <div className="flex gap-2">
                   {[{ v: "", l: "All" }, { v: "credit", l: "Credit" }, { v: "debit", l: "Debit" }].map((t) => (
                     <button key={t.v} onClick={() => setStagedType(t.v)}
-                      className={`flex-1 py-2 rounded-xl text-xs font-semibold border transition ${
-                        stagedType === t.v
+                      className={`flex-1 py-2 rounded-xl text-xs font-semibold border transition ${stagedType === t.v
                           ? t.v === "credit" ? "bg-emerald-600 border-emerald-600 text-white"
-                          : t.v === "debit"  ? "bg-red-500 border-red-500 text-white"
-                          : "bg-blue-600 border-blue-600 text-white"
+                            : t.v === "debit" ? "bg-red-500 border-red-500 text-white"
+                              : "bg-blue-600 border-blue-600 text-white"
                           : "border-gray-200 text-gray-600 bg-white hover:bg-gray-50"
-                      }`}>
+                        }`}>
                       {t.l}
                     </button>
                   ))}
@@ -393,16 +392,15 @@ export default function TransactionTable() {
                 <label className="block text-xs font-bold text-gray-400 uppercase tracking-wider mb-2">Transaction Class</label>
                 <div className="grid grid-cols-2 gap-2">
                   {[
-                    { v: "",         l: "All",       cls: "bg-blue-600 border-blue-600 text-white"     },
-                    { v: "card",     l: "💳 Card",    cls: "bg-violet-600 border-violet-600 text-white" },
-                    { v: "swap",     l: "🔄 Swap",    cls: "bg-amber-500 border-amber-500 text-white"   },
-                    { v: "transfer", l: "↗ Transfer", cls: "bg-blue-600 border-blue-600 text-white"     },
-                    { v: "wallet",   l: "👜 Wallet",  cls: "bg-teal-600 border-teal-600 text-white"     },
+                    { v: "", l: "All", cls: "bg-blue-600 border-blue-600 text-white" },
+                    { v: "card", l: "💳 Card", cls: "bg-violet-600 border-violet-600 text-white" },
+                    { v: "swap", l: "🔄 Swap", cls: "bg-amber-500 border-amber-500 text-white" },
+                    { v: "transfer", l: "↗ Transfer", cls: "bg-blue-600 border-blue-600 text-white" },
+                    { v: "wallet", l: "👜 Wallet", cls: "bg-teal-600 border-teal-600 text-white" },
                   ].map((c) => (
                     <button key={c.v} onClick={() => setStagedClass(c.v)}
-                      className={`py-2 rounded-xl text-xs font-semibold border transition ${
-                        stagedClass === c.v ? c.cls : "border-gray-200 text-gray-600 bg-white hover:bg-gray-50"
-                      } ${c.v === "" ? "col-span-2" : ""}`}>
+                      className={`py-2 rounded-xl text-xs font-semibold border transition ${stagedClass === c.v ? c.cls : "border-gray-200 text-gray-600 bg-white hover:bg-gray-50"
+                        } ${c.v === "" ? "col-span-2" : ""}`}>
                       {c.l}
                     </button>
                   ))}

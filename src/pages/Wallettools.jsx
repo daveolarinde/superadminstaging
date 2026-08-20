@@ -21,9 +21,8 @@ const fmt = (amount, currency) =>
 const Toast = ({ message, type, onClose }) => {
   useEffect(() => { const t = setTimeout(onClose, 4000); return () => clearTimeout(t); }, [onClose]);
   return (
-    <div className={`fixed bottom-6 right-6 z-[60] flex items-center gap-3 px-4 py-3 rounded-xl shadow-xl text-sm font-medium animate-in fade-in slide-in-from-bottom-2 ${
-      type === "success" ? "bg-emerald-600 text-white" : "bg-red-500 text-white"
-    }`}>
+    <div className={`fixed bottom-6 right-6 z-[60] flex items-center gap-3 px-4 py-3 rounded-xl shadow-xl text-sm font-medium animate-in fade-in slide-in-from-bottom-2 ${type === "success" ? "bg-emerald-600 text-white" : "bg-red-500 text-white"
+      }`}>
       {type === "success" ? <CheckCircle2 size={16} /> : <XCircle size={16} />}
       <span>{message}</span>
       <button onClick={onClose} className="ml-1 opacity-70 hover:opacity-100"><X size={13} /></button>
@@ -57,9 +56,8 @@ const Select = ({ value, onChange, options, placeholder, disabled }) => {
                 key={opt.value}
                 type="button"
                 onClick={() => { onChange(opt.value); setOpen(false); }}
-                className={`flex items-center gap-3 w-full px-4 py-2.5 text-sm text-left transition hover:bg-gray-50 ${
-                  value === opt.value ? "bg-blue-50/60 text-blue-700 font-medium" : "text-gray-700"
-                }`}
+                className={`flex items-center gap-3 w-full px-4 py-2.5 text-sm text-left transition hover:bg-gray-50 ${value === opt.value ? "bg-blue-50/60 text-blue-700 font-medium" : "text-gray-700"
+                  }`}
               >
                 {opt.icon && opt.icon}
                 <div>
@@ -91,12 +89,12 @@ const AdjustResult = ({ data, onReset }) => (
 
     <div className="bg-gray-50 border border-gray-100 rounded-2xl divide-y divide-gray-100">
       {[
-        { label: "Target",         value: data.target === "wallet" ? "Wallet" : "Card" },
-        { label: "Currency",       value: data.currency                                },
-        { label: "Old Balance",    value: fmt(data.oldBalance, data.currency)          },
-        { label: "New Balance",    value: fmt(data.newBalance, data.currency), highlight: true },
-        { label: "Transaction ID", value: data.transactionId, mono: true               },
-        { label: "Reference",      value: data.referenceId,   mono: true               },
+        { label: "Target", value: data.target === "wallet" ? "Wallet" : "Card" },
+        { label: "Currency", value: data.currency },
+        { label: "Old Balance", value: fmt(data.oldBalance, data.currency) },
+        { label: "New Balance", value: fmt(data.newBalance, data.currency), highlight: true },
+        { label: "Transaction ID", value: data.transactionId, mono: true },
+        { label: "Reference", value: data.referenceId, mono: true },
       ].map(({ label, value, highlight, mono }) => (
         <div key={label} className="flex items-center justify-between px-4 py-3">
           <span className="text-xs text-gray-500">{label}</span>
@@ -145,11 +143,11 @@ const AdjustWalletSection = ({ currencies, users }) => {
   const [form, setForm] = useState({
     userId: "", currency: "", amount: "", actionType: "", info: "", description: "",
   });
-  const [userSearch, setUserSearch]   = useState("");
+  const [userSearch, setUserSearch] = useState("");
   const [userDropdown, setUserDropdown] = useState(false);
-  const [submitting, setSubmitting]   = useState(false);
-  const [result, setResult]           = useState(null);
-  const [error, setError]             = useState("");
+  const [submitting, setSubmitting] = useState(false);
+  const [result, setResult] = useState(null);
+  const [error, setError] = useState("");
 
   const set = (key, val) => setForm((p) => ({ ...p, [key]: val }));
 
@@ -157,7 +155,7 @@ const AdjustWalletSection = ({ currencies, users }) => {
     const term = userSearch.toLowerCase();
     return (
       u.firstname?.toLowerCase().includes(term) ||
-      u.lastname?.toLowerCase().includes(term)  ||
+      u.lastname?.toLowerCase().includes(term) ||
       u.email?.toLowerCase().includes(term)
     );
   }).slice(0, 20);
@@ -170,8 +168,8 @@ const AdjustWalletSection = ({ currencies, users }) => {
   }));
 
   const actionOptions = [
-    { value: "credit", label: "Credit",  description: "Add funds to wallet",      icon: <ArrowUpCircle size={14} className="text-emerald-500 shrink-0" /> },
-    { value: "debit",  label: "Debit",   description: "Deduct funds from wallet",  icon: <ArrowDownCircle size={14} className="text-red-500 shrink-0" /> },
+    { value: "credit", label: "Credit", description: "Add funds to wallet", icon: <ArrowUpCircle size={14} className="text-emerald-500 shrink-0" /> },
+    { value: "debit", label: "Debit", description: "Deduct funds from wallet", icon: <ArrowDownCircle size={14} className="text-red-500 shrink-0" /> },
   ];
 
   const handleSubmit = async (e) => {
@@ -314,21 +312,19 @@ const AdjustWalletSection = ({ currencies, users }) => {
               key={opt.value}
               type="button"
               onClick={() => set("actionType", opt.value)}
-              className={`flex items-center gap-2.5 px-4 py-3 rounded-xl border text-left transition ${
-                form.actionType === opt.value
+              className={`flex items-center gap-2.5 px-4 py-3 rounded-xl border text-left transition ${form.actionType === opt.value
                   ? opt.value === "credit"
                     ? "border-emerald-400 bg-emerald-50 ring-2 ring-emerald-100"
                     : "border-red-400 bg-red-50 ring-2 ring-red-100"
                   : "border-gray-200 bg-white hover:border-gray-300 hover:bg-gray-50"
-              }`}
+                }`}
             >
               {opt.icon}
               <div>
-                <p className={`text-sm font-semibold ${
-                  form.actionType === opt.value
+                <p className={`text-sm font-semibold ${form.actionType === opt.value
                     ? opt.value === "credit" ? "text-emerald-700" : "text-red-700"
                     : "text-gray-700"
-                }`}>{opt.label}</p>
+                  }`}>{opt.label}</p>
                 <p className="text-[10px] text-gray-400">{opt.description}</p>
               </div>
             </button>
@@ -384,11 +380,10 @@ const AdjustWalletSection = ({ currencies, users }) => {
       <button
         type="submit"
         disabled={submitting}
-        className={`w-full py-2.5 rounded-xl text-sm font-semibold text-white transition disabled:opacity-60 disabled:cursor-not-allowed flex items-center justify-center gap-2 ${
-          form.actionType === "debit"
+        className={`w-full py-2.5 rounded-xl text-sm font-semibold text-white transition disabled:opacity-60 disabled:cursor-not-allowed flex items-center justify-center gap-2 ${form.actionType === "debit"
             ? "bg-red-500 hover:bg-red-600"
             : "bg-emerald-600 hover:bg-emerald-700"
-        }`}
+          }`}
       >
         {submitting ? (
           <><svg className="animate-spin w-4 h-4" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24"><circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" /><path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8v8z" /></svg>Processing…</>
@@ -405,19 +400,19 @@ const AdjustWalletSection = ({ currencies, users }) => {
 
 // ── SECTION: Send Push Notification ──────────────────────────────────────────
 const SEND_TO_OPTIONS = [
-  { value: "all",      label: "All Users",      description: "Every registered user",       icon: <Users size={14} className="text-blue-500 shrink-0" />    },
-  { value: "active",   label: "Active Users",   description: "Currently active accounts",   icon: <Users size={14} className="text-emerald-500 shrink-0" /> },
-  { value: "inactive", label: "Inactive Users", description: "Dormant or unverified users", icon: <Users size={14} className="text-amber-500 shrink-0" />   },
-  { value: "selected", label: "Selected Users", description: "Specific user IDs",           icon: <Users size={14} className="text-purple-500 shrink-0" />  },
+  { value: "all", label: "All Users", description: "Every registered user", icon: <Users size={14} className="text-blue-500 shrink-0" /> },
+  { value: "active", label: "Active Users", description: "Currently active accounts", icon: <Users size={14} className="text-emerald-500 shrink-0" /> },
+  { value: "inactive", label: "Inactive Users", description: "Dormant or unverified users", icon: <Users size={14} className="text-amber-500 shrink-0" /> },
+  { value: "selected", label: "Selected Users", description: "Specific user IDs", icon: <Users size={14} className="text-purple-500 shrink-0" /> },
 ];
 
 const PushSection = ({ users }) => {
-  const [form, setForm]           = useState({ title: "", body: "", sendTo: "all", userIds: [] });
+  const [form, setForm] = useState({ title: "", body: "", sendTo: "all", userIds: [] });
   const [userSearch, setUserSearch] = useState("");
   const [userDropdown, setUserDropdown] = useState(false);
   const [submitting, setSubmitting] = useState(false);
-  const [result, setResult]       = useState(null);
-  const [error, setError]         = useState("");
+  const [result, setResult] = useState(null);
+  const [error, setError] = useState("");
 
   const set = (key, val) => setForm((p) => ({ ...p, [key]: val }));
 
@@ -425,7 +420,7 @@ const PushSection = ({ users }) => {
     const term = userSearch.toLowerCase();
     return (
       u.firstname?.toLowerCase().includes(term) ||
-      u.lastname?.toLowerCase().includes(term)  ||
+      u.lastname?.toLowerCase().includes(term) ||
       u.email?.toLowerCase().includes(term)
     );
   }).slice(0, 20);
@@ -485,11 +480,10 @@ const PushSection = ({ users }) => {
               key={opt.value}
               type="button"
               onClick={() => set("sendTo", opt.value)}
-              className={`flex items-start gap-2.5 px-3.5 py-3 rounded-xl border text-left transition ${
-                form.sendTo === opt.value
+              className={`flex items-start gap-2.5 px-3.5 py-3 rounded-xl border text-left transition ${form.sendTo === opt.value
                   ? "border-blue-400 bg-blue-50 ring-2 ring-blue-100"
                   : "border-gray-200 bg-white hover:border-gray-300 hover:bg-gray-50"
-              }`}
+                }`}
             >
               {opt.icon}
               <div>
@@ -634,11 +628,11 @@ const PushSection = ({ users }) => {
 
 // ── MAIN PAGE ─────────────────────────────────────────────────────────────────
 export default function WalletTools() {
-  const [activeTab, setActiveTab]   = useState("wallet");
+  const [activeTab, setActiveTab] = useState("wallet");
   const [currencies, setCurrencies] = useState([]);
-  const [users, setUsers]           = useState([]);
-  const [loading, setLoading]       = useState(true);
-  const [toast, setToast]           = useState(null);
+  const [users, setUsers] = useState([]);
+  const [loading, setLoading] = useState(true);
+  const [toast, setToast] = useState(null);
 
   const token = localStorage.getItem("token");
   const headers = { Authorization: `Bearer ${token}` };
@@ -648,7 +642,7 @@ export default function WalletTools() {
     try {
       const [currRes, userRes] = await Promise.all([
         axios.get(`${API_BASE_URL}/superAdmin/currencies`, { headers }),
-        axios.get(`${API_BASE_URL}/superAdmin/users`,      { headers }),
+        axios.get(`${API_BASE_URL}/superAdmin/users`, { headers }),
       ]);
       setCurrencies((currRes.data?.data ?? []).filter((c) => c.isActive));
       setUsers(userRes.data?.data ?? []);
@@ -662,8 +656,8 @@ export default function WalletTools() {
   useEffect(() => { fetchData(); }, []);
 
   const tabs = [
-    { id: "wallet", label: "Adjust Wallet",    icon: <Wallet size={15} />,  color: "emerald" },
-    { id: "push",   label: "Push Notification", icon: <Bell size={15} />,   color: "blue"    },
+    { id: "wallet", label: "Adjust Wallet", icon: <Wallet size={15} />, color: "emerald" },
+    { id: "push", label: "Push Notification", icon: <Bell size={15} />, color: "blue" },
   ];
 
   if (loading)
@@ -701,11 +695,10 @@ export default function WalletTools() {
           <button
             key={tab.id}
             onClick={() => setActiveTab(tab.id)}
-            className={`flex-1 flex items-center justify-center gap-2 px-4 py-2.5 rounded-xl text-sm font-semibold transition ${
-              activeTab === tab.id
+            className={`flex-1 flex items-center justify-center gap-2 px-4 py-2.5 rounded-xl text-sm font-semibold transition ${activeTab === tab.id
                 ? "bg-white text-gray-800 shadow-sm"
                 : "text-gray-500 hover:text-gray-700"
-            }`}
+              }`}
           >
             {tab.icon}
             {tab.label}

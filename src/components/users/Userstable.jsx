@@ -1,5 +1,5 @@
 // components/UsersTable.jsx
-import { useState, useCallback, useEffect, useRef, useMemo } from "react";
+import { useState, useCallback, useEffect, useRef } from "react";
 import { useNavigate } from "react-router-dom";
 import { formatDistanceToNow } from "date-fns";
 import {
@@ -16,44 +16,6 @@ import LinkExt from "@tiptap/extension-link";
 import TextAlign from "@tiptap/extension-text-align";
 
 const API_URL = import.meta.env.VITE_API_URL;
-
-// ── Relevance scoring ─────────────────────────────────────────────────────────
-// Re-ranks whatever page of users the backend returns for a search so the
-// strongest match for the typed query floats to the top, regardless of the
-// order the API happens to send them in. Lower score = more relevant.
-const userMatchScore = (user, query) => {
-  const q = query.trim().toLowerCase();
-  if (!q) return 0;
-
-  const first   = (user.firstname || "").toLowerCase();
-  const last    = (user.lastname || "").toLowerCase();
-  const full    = `${first} ${last}`.trim();
-  const email   = (user.email || "").toLowerCase();
-  const tag     = (user.tag || "").toLowerCase();
-  const phone   = (user.phoneNumber || "").toLowerCase();
-  const country = (user.country || "").toLowerCase();
-
-  // Lower weight = higher-priority field (full name checked first, per request)
-  const fields = [
-    { val: full,    weight: 0 },
-    { val: first,   weight: 1 },
-    { val: last,    weight: 1 },
-    { val: tag,     weight: 2 },
-    { val: email,   weight: 3 },
-    { val: phone,   weight: 4 },
-    { val: country, weight: 5 },
-  ];
-
-  let best = Infinity;
-  for (const { val, weight } of fields) {
-    if (!val) continue;
-    if (val === q) best = Math.min(best, weight * 10 + 0);            // exact match
-    else if (val.startsWith(q)) best = Math.min(best, weight * 10 + 1); // prefix match
-    else if (val.includes(q)) best = Math.min(best, weight * 10 + 2);   // substring match
-  }
-
-  return best;
-};
 
 // ── Selfie helper ─────────────────────────────────────────────────────────────
 // selfieUrl isn't a top-level field on the user object — it lives inside
@@ -90,13 +52,13 @@ const UserAvatar = ({ user, size = "w-9 h-9", textSize = "text-sm" }) => {
 // ── Status badge ──────────────────────────────────────────────────────────────
 const StatusBadge = ({ status }) => {
   const map = {
-    active:      { cls: "bg-emerald-50 text-emerald-700 ring-1 ring-emerald-200", dot: "bg-emerald-500" },
-    inactive:    { cls: "bg-amber-50 text-amber-700 ring-1 ring-amber-200",       dot: "bg-amber-400"   },
-    blocked:     { cls: "bg-red-50 text-red-600 ring-1 ring-red-200",             dot: "bg-red-500"     },
-    deactivated: { cls: "bg-gray-100 text-gray-500 ring-1 ring-gray-200",         dot: "bg-gray-400"    },
-    deactivate:  { cls: "bg-gray-100 text-gray-500 ring-1 ring-gray-200",         dot: "bg-gray-400"    },
+    active: { cls: "bg-emerald-50 text-emerald-700 ring-1 ring-emerald-200", dot: "bg-emerald-500" },
+    inactive: { cls: "bg-amber-50 text-amber-700 ring-1 ring-amber-200", dot: "bg-amber-400" },
+    blocked: { cls: "bg-red-50 text-red-600 ring-1 ring-red-200", dot: "bg-red-500" },
+    deactivated: { cls: "bg-gray-100 text-gray-500 ring-1 ring-gray-200", dot: "bg-gray-400" },
+    deactivate: { cls: "bg-gray-100 text-gray-500 ring-1 ring-gray-200", dot: "bg-gray-400" },
   };
-  const s     = String(status || "").toLowerCase();
+  const s = String(status || "").toLowerCase();
   const style = map[s] || { cls: "bg-gray-100 text-gray-500", dot: "bg-gray-400" };
   return (
     <span className={`inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-xs font-semibold capitalize ${style.cls}`}>
@@ -116,16 +78,56 @@ const getPageNumbers = (current, total) => {
 
 // ── Audience options ──────────────────────────────────────────────────────────
 const AUDIENCE_OPTIONS = [
-  { value: "all",      label: "All Users",      description: "Every registered user",       dot: "bg-blue-500"    },
-  { value: "active",   label: "Active Users",   description: "Currently active accounts",   dot: "bg-emerald-500" },
-  { value: "inactive", label: "Inactive Users", description: "Dormant or unverified users", dot: "bg-amber-400"   },
+  { value: "all", label: "All Users", description: "Every registered user", dot: "bg-blue-500" },
+  { value: "active", label: "Active Users", description: "Currently active accounts", dot: "bg-emerald-500" },
+  { value: "inactive", label: "Inactive Users", description: "Dormant or unverified users", dot: "bg-amber-400" },
 ];
 
 // ── KYC type options ──────────────────────────────────────────────────────────
 const KYC_TYPE_OPTIONS = [
-  { value: "identity", label: "Identity Document",  description: "e.g. Passport, National ID, Driver's license" },
-  { value: "utility",  label: "Utility Document",   description: "e.g. Utility bill, Bank statement"            },
+  { value: "identity", label: "Identity Document", description: "e.g. Passport, National ID, Driver's license" },
+  { value: "utility", label: "Utility Document", description: "e.g. Utility bill, Bank statement" },
 ];
+
+// ── Email HTML post-processor ──────────────────────────────────────────────
+// Tiptap outputs bare <p>/<h1-3>/<ul>/<ol>/<hr> tags with no spacing.
+// Email clients (Gmail, Outlook, Apple Mail, etc.) strip <style> tags and
+// ignore Tailwind/prose classes entirely, so we inject inline margin
+// styles directly onto each block element right before sending. This runs
+// only at send-time — the live editor UI is untouched.
+const addEmailSpacing = (html) => {
+  if (!html) return html;
+
+  const doc = new DOMParser().parseFromString(html, "text/html");
+
+  const spacingMap = {
+    P: "margin:0 0 16px 0;",
+    H1: "margin:0 0 16px 0; font-size:1.5em; font-weight:700;",
+    H2: "margin:0 0 14px 0; font-size:1.25em; font-weight:700;",
+    H3: "margin:0 0 12px 0; font-size:1.1em; font-weight:700;",
+    UL: "margin:0 0 16px 0; padding-left:20px;",
+    OL: "margin:0 0 16px 0; padding-left:20px;",
+    LI: "margin:0 0 6px 0;",
+    HR: "margin:20px 0; border:none; border-top:1px solid #e5e7eb;",
+  };
+
+  Object.entries(spacingMap).forEach(([tag, style]) => {
+    doc.querySelectorAll(tag).forEach((el) => {
+      const existing = el.getAttribute("style") || ""; // preserve text-align etc. set by Tiptap
+      el.setAttribute("style", `${style} ${existing}`.trim());
+    });
+  });
+
+  // Kill trailing margin on the very last top-level block so there's no
+  // dangling gap at the bottom of the email.
+  const last = doc.body.lastElementChild;
+  if (last) {
+    const s = (last.getAttribute("style") || "").replace(/margin:0 0 \d+px 0;/, "margin:0 0 0 0;");
+    last.setAttribute("style", s);
+  }
+
+  return doc.body.innerHTML;
+};
 
 // ── Toolbar button helper ─────────────────────────────────────────────────────
 const ToolbarBtn = ({ onClick, active, disabled, title, children }) => (
@@ -150,7 +152,7 @@ const ToolbarDivider = () => (
 
 // ── Rich Text Editor ──────────────────────────────────────────────────────────
 const RichEditor = ({ onChange }) => {
-  const [linkUrl,  setLinkUrl]  = useState("");
+  const [linkUrl, setLinkUrl] = useState("");
   const [showLink, setShowLink] = useState(false);
 
   const editor = useEditor({
@@ -199,8 +201,8 @@ const RichEditor = ({ onChange }) => {
           }}
           value={
             editor.isActive("heading", { level: 1 }) ? "1" :
-            editor.isActive("heading", { level: 2 }) ? "2" :
-            editor.isActive("heading", { level: 3 }) ? "3" : "p"
+              editor.isActive("heading", { level: 2 }) ? "2" :
+                editor.isActive("heading", { level: 3 }) ? "3" : "p"
           }
           className="text-xs text-gray-600 border border-gray-200 rounded-md px-1.5 py-1 bg-white focus:outline-none focus:border-blue-400 cursor-pointer h-7"
         >
@@ -210,16 +212,16 @@ const RichEditor = ({ onChange }) => {
           <option value="3">Heading 3</option>
         </select>
         <ToolbarDivider />
-        <ToolbarBtn onClick={() => editor.chain().focus().toggleBold().run()}      active={editor.isActive("bold")}      title="Bold"><Bold size={13} /></ToolbarBtn>
-        <ToolbarBtn onClick={() => editor.chain().focus().toggleItalic().run()}    active={editor.isActive("italic")}    title="Italic"><Italic size={13} /></ToolbarBtn>
+        <ToolbarBtn onClick={() => editor.chain().focus().toggleBold().run()} active={editor.isActive("bold")} title="Bold"><Bold size={13} /></ToolbarBtn>
+        <ToolbarBtn onClick={() => editor.chain().focus().toggleItalic().run()} active={editor.isActive("italic")} title="Italic"><Italic size={13} /></ToolbarBtn>
         <ToolbarBtn onClick={() => editor.chain().focus().toggleUnderline().run()} active={editor.isActive("underline")} title="Underline"><Underline size={13} /></ToolbarBtn>
         <ToolbarDivider />
-        <ToolbarBtn onClick={() => editor.chain().focus().toggleBulletList().run()}  active={editor.isActive("bulletList")}  title="Bullet list"><List size={13} /></ToolbarBtn>
+        <ToolbarBtn onClick={() => editor.chain().focus().toggleBulletList().run()} active={editor.isActive("bulletList")} title="Bullet list"><List size={13} /></ToolbarBtn>
         <ToolbarBtn onClick={() => editor.chain().focus().toggleOrderedList().run()} active={editor.isActive("orderedList")} title="Numbered list"><ListOrdered size={13} /></ToolbarBtn>
         <ToolbarDivider />
-        <ToolbarBtn onClick={() => editor.chain().focus().setTextAlign("left").run()}   active={editor.isActive({ textAlign: "left" })}   title="Align left"><AlignLeft size={13} /></ToolbarBtn>
+        <ToolbarBtn onClick={() => editor.chain().focus().setTextAlign("left").run()} active={editor.isActive({ textAlign: "left" })} title="Align left"><AlignLeft size={13} /></ToolbarBtn>
         <ToolbarBtn onClick={() => editor.chain().focus().setTextAlign("center").run()} active={editor.isActive({ textAlign: "center" })} title="Align center"><AlignCenter size={13} /></ToolbarBtn>
-        <ToolbarBtn onClick={() => editor.chain().focus().setTextAlign("right").run()}  active={editor.isActive({ textAlign: "right" })}  title="Align right"><AlignRight size={13} /></ToolbarBtn>
+        <ToolbarBtn onClick={() => editor.chain().focus().setTextAlign("right").run()} active={editor.isActive({ textAlign: "right" })} title="Align right"><AlignRight size={13} /></ToolbarBtn>
         <ToolbarDivider />
         <ToolbarBtn onClick={() => editor.chain().focus().setHorizontalRule().run()} title="Horizontal rule"><Minus size={13} /></ToolbarBtn>
         <ToolbarDivider />
@@ -260,11 +262,11 @@ const RichEditor = ({ onChange }) => {
 
 // ── Reset KYC Modal ───────────────────────────────────────────────────────────
 const ResetKycModal = ({ user, onClose }) => {
-  const [kycType,   setKycType]   = useState("identity");
-  const [reason,    setReason]    = useState("");
+  const [kycType, setKycType] = useState("identity");
+  const [reason, setReason] = useState("");
   const [resetting, setResetting] = useState(false);
-  const [result,    setResult]    = useState(null);
-  const [error,     setError]     = useState(null);
+  const [result, setResult] = useState(null);
+  const [error, setError] = useState(null);
 
   const handleReset = async () => {
     if (!reason.trim()) return setError("Please provide a reason for the KYC reset.");
@@ -272,10 +274,10 @@ const ResetKycModal = ({ user, onClose }) => {
     setResetting(true);
     try {
       const token = localStorage.getItem("token");
-      const res   = await fetch(`${API_URL}/superAdmin/users/${user.id}/reset-kyc`, {
-        method:  "POST",
+      const res = await fetch(`${API_URL}/superAdmin/users/${user.id}/reset-kyc`, {
+        method: "POST",
         headers: { "Content-Type": "application/json", "Authorization": `Bearer ${token}` },
-        body:    JSON.stringify({ kycType, reason: reason.trim() }),
+        body: JSON.stringify({ kycType, reason: reason.trim() }),
       });
       const data = await res.json();
       if (!res.ok) {
@@ -356,11 +358,10 @@ const ResetKycModal = ({ user, onClose }) => {
                   key={opt.value}
                   type="button"
                   onClick={() => setKycType(opt.value)}
-                  className={`flex flex-col items-start gap-0.5 px-4 py-3 rounded-xl border text-left transition ${
-                    kycType === opt.value
+                  className={`flex flex-col items-start gap-0.5 px-4 py-3 rounded-xl border text-left transition ${kycType === opt.value
                       ? "border-orange-400 bg-orange-50 ring-2 ring-orange-100"
                       : "border-gray-200 bg-white hover:border-gray-300 hover:bg-gray-50"
-                  }`}
+                    }`}
                 >
                   <span className={`text-xs font-semibold ${kycType === opt.value ? "text-orange-700" : "text-gray-700"}`}>
                     {opt.label}
@@ -430,32 +431,36 @@ const ResetKycModal = ({ user, onClose }) => {
 const EmailModal = ({ onClose, totalUsers, preselectedUsers }) => {
   const isTargeted = preselectedUsers !== null;
 
-  const [subject,      setSubject]      = useState("");
-  const [body,         setBody]         = useState("");
-  const [audience,     setAudience]     = useState("all");
+  const [subject, setSubject] = useState("");
+  const [body, setBody] = useState("");
+  const [audience, setAudience] = useState("all");
   const [audienceOpen, setAudienceOpen] = useState(false);
-  const [sending,      setSending]      = useState(false);
-  const [result,       setResult]       = useState(null);
-  const [error,        setError]        = useState(null);
+  const [sending, setSending] = useState(false);
+  const [result, setResult] = useState(null);
+  const [error, setError] = useState(null);
 
   const selectedAudience = AUDIENCE_OPTIONS.find(o => o.value === audience);
-  const recipients       = preselectedUsers ?? [];
+  const recipients = preselectedUsers ?? [];
 
   const handleSend = async () => {
-    if (!subject.trim())                    return setError("Subject is required.");
+    if (!subject.trim()) return setError("Subject is required.");
     if (!body.trim() || body === "<p></p>") return setError("Message body is required.");
     setError(null);
     setSending(true);
     try {
+      // Inject inline spacing right before sending — this is the only
+      // change vs. the raw editor output. Editor state itself is untouched.
+      const htmlContent = addEmailSpacing(body.trim());
+
       const payload = isTargeted
-        ? { subject: subject.trim(), htmlContent: body.trim(), sendTo: "selected", userIds: recipients.map(u => u.id) }
-        : { subject: subject.trim(), htmlContent: body.trim(), sendTo: audience };
+        ? { subject: subject.trim(), htmlContent, sendTo: "selected", userIds: recipients.map(u => u.id) }
+        : { subject: subject.trim(), htmlContent, sendTo: audience };
 
       const token = localStorage.getItem("token");
-      const res   = await fetch(`${API_URL}/superAdmin/broadcast-email`, {
-        method:  "POST",
+      const res = await fetch(`${API_URL}/superAdmin/broadcast-email`, {
+        method: "POST",
         headers: { "Content-Type": "application/json", "Authorization": `Bearer ${token}` },
-        body:    JSON.stringify(payload),
+        body: JSON.stringify(payload),
       });
       const data = await res.json();
       if (!res.ok) {
@@ -612,7 +617,9 @@ const EmailModal = ({ onClose, totalUsers, preselectedUsers }) => {
 
 // ── Search Input ──────────────────────────────────────────────────────────────
 // Debounces the query and calls onSearch(query) after 400ms of inactivity.
-// Also resets pagination to page 1 on every new search.
+// Also resets pagination to page 1 on every new search. Matching itself is
+// entirely server-side now (partial, case-insensitive against first/middle/
+// last name and email) — this component just forwards the raw query.
 const SearchInput = ({ onSearch, isSearching, initialValue = "" }) => {
   const [value, setValue] = useState(initialValue);
   const timerRef = useRef(null);
@@ -644,7 +651,7 @@ const SearchInput = ({ onSearch, isSearching, initialValue = "" }) => {
         type="text"
         value={value}
         onChange={handleChange}
-        placeholder="Search by full name, email, username, or tag…"
+        placeholder="Search by first, middle, last name, or email…"
         className="w-full pl-8 pr-8 py-2 rounded-xl border border-gray-200 text-sm text-gray-800 placeholder-gray-400
           bg-white focus:outline-none focus:border-blue-400 focus:ring-2 focus:ring-blue-50 transition"
       />
@@ -670,14 +677,16 @@ const SearchInput = ({ onSearch, isSearching, initialValue = "" }) => {
 /**
  * Props
  * ─────
- * users            – current page of user objects
- * totalUsers       – total count (for pagination label)
+ * users            – current page of user objects (already matched + ordered by the backend)
+ * totalUsers       – total count (for pagination label) — should reflect the
+ *                     search result count when a search is active
  * limit            – page size
  * offset           – current offset
  * onPageChange     – (newOffset: number) => void
  * onStatusChange   – (userId, status) => void
  * statusUpdating   – userId currently being updated (or null)
- * onSearch         – (query: string) => void   ← called with debounced search term
+ * onSearch         – (query: string) => void   ← called with debounced search term;
+ *                     parent is expected to call the backend with ?search=<query>
  * isSearching      – boolean                   ← true while the parent is fetching
  */
 const UsersTable = ({
@@ -693,37 +702,29 @@ const UsersTable = ({
 }) => {
   const navigate = useNavigate();
 
-  const [openMenu,      setOpenMenu]      = useState(null);
-  const [selectedIds,   setSelectedIds]   = useState(new Set());
-  const [modalOpen,     setModalOpen]     = useState(false);
+  const [openMenu, setOpenMenu] = useState(null);
+  const [selectedIds, setSelectedIds] = useState(new Set());
+  const [modalOpen, setModalOpen] = useState(false);
   const [targetedUsers, setTargetedUsers] = useState(null);
-  const [kycResetUser,  setKycResetUser]  = useState(null);
+  const [kycResetUser, setKycResetUser] = useState(null);
 
-  // Tracks the *live* search term so we can re-rank whatever `users` the
-  // backend hands back — the search box itself is debounced separately.
+  // Tracks the live search term purely for UI copy (status line, empty
+  // state, placeholder wording) — the backend now owns matching and
+  // ordering, so `users` is rendered as-is, no client-side re-ranking.
   const [searchQuery, setSearchQuery] = useState("");
   const isSearchActive = searchQuery.trim().length > 0;
 
-  // Re-rank the returned page so the best match for what was typed comes
-  // first, regardless of the order the backend sent them in.
-  const displayedUsers = useMemo(() => {
-    if (!isSearchActive) return users;
-    return [...users].sort(
-      (a, b) => userMatchScore(a, searchQuery) - userMatchScore(b, searchQuery)
-    );
-  }, [users, searchQuery, isSearchActive]);
-
-  const totalPages  = Math.ceil(totalUsers / limit);
+  const totalPages = Math.ceil(totalUsers / limit);
   const currentPage = Math.floor(offset / limit) + 1;
   const pageNumbers = getPageNumbers(currentPage, totalPages);
-  const startItem   = offset + 1;
-  const endItem     = Math.min(offset + limit, totalUsers);
+  const startItem = offset + 1;
+  const endItem = Math.min(offset + limit, totalUsers);
 
   const statusOptions = ["active", "inactive", "blocked", "deactivated"];
 
-  const allSelected   = displayedUsers.length > 0 && displayedUsers.every(u => selectedIds.has(u.id));
-  const someSelected  = displayedUsers.some(u => selectedIds.has(u.id));
-  const selectedUsers = displayedUsers.filter(u => selectedIds.has(u.id));
+  const allSelected = users.length > 0 && users.every(u => selectedIds.has(u.id));
+  const someSelected = users.some(u => selectedIds.has(u.id));
+  const selectedUsers = users.filter(u => selectedIds.has(u.id));
 
   const toggleUser = (id) =>
     setSelectedIds(prev => {
@@ -734,21 +735,21 @@ const UsersTable = ({
 
   const toggleAll = () => {
     if (allSelected) {
-      setSelectedIds(prev => { const next = new Set(prev); displayedUsers.forEach(u => next.delete(u.id)); return next; });
+      setSelectedIds(prev => { const next = new Set(prev); users.forEach(u => next.delete(u.id)); return next; });
     } else {
-      setSelectedIds(prev => { const next = new Set(prev); displayedUsers.forEach(u => next.add(u.id)); return next; });
+      setSelectedIds(prev => { const next = new Set(prev); users.forEach(u => next.add(u.id)); return next; });
     }
   };
 
-  const openTargeted           = (list) => { setTargetedUsers(list); setModalOpen(true); };
-  const openTargetedFromSelect = ()     => openTargeted(selectedUsers);
-  const closeModal             = ()     => { setModalOpen(false); setTargetedUsers(null); };
+  const openTargeted = (list) => { setTargetedUsers(list); setModalOpen(true); };
+  const openTargetedFromSelect = () => openTargeted(selectedUsers);
+  const closeModal = () => { setModalOpen(false); setTargetedUsers(null); };
 
-  const openKycReset  = (user) => { setKycResetUser(user); setOpenMenu(null); };
-  const closeKycReset = ()     => setKycResetUser(null);
+  const openKycReset = (user) => { setKycResetUser(user); setOpenMenu(null); };
+  const closeKycReset = () => setKycResetUser(null);
 
-  // When a new search fires: remember the query for re-ranking, forward it
-  // to the backend, and reset to page 1.
+  // When a new search fires: remember the query (for status-line copy),
+  // forward it to the backend via onSearch, and reset to page 1.
   const handleSearch = useCallback((query) => {
     setSearchQuery(query);
     onSearch?.(query);
@@ -789,7 +790,7 @@ const UsersTable = ({
             <p className="text-xs text-blue-600">
               {isSearching
                 ? `Searching for "${searchQuery.trim()}"…`
-                : `${displayedUsers.length} match${displayedUsers.length === 1 ? "" : "es"} for "${searchQuery.trim()}" — best match shown first`}
+                : `${totalUsers.toLocaleString()} match${totalUsers === 1 ? "" : "es"} for "${searchQuery.trim()}"`}
             </p>
           </div>
         )}
@@ -824,7 +825,7 @@ const UsersTable = ({
 
         {/* ── Table ── */}
         <div className="overflow-x-auto">
-          {displayedUsers.length === 0 ? (
+          {users.length === 0 ? (
             <div className="flex flex-col items-center justify-center py-20 gap-2">
               {isSearching ? (
                 <>
@@ -861,7 +862,7 @@ const UsersTable = ({
                 </tr>
               </thead>
               <tbody className="divide-y divide-gray-50">
-                {displayedUsers.map((user) => {
+                {users.map((user) => {
                   const isChecked = selectedIds.has(user.id);
                   return (
                     <tr
@@ -934,9 +935,9 @@ const UsersTable = ({
                                   <p className="px-3 py-1.5 text-[10px] font-bold text-gray-400 uppercase tracking-wider">Set Status</p>
                                   {statusOptions.map((s) => {
                                     const colorMap = {
-                                      active:      "text-emerald-700 hover:bg-emerald-50",
-                                      inactive:    "text-amber-700 hover:bg-amber-50",
-                                      blocked:     "text-red-600 hover:bg-red-50",
+                                      active: "text-emerald-700 hover:bg-emerald-50",
+                                      inactive: "text-amber-700 hover:bg-amber-50",
+                                      blocked: "text-red-600 hover:bg-red-50",
                                       deactivated: "text-gray-600 hover:bg-gray-50",
                                     };
                                     return (
@@ -946,11 +947,10 @@ const UsersTable = ({
                                         onClick={() => { onStatusChange(user.id, s); setOpenMenu(null); }}
                                         className={`flex items-center gap-2 w-full px-3 py-2 text-xs font-medium capitalize transition disabled:opacity-40 disabled:cursor-not-allowed ${colorMap[s]}`}
                                       >
-                                        <span className={`w-1.5 h-1.5 rounded-full ${
-                                          s === "active"      ? "bg-emerald-500" :
-                                          s === "inactive"    ? "bg-amber-400"   :
-                                          s === "blocked"     ? "bg-red-500"     : "bg-gray-400"
-                                        }`} />
+                                        <span className={`w-1.5 h-1.5 rounded-full ${s === "active" ? "bg-emerald-500" :
+                                            s === "inactive" ? "bg-amber-400" :
+                                              s === "blocked" ? "bg-red-500" : "bg-gray-400"
+                                          }`} />
                                         {statusUpdating === user.id ? "Updating…" : s}
                                         {user.status === s && " ✓"}
                                       </button>
@@ -981,8 +981,8 @@ const UsersTable = ({
           )}
         </div>
 
-        {/* ── Pagination (skipped while search is active — see note below) ── */}
-        {!isSearchActive && totalUsers > limit && (
+        {/* ── Pagination ── */}
+        {totalUsers > limit && (
           <div className="flex flex-col sm:flex-row items-center justify-between gap-4 px-5 py-4 border-t border-gray-100 bg-gray-50/60">
             <p className="text-xs text-gray-400 shrink-0">
               Showing <span className="font-semibold text-gray-600">{startItem}–{endItem}</span> of{" "}
@@ -1003,11 +1003,10 @@ const UsersTable = ({
                   <button
                     key={p}
                     onClick={() => onPageChange((p - 1) * limit)}
-                    className={`w-8 h-8 flex items-center justify-center rounded-lg border text-xs font-semibold transition ${
-                      p === currentPage
+                    className={`w-8 h-8 flex items-center justify-center rounded-lg border text-xs font-semibold transition ${p === currentPage
                         ? "bg-blue-600 border-blue-600 text-white shadow-sm"
                         : "border-gray-200 bg-white text-gray-600 hover:bg-gray-100"
-                    }`}
+                      }`}
                   >
                     {p}
                   </button>
