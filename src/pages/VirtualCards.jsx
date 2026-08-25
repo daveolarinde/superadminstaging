@@ -7,7 +7,7 @@ import {
   AlertTriangle, X, CheckCircle2,
 } from "lucide-react";
 
-const baseURL = import.meta.env.VITE_API_URL;
+const baseURL = import.meta.env.VITE_STAGE_URL;
 
 const CURRENCY_SYMBOLS = { NGN: "₦", USD: "$", EUR: "€", GBP: "£", GHS: "₵" };
 const sym = (code) => CURRENCY_SYMBOLS[code] ?? code ?? "";

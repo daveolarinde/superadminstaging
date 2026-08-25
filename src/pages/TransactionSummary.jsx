@@ -325,11 +325,11 @@ export default function TransactionSummary() {
 
         const [graphRes, summaryRes] = await Promise.all([
           axios.get(
-            `${import.meta.env.VITE_API_URL}/superAdmin/get-transaction-graph${type ? `?type=${type}` : ""}`,
+            `${import.meta.env.VITE_STAGE_URL}/superAdmin/get-transaction-graph${type ? `?type=${type}` : ""}`,
             { headers: { Authorization: `Bearer ${token}` } }
           ),
           axios.get(
-            `${import.meta.env.VITE_API_URL}/superAdmin/get-transaction-summary`,
+            `${import.meta.env.VITE_STAGE_URL}/superAdmin/get-transaction-summary`,
             { headers: { Authorization: `Bearer ${token}` }, params: summaryParams }
           ),
         ]);

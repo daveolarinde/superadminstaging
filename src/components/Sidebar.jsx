@@ -86,6 +86,7 @@ const SidebarContent = ({ onClose }) => {
     { to: "/admin/profit",              label: "Profits",              icon: <DollarSign size={16} />      },
     { to: "/admin/Announcements",       label: "Announcements",        icon: <Megaphone size={16} />       },
     { to: "/admin/referral-settings",   label: "Referral Settings",    icon: <DollarSign size={16} />      },
+    {to: "/admin/onboarding-countries", label: "Countries Available", icon: <Wrench size={16} />},
   ];
 
   const financeItems = [

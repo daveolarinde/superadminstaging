@@ -10,7 +10,7 @@ export default function RecentTransactionTable() {
   const pageSize = 10;
   const navigate = useNavigate();
   const token = localStorage.getItem("token");
-  const baseUrl = import.meta.env.VITE_API_URL;
+  const baseUrl = import.meta.env.VITE_STAGE_URL;
 
 
   const fetchRecentTransactions = useCallback(async () => {

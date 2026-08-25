@@ -28,7 +28,7 @@ const ProfitFilter = ({ filters: appliedFilters = {}, onApply }) => {
   const [usersLoading, setUsersLoading] = useState(false);
   const [selectedUser, setSelectedUser] = useState(null);
 
-  const baseURL = import.meta.env.VITE_API_URL;
+  const baseURL = import.meta.env.VITE_STAGE_URL;
   const token = localStorage.getItem("token");
 
   // keep draft in sync whenever the panel is (re)opened with fresh applied filters

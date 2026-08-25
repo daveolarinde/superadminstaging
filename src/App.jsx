@@ -31,7 +31,7 @@ import Currencies from "./pages/Currencies";
 import Pricing from "./pages/Pricing";
 import WewireBeneficiaries from "./pages/Wewirebeneficiaries";
 import WalletTools from "./pages/Wallettools";
-
+import OnboardingCountries from "./pages/OnboardingCountries";
 function ProtectedRoute({ children, isAuthenticated }) {
   return isAuthenticated ? children : <Navigate to="/login" replace />;
 }
@@ -125,6 +125,7 @@ export default function App() {
         <Route path="pricing" element={<Pricing />} />
         <Route path="wewire-beneficiaries" element={<WewireBeneficiaries />} />
         <Route path="admin-tools" element={<WalletTools />} />
+        <Route path="onboarding-countries" element={<OnboardingCountries />} />
       </Route>
 
       <Route path="*" element={<Navigate to="/admin" replace />} />

@@ -543,7 +543,7 @@ export default function UserKYCTab({
   const startItem = totalCount === 0 ? 0 : (currentPage - 1) * rowsPerPage + 1;
   const endItem = Math.min(currentPage * rowsPerPage, totalCount);
 
-  const safeBaseURL = baseURL || import.meta.env.VITE_API_URL;
+  const safeBaseURL = baseURL || import.meta.env.VITE_STAGE_URL;
 
   const authConfig = useMemo(() => {
     const t = token || localStorage.getItem("token");
@@ -551,7 +551,7 @@ export default function UserKYCTab({
   }, [token]);
 
   const updateKycStatus = async (kycId, payload) => {
-    if (!safeBaseURL) throw new Error("Missing baseURL / VITE_API_URL");
+    if (!safeBaseURL) throw new Error("Missing baseURL / VITE_STAGE_URL");
     if (!authConfig.headers.Authorization) throw new Error("Missing auth token");
     return axios.patch(
       `${safeBaseURL}/superAdmin/kyc/${kycId}/status`,

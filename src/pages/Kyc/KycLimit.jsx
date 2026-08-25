@@ -1,7 +1,7 @@
 import { useState, useEffect, useCallback } from "react";
 import { ShieldCheck, Pencil, X, Check, RefreshCw, AlertCircle, ChevronRight } from "lucide-react";
 
-const API_URL = import.meta.env.VITE_API_URL;
+const API_URL = import.meta.env.VITE_STAGE_URL;
 
 // ── Helpers ───────────────────────────────────────────────────────────────────
 const getToken = () => localStorage.getItem("token");

@@ -15,7 +15,7 @@ import UnderlineExt from "@tiptap/extension-underline";
 import LinkExt from "@tiptap/extension-link";
 import TextAlign from "@tiptap/extension-text-align";
 
-const API_URL = import.meta.env.VITE_API_URL;
+const API_URL = import.meta.env.VITE_STAGE_URL;
 
 // ── Selfie helper ─────────────────────────────────────────────────────────────
 // selfieUrl isn't a top-level field on the user object — it lives inside

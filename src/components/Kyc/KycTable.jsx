@@ -202,7 +202,7 @@ const KycTable = ({
     setResetLoading(true);
     setResetToast(null);
     try {
-      const baseURL = import.meta.env.VITE_API_URL;
+      const baseURL = import.meta.env.VITE_STAGE_URL;
       const token = localStorage.getItem("token");
       const res = await fetch(baseURL + "/superAdmin/users/" + resetTarget.id + "/reset-kyc", {
         method: "POST",
@@ -545,7 +545,7 @@ const KycTable = ({
         user={selectedUser}
         isOpen={!!selectedUser}
         onClose={() => setSelectedUser(null)}
-        baseURL={import.meta.env.VITE_API_URL}
+        baseURL={import.meta.env.VITE_STAGE_URL}
         token={localStorage.getItem("token")}
         onSuccess={() => {
           // Clear the "submitted once" lock for all of this user's KYC

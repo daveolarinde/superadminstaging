@@ -12,7 +12,7 @@ import UnderlineExt from "@tiptap/extension-underline";
 import LinkExt from "@tiptap/extension-link";
 import TextAlign from "@tiptap/extension-text-align";
 
-const API_BASE_URL = import.meta.env.VITE_API_URL;
+const API_BASE_URL = import.meta.env.VITE_STAGE_URL;
 
 // ── Helpers ───────────────────────────────────────────────────────────────────
 const getToken = () => localStorage.getItem("token");

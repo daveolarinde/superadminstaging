@@ -39,7 +39,7 @@ function StatCard({ label, value, icon, bgColor, textColor, loading }) {
 
 // ── Main ──────────────────────────────────────────────────────────────────────
 export default function Dashboard() {
-  const baseURL = import.meta.env.VITE_API_URL;
+  const baseURL = import.meta.env.VITE_STAGE_URL;
   const token = localStorage.getItem("token");
 
   const [kycStats, setKycStats] = useState({ total: 0, pending: 0, approved: 0, rejected: 0 });

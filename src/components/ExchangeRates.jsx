@@ -2,7 +2,7 @@ import React, { useEffect, useState, useCallback, useMemo } from "react";
 import axios from "axios";
 import { ArrowLeftRight, Plus, ChevronLeft, Pencil, Trash2, RefreshCw } from "lucide-react";
 
-const API_URL = import.meta.env.VITE_API_URL;
+const API_URL = import.meta.env.VITE_STAGE_URL;
 const getToken = () => localStorage.getItem("token");
 
 // ── Overview rate card ────────────────────────────────────────────────────────
@@ -64,12 +64,16 @@ const MARGIN_OPERATION_OPTIONS = [
   { value: "subtract", label: "Subtract" },
 ];
 
-// Providers that can supply the live rate. Confirmed values: "graph", "wewire".
+// Providers that can supply the live rate. Confirmed values: "graph", "wewire", "startbutton".
+// Provider is optional — "Select provider..." (empty value) is a valid final
+// choice, not just a placeholder state. Admins can set their own custom rate
+// with no provider attached at all.
 const PROVIDER_OPTIONS = [
-  { value: "", label: "Select provider..." },
+  { value: "", label: "Select provider... (optional)" },
   { value: "graph", label: "Graph" },
   { value: "wewire", label: "WeWire" },
   { value: "payscribe", label: "payscribe" },
+  { value: "startbutton", label: "StartButton" },
 ];
 
 function formatDiv(rateVal) {
@@ -165,17 +169,18 @@ export default function ExchangeRates() {
 
   // ── Currency options built from /superAdmin/currencies ─────────────────────
   const currencyOptions = useMemo(() => {
-    const active = currencies.filter((c) => c.isActive !== false);
     return [
       { value: "", label: "Select currency..." },
-      ...active
+      ...currencies
         .slice()
         .sort((a, b) => a.code.localeCompare(b.code))
-        .map((c) => ({ value: c.code, label: `${c.code} — ${c.name}` })),
+        .map((c) => ({
+          value: c.code,
+          label: c.isActive === false ? `${c.code} — ${c.name} (Inactive)` : `${c.code} — ${c.name}`,
+        })),
     ];
   }, [currencies]);
 
-  // Plain list of active currency codes (for filter dropdown, etc.)
   const currencyCodes = useMemo(
     () => currencyOptions.filter((opt) => opt.value).map((opt) => opt.value),
     [currencyOptions]
@@ -203,7 +208,6 @@ export default function ExchangeRates() {
       const data = res.data?.data;
       if (data) {
         setLiveRates((prev) => {
-          // Replace existing entry for same pair or append
           const exists = prev.findIndex((r) => r.from === data.from && r.to === data.to);
           if (exists >= 0) {
             const updated = [...prev];
@@ -298,10 +302,10 @@ export default function ExchangeRates() {
     }
   };
 
+  // Provider is no longer required to create a rate.
   const createRate = async () => {
     if (!baseCurrency || !targetCurrency) return alert("Base and target currencies are required");
     if (!margin) return alert("Margin is required");
-    if (!provider) return alert("Provider is required");
     try {
       const res = await axios.post(
         `${API_URL}/superAdmin/exchange-rates`,
@@ -311,7 +315,7 @@ export default function ExchangeRates() {
           ...(rate ? { rate: rate.trim() } : {}),
           margin: Number(margin),
           marginOperation,
-          provider,
+          ...(provider ? { provider } : {}),
         },
         { headers: { Authorization: `Bearer ${getToken()}` } }
       );
@@ -329,10 +333,10 @@ export default function ExchangeRates() {
     }
   };
 
+  // Provider is no longer required to update a rate.
   const updateRate = async () => {
     if (!selected || saving) return;
     if (!editMargin) return alert("Margin is required");
-    if (!editProvider) return alert("Provider is required");
     try {
       setSaving(true);
       const res = await axios.put(
@@ -341,7 +345,7 @@ export default function ExchangeRates() {
           rate: editRate.trim(),
           margin: Number(editMargin),
           marginOperation: editMarginOperation,
-          provider: editProvider,
+          provider: editProvider || null,
         },
         { headers: { Authorization: `Bearer ${getToken()}` } }
       );
@@ -436,7 +440,6 @@ export default function ExchangeRates() {
               )}
             </button>
 
-            {/* Fetched rate cards */}
             {liveRates.length > 0 && (
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 pt-1">
                 {liveRates.map((r) => (
@@ -538,7 +541,6 @@ export default function ExchangeRates() {
       {/* ── LIST ── */}
       {tab === "list" && (
         <div className="bg-white rounded-2xl border border-gray-100 shadow-sm overflow-hidden">
-          {/* ── Filter bar ── */}
           <div className="flex items-center justify-between px-5 py-3.5 border-b border-gray-100 bg-gray-50/50">
             <p className="text-xs font-semibold text-gray-500">
               {filterCurrency ? `Showing ${filterCurrency} pairs (${filteredRates.length})` : `Showing all rates (${rates.length})`}
@@ -668,7 +670,7 @@ export default function ExchangeRates() {
           </div>
 
           <Select
-            label="Provider *"
+            label="Provider"
             options={PROVIDER_OPTIONS}
             value={provider}
             onChange={(e) => setProvider(e.target.value)}
@@ -751,7 +753,7 @@ export default function ExchangeRates() {
             </div>
 
             <Select
-              label="Provider *"
+              label="Provider"
               options={PROVIDER_OPTIONS}
               value={editProvider}
               onChange={(e) => setEditProvider(e.target.value)}

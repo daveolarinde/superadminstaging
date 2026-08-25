@@ -7,7 +7,7 @@ import { Search, SlidersHorizontal, X } from "lucide-react";
 import UserSummaryCards from "../../components/users/Usersummarycards";
 import UsersTable from "../../components/users/Userstable";
 
-const baseURL = import.meta.env.VITE_API_URL;
+const baseURL = import.meta.env.VITE_STAGE_URL;
 
 export default function InactiveUsers() {
   const [users, setUsers] = useState([]);
